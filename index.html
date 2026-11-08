@@ -43,14 +43,8 @@
         <span class="step-num" aria-hidden="true">1</span>
         <div>
           <h2>Your pot</h2>
-          <p class="hint">Type it in, or paste a snapshot from your tracker to fill in the pot, your mix and your cash.</p>
+          <p class="hint">Your total investments and cash, and how they are split today.</p>
         </div>
-      </div>
-
-      <div class="field">
-        <label for="snapshot">Paste your portfolio snapshot (optional)</label>
-        <textarea id="snapshot" rows="4" spellcheck="false" placeholder="Portfolio Snapshot ..."></textarea>
-        <div id="snapshot-status" class="status" hidden></div>
       </div>
 
       <div class="grid-4">
@@ -70,6 +64,26 @@
           <label for="years">Plan for how long</label>
           <select id="years" name="years"></select>
         </div>
+      </div>
+
+      <div class="field">
+        <span class="field-label" id="mix-label">Your current mix: shares / bonds / cash</span>
+        <div class="chips" id="mixes" role="radiogroup" aria-labelledby="mix-label"></div>
+        <div id="custom-mix" class="grid-3" hidden>
+          <div class="field">
+            <label for="mix-eq">Shares %</label>
+            <input id="mix-eq" inputmode="decimal" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="mix-bd">Bonds %</label>
+            <input id="mix-bd" inputmode="decimal" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="mix-cash">Cash %</label>
+            <input id="mix-cash" inputmode="decimal" autocomplete="off">
+          </div>
+        </div>
+        <p class="hint" id="mix-summary"></p>
       </div>
     </section>
 

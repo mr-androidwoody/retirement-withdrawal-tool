@@ -61,6 +61,8 @@ form { display: flex; flex-direction: column; gap: 24px; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field label { font-size: 14px; font-weight: 600; }
 .opt { font-weight: 400; color: var(--muted); }
+.field-label { font-size: 14px; font-weight: 600; }
+.chip[aria-checked="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
 .subbox .field label { font-weight: 500; color: var(--muted); font-size: 13px; }
 input, select, textarea { font: inherit; font-size: 16px; padding: 11px 12px; min-height: 44px; border: 1px solid var(--line-strong); border-radius: 8px; background: #fff; color: var(--ink); width: 100%; }
 textarea { font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace; resize: vertical; background: #fbfbfa; }

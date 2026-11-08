@@ -61,12 +61,12 @@ and in Node:
   Guyton-Klinger guardrails, floor and ceiling
 - `simulate.js` runs one plan through one past retirement, a year at a time
 - `metrics.js` measures each run (lowest income, years below wanted, end value, biggest fall)
-- `snapshot.js` reads a pasted Portfolio Snapshot. A snapshot is tested two ways: cash spent
-  first, and cash kept as a flexible reserve (1 to 3 years of withdrawals, aiming for 2, with the
-  rest invested over 5 years and top-ups paused in a downturn; settings in `config.json` under
-  `cashReserve`)
 - `search.js` builds the grid of about 440 plans, runs each against every past retirement,
-  and picks the four rows: Recommended, Safest income, Highest typical income, Most left behind
+  and picks the four rows: Recommended, Safest income, Highest typical income, Most left behind.
+  It also tests your current mix (pot split into shares / bonds / cash, from a predefined list in
+  `config.json` under `currentMixes`, or a custom split) two ways: cash spent first, and cash
+  kept as a flexible reserve (1 to 3 years of withdrawals, aiming for 2, with the rest invested
+  over 5 years and top-ups paused in a downturn; settings under `cashReserve`)
 
 Settings, search ranges and presets are in `data/config.json`, including `statePension` (the
 full new State Pension rate and age used to prefill pension rows; update it each April) and
