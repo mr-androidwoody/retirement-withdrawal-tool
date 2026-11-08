@@ -780,11 +780,17 @@ function renderResults() {
  * (within £1, as with a fixed income that never ran out), the one that came closest to running
  * out, judged by the least left at the end.
  */
-function defaultYear(sims) {
+function worstCase(sims) {
   const lowest = Math.min(...sims.map((s) => s.minIncomeReal));
   const tied = sims.filter((s) => s.minIncomeReal <= lowest + 1);
-  return [...tied].sort((a, b) => a.endReal - b.endReal || a.startYear - b.startYear)[0].startYear;
+  const year = [...tied].sort((a, b) => a.endReal - b.endReal || a.startYear - b.startYear)[0].startYear;
+  let reason = 'Lowest income in any year';
+  if (tied.length === sims.length && sims.length > 1) reason = 'Paid the same in every year, and left the least at the end';
+  else if (tied.length > 1) reason = 'Joint lowest income in any year, and left the least at the end';
+  return { year, reason };
 }
+
+const defaultYear = (sims) => worstCase(sims).year;
 
 function openDetail(item) {
   const req = state.request;
@@ -823,6 +829,9 @@ function renderDetail() {
   const selected = state.detail.selected;
   const r = keep ? { ...item.result, ...summarisePlan(sims, req) } : item.result;
   const n = sims.length;
+  const worst = worstCase(sims);
+  const worstName = keep ? `Worst case of these ${n}` : 'Worst case for this option';
+  const retiredLabel = (y) => `Retired ${y}${y === worst.year ? ' (worst case)' : ''}`;
   const limit = keep ? allowedFailures(req.riskShare ?? 0, n) : req.maxFailures;
   const rankOf = new Map((state.ranking || []).map((x) => [x.startYear, x]));
   const subsetName = keep ? `${periods === 'worst' ? 'Worst' : 'Best'} ${n} starts` : '';
@@ -832,7 +841,7 @@ function renderDetail() {
   const sel = sims.find((s) => s.startYear === selected);
 
   const chartLines = (pick) => sims.map((s) => ({
-    values: s.rows.map(pick), highlight: s.startYear === selected, ranOut: s.depleted || s.nearlyDepleted, label: `Retired ${s.startYear}`,
+    values: s.rows.map(pick), highlight: s.startYear === selected, ranOut: s.depleted || s.nearlyDepleted, label: retiredLabel(s.startYear),
   }));
   const anyRanOut = sims.some((s) => s.depleted || s.nearlyDepleted);
   const incomeChart = lineChart({
@@ -852,7 +861,7 @@ function renderDetail() {
   const selRanOut = sel.depleted || sel.nearlyDepleted;
   const key = (colour, width, dash = '') => `<svg class="key" viewBox="0 0 22 8" aria-hidden="true"><line x1="1" x2="21" y1="4" y2="4" stroke="${colour}" stroke-width="${width}" ${dash ? `stroke-dasharray="${dash}"` : ''} stroke-linecap="butt"/></svg>`;
   const legend = (refs) => `<div class="legend">
-      <span>${key(selRanOut ? '#b42318' : '#0b5f7a', 3)}Retired ${selected}</span>
+      <span>${key(selRanOut ? '#b42318' : '#0b5f7a', 3)}${retiredLabel(selected)}</span>
       <span>${key('#4b5563', 1.5)}Median</span>
       <span><i class="box mid"></i>Middle half of past retirements</span>
       <span><i class="box range"></i>Full range</span>
@@ -870,7 +879,8 @@ function renderDetail() {
         : cuts ? ['warn', `${cuts} yr${cuts > 1 ? 's' : ''} cut`] : ['good', 'lasted'];
     const rk = rankOf.get(s.startYear);
     const rankTag = rk ? `<span class="rk" title="Rank ${rk.rank} of ${total}: 1 is the worst start for your mix">#${rk.rank}</span>` : '';
-    return `<button type="button" class="yr ${cls}" data-year="${s.startYear}" aria-pressed="${s.startYear === selected}">${rankTag}<span class="yr-y">${ICON[cls]}${s.startYear}</span><small>${word}</small></button>`;
+    const isWorst = s.startYear === worst.year;
+    return `<button type="button" class="yr ${cls}${isWorst ? ' worst' : ''}" data-year="${s.startYear}" aria-pressed="${s.startYear === selected}"${isWorst ? ` aria-label="${s.startYear}, ${word}, ${worstName.toLowerCase()}"` : ''}>${rankTag}<span class="yr-y">${ICON[cls]}${s.startYear}</span><small>${word}</small>${isWorst ? '<span class="worst-tag">Worst case</span>' : ''}</button>`;
   }).join('');
 
   const zeroOr = (v, f) => (Math.round(v / 100) === 0 ? '<span class="zero">0</span>' : f(v));
@@ -912,7 +922,10 @@ function renderDetail() {
   const selFig = (k, v, sub, subCls = '') => `<div class="sel-fig"><div class="k">${k}</div><div class="v">${v}</div><div class="sub ${subCls}">${sub}</div></div>`;
   const selBlock = `<div class="sel-box">
       <div class="sel-head">
-        <h4>Retired in ${selected} <span class="st-chip ${selCls}">${ICON[selCls]}${escapeHtml(selWord)}</span></h4>
+        <div>
+          <h4>Retired in ${selected} <span class="st-chip ${selCls}">${ICON[selCls]}${escapeHtml(selWord)}</span>${selected === worst.year ? `<span class="worst-chip">${worstName}</span>` : ''}</h4>
+          ${selected === worst.year ? `<p class="worst-why">${escapeHtml(worst.reason)}.</p>` : ''}
+        </div>
         ${selRank && mixName ? `<p>Rank ${selRank.rank} of ${total} for your ${escapeHtml(mixName)} mix: ${signedPct(selRank.realReturn, 1)} a year after inflation over its first ${state.config.risk.rankYears} years. Rank 1 is the worst start.</p>` : ''}
       </div>
       <div class="sel-figs">
@@ -960,7 +973,7 @@ function renderDetail() {
 
       <section class="panel">
         <h3>${keep ? `${subsetName}, worst first` : 'Each past retirement'}</h3>
-        <p class="hint">Choose a start year to highlight it in the charts and see it year by year. It opens on the retirement with the lowest income or, if every retirement paid the same, the one that left the least at the end. The small number is each start's rank for your mix, 1 being the worst.</p>
+        <p class="hint">Choose a start year to highlight it in the charts and see it year by year. The small number is each start's rank for your mix, 1 being the worst.</p>
         <div class="strip" id="strip">${strip}</div>
         ${selBlock}
         <div class="legend"><span class="st good">${ICON.good}Lasted, never below what you want</span><span class="st warn">${ICON.warn}Lasted, some years below what you want</span><span class="st bad">${ICON.bad}Ran out, or under a year's withdrawal left</span></div>
