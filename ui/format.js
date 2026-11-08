@@ -35,6 +35,7 @@ function bufferAmount(plan, request) {
 /** Short name: "Floor and ceiling, 5-year cash buffer, 80/20 shares and bonds". */
 export function planName(plan) {
   const s = getStrategy(plan.strategy);
+  const label = plan.params?.pinned ? `${s.label} at the income you want` : s.label;
   let buffer;
   if (plan.cashBuffer.amount !== undefined) {
     buffer = plan.cashRule === 'flexible' ? 'your cash kept as a 1 to 3 year reserve' : 'your cash spent first';
@@ -44,9 +45,9 @@ export function planName(plan) {
   if (plan.currentMix) {
     const m = plan.currentMix;
     const r = (x) => Math.round(x * 100);
-    return `${s.label}, ${buffer}, your ${r(m.equities)}/${r(m.bonds)}/${r(m.cash)} mix`;
+    return `${label}, ${buffer}, your ${r(m.equities)}/${r(m.bonds)}/${r(m.cash)} mix`;
   }
-  return `${s.label}, ${buffer}, ${mixText(plan)}`;
+  return `${label}, ${buffer}, ${mixText(plan)}`;
 }
 
 /** The three recipe lines shown under each option: income, cash, the rest. */
@@ -99,4 +100,12 @@ export function recipe(plan, request) {
   const split = eq === 100 ? 'all shares' : `${eq}% shares, ${100 - eq}% bonds`;
   const rest = plan.fromCurrent ? `${split} of the invested part, as in your current mix.` : `${split}.`;
   return { income, cash, rest };
+}
+
+/** How a plan's holdings differ from the user's mix, e.g. "90/10 shares and bonds, no cash". */
+export function holdingsText(plan) {
+  const eq = Math.round(plan.mix.equities * 100);
+  const split = eq === 100 ? 'all shares' : `${eq}/${100 - eq} shares and bonds`;
+  if (plan.cashBuffer.amount !== undefined) return `${split}, with your cash`;
+  return plan.cashBuffer.years ? `${plan.cashBuffer.years} years of withdrawals in cash, the rest ${split}` : `${split}, no cash`;
 }

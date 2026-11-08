@@ -4,7 +4,7 @@ import { validateDataset, makeWindows } from '../engine/dataset.js';
 import { runSearch, whatIf, buildGrid, strategySettings, CASH_RULES, currentFromMix } from '../engine/search.js';
 import { simulate } from '../engine/simulate.js';
 import { buildProfile } from '../engine/profile.js';
-import { gbp, pct, escapeHtml, parseAmount, formatAmount, planName, recipe } from './format.js';
+import { gbp, pct, escapeHtml, parseAmount, formatAmount, planName, recipe, holdingsText } from './format.js';
 import { lineChart } from './charts.js';
 
 const $ = (id) => document.getElementById(id);
@@ -121,6 +121,7 @@ function initForm() {
     refresh();
   });
   $('plan-form').addEventListener('change', refresh);
+  $('keep-mix').addEventListener('change', refresh);
   for (const id of ['pot', 'wanted', 'minimum', 'change-wanted', 'change-minimum', 'other1-amount', 'other2-amount']) {
     $(id).addEventListener('blur', () => {
       const v = parseAmount($(id).value);
@@ -353,9 +354,14 @@ function readRequest() {
   };
 }
 
-function planCount() {
-  return buildGrid(state.config).length + CASH_RULES.length * strategySettings(state.config).length;
+function planCount(request) {
+  const req = request && request.pot > 0 && request.wanted > 0 ? request : null;
+  const per = strategySettings(state.config, req).length;
+  if ($('keep-mix').checked) return CASH_RULES.length * per;
+  return buildGrid(state.config, req).length + CASH_RULES.length * per;
 }
+
+const mixLabelText = (m) => `${Math.round(m.equities * 100)}/${Math.round(m.bonds * 100)}/${Math.round(m.cash * 100)}`;
 
 function refresh() {
   if (!state.dataset) return;
@@ -370,9 +376,6 @@ function refresh() {
   }
 
   $('source-line').textContent = `Tested against ${n} real retirements starting ${first} to ${last} · global shares in £, UK gilts and cash, UK inflation`;
-  const count = planCount();
-  for (const el of document.querySelectorAll('[data-bind="plan-count"]')) el.textContent = count.toLocaleString('en-GB');
-  for (const el of document.querySelectorAll('[data-bind="plan-count-number"]')) el.textContent = count.toLocaleString('en-GB');
 
   const g = state.config.grid;
   const mixes = `${Math.round(g.mixes[0] * 100)}% to ${Math.round(g.mixes.at(-1) * 100)}% shares`;
@@ -397,10 +400,13 @@ function refresh() {
     const y = Number(opt.value);
     opt.textContent = age ? `${y} years (to age ${age + y - 1})` : `${y} years`;
   }
-  $('settings-summary').textContent = `Global shares (£) and UK gilts · starts ${first} to ${last} · all four approaches · ${mixes} · ${buffers} · plus your current mix · charges ${Number.isFinite(fee) ? fee : '?'}% a year`;
+  $('settings-summary').textContent = `Global shares (£) and UK gilts · starts ${first} to ${last} · all four approaches · ${mixes} · ${buffers}${$('keep-mix').checked ? ' (keeping your mix)' : ' · plus your current mix'} · charges ${Number.isFinite(fee) ? fee : '?'}% a year`;
 
   // Goal in words.
   const { request } = readRequest();
+  const count = planCount(request);
+  for (const el of document.querySelectorAll('[data-bind="plan-count"]')) el.textContent = count.toLocaleString('en-GB');
+  for (const el of document.querySelectorAll('[data-bind="plan-count-number"]')) el.textContent = count.toLocaleString('en-GB');
   const has = (x) => Number.isFinite(x) && x > 0;
   const span = request.age ? `${years} years, from age ${request.age} to ${request.age + years - 1},` : `${years} years`;
   let text = `Find ways to draw <strong>${has(request.wanted) ? gbp(request.wanted) : '[income you want]'}</strong> a year for ${span} from <strong>${has(request.pot) ? gbp(request.pot) : '[your pot]'}</strong>. `
@@ -441,7 +447,9 @@ function onFind(e) {
   setTimeout(() => {
     try {
       state.request = request;
-      state.result = runSearch({ dataset: state.dataset, config: state.config, request, current: currentFromMix(request.pot, mix) });
+      state.mix = mix;
+      state.result = runSearch({ dataset: state.dataset, config: state.config, request,
+        current: currentFromMix(request.pot, mix), keepMix: $('keep-mix').checked });
       renderResults();
       show('results');
     } catch (err) {
@@ -482,6 +490,7 @@ function optionCell(r, badges, request) {
       <div class="recipe"><strong>Income:</strong> ${escapeHtml(rec.income)}</div>
       <div class="recipe"><strong>Cash:</strong> ${escapeHtml(rec.cash)}</div>
       <div class="recipe"><strong>The rest:</strong> ${escapeHtml(rec.rest)}</div>
+      ${!r.plan.fromCurrent && state.mix ? `<div class="recipe diff">Different mix from yours: ${escapeHtml(holdingsText(r.plan))} (yours: ${mixLabelText(state.mix)})</div>` : ''}
       <div><button type="button" class="link" data-open="${idx}">See this option in detail ›</button></div>
     </div></td>`;
 }
@@ -502,21 +511,44 @@ function renderResults() {
   const n = r.windows.length;
   state.openable = [];
   const k = r.rows.length;
-  const heading = k ? `${k} way${k > 1 ? 's' : ''} that meet${k > 1 ? '' : 's'} your needs` : 'No way of drawing your pot meets these needs';
+  const mixName = state.mix ? mixLabelText(state.mix) : '';
+  let heading;
+  if (r.keepMix) heading = k ? `${k} way${k > 1 ? 's' : ''} to draw your ${mixName} mix that meet${k > 1 ? '' : 's'} your needs` : `No way of drawing your ${mixName} mix meets these needs`;
+  else if (r.currentRows && r.currentRows.length) heading = 'Your results';
+  else heading = k ? `${k} way${k > 1 ? 's' : ''} that meet${k > 1 ? '' : 's'} your needs` : 'No way of drawing your pot meets these needs';
 
   let html = `<button type="button" class="link back" data-nav="plan">‹ Change your inputs</button>
     <header class="results-head">
       <h1>${heading}</h1>
-      <p class="hint">You asked for ${gbp(req.wanted)} a year, never below ${gbp(req.minimum)}, with ${req.maxFailures === 0 ? 'none' : `up to ${req.maxFailures}`} of ${n} past retirements (starting ${r.windows[0].startYear} to ${r.windows.at(-1).startYear}) allowed to run out. ${r.plansTried.toLocaleString('en-GB')} plans were tested.</p>
+      <p class="hint">You asked for ${gbp(req.wanted)} a year, never below ${gbp(req.minimum)}, with ${req.maxFailures === 0 ? 'none' : `up to ${req.maxFailures}`} of ${n} past retirements (starting ${r.windows[0].startYear} to ${r.windows.at(-1).startYear}) allowed to run out. ${r.plansTried.toLocaleString('en-GB')} plans were tested${r.keepMix ? `, all with your ${mixName} mix` : ''}.</p>
     </header>`;
 
+  // 1. Your mix as it is now (first, so it is the reference point).
+  if (r.currentRows && r.currentRows.length) {
+    const RULE_TEXT = { 'spend-first': 'Cash spent first', flexible: 'Cash kept as a reserve' };
+    html += `<h2 class="section-title">Your ${mixName} mix as it is now</h2>
+      <p class="hint">Your current split, drawn whichever of the four ways suited it best, with your cash handled two ways.</p>
+      <div class="table-box mine"><table class="results-table">${HEAD(n, req.years)}<tbody>`;
+    for (const c of r.currentRows) {
+      const badges = [{ text: 'Your mix as it is now', cls: 'strong' }, { text: RULE_TEXT[c.cashRule] || c.cashRule, cls: 'plain' }];
+      html += `<tr>${optionCell(c.result, badges, req)}${cells(c.result, n)}</tr>`;
+      if (!c.meetsNeeds) html += `<tr><td colspan="7" class="recipe flag">With this cash rule and any of the four approaches, your current mix did not meet these needs; this is its nearest miss.</td></tr>`;
+    }
+    html += '</tbody></table></div>';
+  }
+
+  // 2. The best options found.
+  if (r.currentRows && r.currentRows.length) {
+    const otherTitle = k ? `Other ways to draw your pot: ${k} that meet${k > 1 ? '' : 's'} your needs` : 'Other ways to draw your pot';
+    html += `<h2 class="section-title">${otherTitle}</h2>
+      <p class="hint">The best options from the full search. They may use a different mix from yours; each one says how. Tick "Keep my mix" in step 4 to search only your mix.</p>`;
+  }
   if (k) {
     html += `<div class="table-box"><table class="results-table">${HEAD(n, req.years)}<tbody>`;
     r.rows.forEach((row, i) => {
       const badges = row.labels.map((t) => ({ text: t, cls: t === 'Recommended' ? 'strong' : '' }));
       html += `<tr>${optionCell(row.result, badges, req)}${cells(row.result, n)}</tr>`;
       if (i === 0 && row.result.status === 'meets-minimum') {
-        // Nothing meets the income wanted in full: say so once.
         html += `<tr><td colspan="7" class="recipe">No plan paid the full ${gbp(req.wanted)} in every past retirement; these options stay above your minimum.</td></tr>`;
       }
     });
@@ -526,17 +558,6 @@ function renderResults() {
       <p class="hint">Try a lower income, a lower minimum, or allowing more past retirements to run out. The nearest misses were:</p><ul>`
       + r.closest.map((c) => `<li><strong>${escapeHtml(planName(c.plan))}</strong>: ran out or fell below your minimum in ${c.failingMinimum} of ${n}; typical income ${gbp(c.typicalIncome)}. <button type="button" class="link" data-open="${state.openable.push({ result: c, labels: ['Closest'] }) - 1}">See detail</button></li>`).join('')
       + '</ul></section>';
-  }
-
-  if (r.currentRows && r.currentRows.length) {
-    const RULE_TEXT = { 'spend-first': 'Cash spent first', flexible: 'Cash kept as a reserve' };
-    html += `<div class="table-box mine"><table class="results-table">${HEAD(n, req.years)}<tbody>`;
-    for (const s of r.currentRows) {
-      const badges = [{ text: 'Your mix as it is now', cls: 'strong' }, { text: RULE_TEXT[s.cashRule] || s.cashRule, cls: 'plain' }];
-      html += `<tr>${optionCell(s.result, badges, req)}${cells(s.result, n)}</tr>`;
-      if (!s.meetsNeeds) html += `<tr><td colspan="7" class="recipe flag">With this cash rule and any of the four approaches, your current mix did not meet these needs; this is its nearest miss.</td></tr>`;
-    }
-    html += '</tbody></table></div>';
   }
 
   if (r.others.length) {
