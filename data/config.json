@@ -30,6 +30,14 @@
     ]
   },
 
+  "cashReserve": {
+    "floorYears": 1,
+    "targetYears": 2,
+    "maxYears": 3,
+    "phaseInYears": 5,
+    "downturnDrop": 0.1
+  },
+
   "guytonKlinger": {
     "guardrail": 0.2,
     "adjustment": 0.1,
