@@ -136,7 +136,8 @@ td { padding: 18px 12px; vertical-align: top; border-top: 1px solid var(--line);
 .results-table .opt-main td { padding-top: 18px; padding-bottom: 12px; }
 .results-table .opt-recipe td { border-top: 1px dashed var(--line); background: #fbfbf9; padding: 12px 16px 16px; }
 .mine .results-table .opt-recipe td { border-top: 1px dashed var(--line); }
-.recipe-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 24px; }
+/* Income usually has the most to say, so it gets the widest column; the rest is shortest. */
+.recipe-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) minmax(0, 1fr); gap: 8px 24px; }
 .recipe-grid p { margin: 0; font-size: 13px; line-height: 1.5; color: #374151; }
 .recipe-grid strong { display: block; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
 .opt-recipe .diff { margin: 10px 0 4px; font-size: 13px; font-style: italic; color: #374151; }
@@ -276,7 +277,7 @@ th.num { white-space: normal; }
 .rec-box h2 { margin: 0; font-size: 26px; font-family: var(--display); }
 .rec-box h2 .aka { font-size: 18px; font-weight: 500; color: var(--muted); }
 .rec-about { margin: 0; font-size: 15px; color: #374151; }
-.rec-box .diff { margin: 0; font-size: 13px; font-style: italic; color: #374151; }
+.rec-box .diff { margin: 0; padding: 0 12px; font-size: 13px; font-style: italic; color: #374151; }
 .rec-figs { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 4px; }
 .rec-figs > div { display: grid; grid-row: span 3; grid-template-rows: subgrid; row-gap: 2px; background: #f5f6f4; border-radius: 8px; padding: 10px 12px; }
 .rec-figs .k { font-size: 12px; color: var(--muted); }
@@ -308,3 +309,18 @@ th.num { white-space: normal; }
 .strategy p { margin: 4px 0 0; font-size: 14px; line-height: 1.55; }
 .strategy .trade { color: #374151; }
 .strategy .tried { font-size: 13px; color: var(--muted); }
+
+/* Recipe text lines up with the text inside the figure tiles. */
+.recipe-grid.aligned p { padding: 0 12px; }
+
+/* In the recommendation box the three columns sit on the same grid as the figure tiles below,
+   so their left edges and text line up: income over two tiles, cash over two (one when there
+   are four tiles), the rest over the last. */
+@media (min-width: 721px) {
+  .rec-figs { grid-template-columns: repeat(var(--cols, 5), minmax(0, 1fr)); }
+  .recipe-grid.aligned { grid-template-columns: repeat(var(--cols, 5), minmax(0, 1fr)); column-gap: 10px; }
+  .recipe-grid.aligned p:nth-child(1) { grid-column: span 2; }
+  .recipe-grid.aligned p:nth-child(2) { grid-column: span 2; }
+  .recipe-grid.aligned.four p:nth-child(2) { grid-column: span 1; }
+  .recipe-grid.aligned p:nth-child(3) { grid-column: span 1; }
+}
