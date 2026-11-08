@@ -25,6 +25,11 @@ tests run on every push (`.github/workflows/test.yml`).
 - `ui/format.js`: plain-English plan names and recipes
 - `ui/charts.js`: the income and pot charts (plain SVG, no libraries)
 
+Inputs are saved as you type in the browser's `localStorage` (key
+`retirement-withdrawal-tool.inputs.v1`), so they are still there after a reload. Nothing leaves the
+browser. "Clear saved inputs" removes them and goes back to the defaults. If the saved format ever
+changes, bump the version in the key so old saves are ignored rather than misread.
+
 ## Historical data
 
 `data/jst-r6-global-gbp.json` holds one row per year from 1950 to 2020:
