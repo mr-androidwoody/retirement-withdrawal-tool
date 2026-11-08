@@ -1,1 +1,50 @@
+{
+  "dataset": "data/jst-r6-global-gbp.json",
+  "firstStartYear": 1970,
+  "retirementLengths": [25, 30, 35],
 
+  "defaults": {
+    "pot": 500000,
+    "years": 30,
+    "wanted": 22500,
+    "minimum": 18000,
+    "incomeChange": null,
+    "otherIncome": [],
+    "maxFailures": 1,
+    "annualFee": 0.0025
+  },
+
+  "thresholds": {
+    "nearlyRanOutYears": 1,
+    "incomeTolerance": 1
+  },
+
+  "grid": {
+    "mixes": [0.6, 0.7, 0.8, 0.9, 1.0],
+    "cashBufferYears": [0, 2, 5, 10],
+    "strategies": [
+      { "strategy": "constant-real", "rates": [0.03, 0.035, 0.04, 0.045, 0.05] },
+      { "strategy": "fixed-percentage", "rates": [0.04, 0.045, 0.05, 0.055] },
+      { "strategy": "guyton-klinger", "rates": [0.04, 0.045, 0.05, 0.055, 0.06] },
+      { "strategy": "floor-ceiling", "rates": [0.04, 0.045, 0.05, 0.055], "floorPct": [0.9, 1.0], "ceilingPct": [1.5] }
+    ]
+  },
+
+  "guytonKlinger": {
+    "guardrail": 0.2,
+    "adjustment": 0.1,
+    "inflationCap": 0.06,
+    "noCutFinalYears": 15,
+    "skipOnlyIfAboveStartRate": true
+  },
+
+  "presets": [
+    { "id": "typical", "label": "Typical retirement", "values": { "pot": 500000, "years": 30, "wanted": 22500, "minimum": 18000, "maxFailures": 1 } },
+    { "id": "nothing-runs-out", "label": "Nothing may run out", "values": { "pot": 500000, "years": 30, "wanted": 22500, "minimum": 18000, "maxFailures": 0 } },
+    { "id": "modest", "label": "Modest income", "values": { "pot": 500000, "years": 30, "wanted": 17500, "minimum": 15000, "maxFailures": 1 } },
+    { "id": "early", "label": "Retiring early", "values": { "pot": 500000, "years": 35, "wanted": 20000, "minimum": 16000, "maxFailures": 1 } },
+    { "id": "can-vary", "label": "Income can vary", "values": { "pot": 500000, "years": 30, "wanted": 22500, "minimum": 15000, "maxFailures": 1 } },
+    { "id": "too-much", "label": "Asking for too much", "values": { "pot": 500000, "years": 30, "wanted": 35000, "minimum": 32000, "maxFailures": 0 } },
+    { "id": "change", "label": "Income changes later", "values": { "pot": 500000, "years": 30, "wanted": 26000, "minimum": 20000, "maxFailures": 1, "incomeChange": { "fromYear": 11, "wanted": 20000, "minimum": 16000 } } }
+  ]
+}
