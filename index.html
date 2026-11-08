@@ -22,22 +22,6 @@
     <p class="source"><span class="dot" aria-hidden="true"></span><span id="source-line">Loading the historical data...</span></p>
   </header>
 
-  <section class="how">
-    <h2>How this works</h2>
-    <ol>
-      <li>Tell us your pot, the income you want and the least you could live on.</li>
-      <li>We try <span data-bind="plan-count">hundreds of</span> ways of drawing your pot against every past retirement.</li>
-      <li>You see the few that meet your needs, each the best at one thing.</li>
-    </ol>
-  </section>
-
-  <section class="presets" aria-labelledby="presets-title">
-    <h2 id="presets-title">Start from an example</h2>
-    <div class="chips" id="presets"></div>
-    <p class="hint">Examples only fill in the form. You can change any figure afterwards.</p>
-    <p class="hint" id="saved-note">Your inputs are saved in this browser only, so they are still here when you come back. <button type="button" class="link inline" id="clear-saved">Clear saved inputs</button></p>
-  </section>
-
   <form id="plan-form" novalidate>
     <section class="card step">
       <div class="step-head">
@@ -252,6 +236,7 @@
       </div>
       <div id="form-errors" class="errors" role="alert" hidden></div>
       <button type="submit" class="primary" id="find">Find options</button>
+      <p class="hint" id="saved-note">Your inputs are saved in this browser only, so they are still here when you come back. <button type="button" class="link inline" id="clear-saved">Clear saved inputs</button></p>
     </section>
   </form>
 </section>

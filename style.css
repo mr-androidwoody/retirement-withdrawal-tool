@@ -37,12 +37,7 @@ h1 { font: 600 40px/1.15 var(--display); }
 .source { color: var(--muted); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); display: inline-block; }
 
-.how { background: var(--info); border-radius: var(--radius); padding: 20px 24px; display: flex; flex-direction: column; gap: 8px; }
-.how h2 { font-size: 16px; }
-.how ol { margin: 0; padding-left: 20px; line-height: 1.6; }
 
-.presets { display: flex; flex-direction: column; gap: 10px; }
-.presets h2 { font-size: 15px; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip { font: inherit; font-size: 14px; padding: 10px 16px; min-height: 44px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--card); color: var(--ink); cursor: pointer; }
 .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
