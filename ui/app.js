@@ -149,6 +149,17 @@ function prefillPension(k) {
 }
 
 /**
+ * A pension in today's money, in pounds of the year it starts: n years away means n - 1 or n
+ * yearly April rises (it depends on the birthday), at the display inflation rate.
+ */
+function futureRange(amount, n) {
+  const i = state.config.displayInflation ?? 0.025;
+  return { low: amount * (1 + i) ** (n - 1), high: amount * (1 + i) ** n, year: new Date().getFullYear() + n, rate: i };
+}
+
+const round100 = (x) => `\u00a3${(Math.round(x / 100) * 100).toLocaleString('en-GB')}`;
+
+/**
  * What a pension in today's money is worth in pounds of the day when it starts, at the
  * display inflation rate. Without a birthday, the number of yearly April rises is n - 1 or n,
  * where n is the gap in years, so a range is shown.
@@ -165,9 +176,7 @@ function pensionHint(k) {
     return;
   }
   const n = startAge - ownAge;
-  const low = amount * (1 + i) ** (n - 1);
-  const high = amount * (1 + i) ** n;
-  const year = new Date().getFullYear() + n;
+  const { low, high, year } = futureRange(amount, n);
   const who = k === 2 ? 'their' : 'your';
   el.textContent = `${gbp(amount)} a year in today's money from ${k === 2 ? 'their age' : 'age'} ${startAge} (about ${year}). In pounds of that time, at ${(i * 100).toFixed(1)}% inflation a year, that is about ${gbp(low)} to ${gbp(high)} (${n - 1} or ${n} yearly rises, depending on ${who} birthday).`;
 }
@@ -430,7 +439,15 @@ function refresh() {
     let when;
     if (o.kind === 'earned') when = o.person === 2 ? `until their age ${o.stopAge}` : `until age ${o.stopAge}`;
     else when = o.fromYear <= 1 ? 'from the start' : (o.person === 2 ? `from their age ${o.startAge}` : `from age ${o.startAge}`);
-    text += `${escapeHtml(o.label)} of ${gbp(o.amount)} a year ${when}. `;
+    // Pensions that start later also show their value in pounds of that year, for comparison
+    // with a pension forecast; the plan itself stays in today's money.
+    let future = '';
+    const ownAge = o.person === 2 ? Number($('partner-age').value) : request.age;
+    if (o.kind !== 'earned' && o.fromYear > 1 && Number.isInteger(ownAge) && o.startAge > ownAge) {
+      const f = futureRange(o.amount, o.startAge - ownAge);
+      future = ` (about ${round100(f.low)} to ${round100(f.high)} in ${f.year} pounds)`;
+    }
+    text += `${escapeHtml(o.label)} of ${gbp(o.amount)} a year ${when}${future}. `;
   }
   $('goal-text').innerHTML = text.trim();
   // Re-reading the form should not leave stale error marks on untouched fields.
