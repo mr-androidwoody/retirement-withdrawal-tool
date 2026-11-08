@@ -41,6 +41,11 @@ export function planName(plan) {
   }
   else if (plan.cashBuffer.years) buffer = `${plan.cashBuffer.years}-year cash buffer`;
   else buffer = 'no cash buffer';
+  if (plan.currentMix) {
+    const m = plan.currentMix;
+    const r = (x) => Math.round(x * 100);
+    return `${s.label}, ${buffer}, your ${r(m.equities)}/${r(m.bonds)}/${r(m.cash)} mix`;
+  }
   return `${s.label}, ${buffer}, ${mixText(plan)}`;
 }
 
@@ -55,7 +60,10 @@ export function recipe(plan, request) {
     case 'constant-real': {
       const total = p.rate * request.pot + other1;
       income = `${gbp(total)} a year${other1 ? ' including your other income' : ''} (${rate(p.rate)} of the pot), rising with inflation every year.`;
-      if (request.incomeChange) income += ` Changes in step with your income from year ${request.incomeChange.fromYear}.`;
+      if (request.incomeChange) {
+        const at = request.age ? `age ${request.age + request.incomeChange.fromYear - 1}` : `year ${request.incomeChange.fromYear}`;
+        income += ` Changes in step with your income from ${at}.`;
+      }
       break;
     }
     case 'fixed-percentage':
@@ -80,15 +88,15 @@ export function recipe(plan, request) {
   else if (plan.cashBuffer.amount !== undefined && plan.cashRule === 'flexible') {
     const r = plan.reserve || {};
     const yrs = planned > 0 ? amount / planned : 0;
-    cash = `${gbp(amount)} from your snapshot${yrs ? ` (about ${yrs.toFixed(1)} years of withdrawals)` : ''}, kept between ${r.floorYears ?? 1} and ${r.maxYears ?? 3} years of withdrawals, aiming for ${r.targetYears ?? 2}. Cash above ${r.maxYears ?? 3} years is invested over ${r.phaseInYears ?? 5} years. Top-ups from investments pause while they are more than ${pct(r.downturnDrop ?? 0.1)} below their high.`;
+    cash = `${gbp(amount)} (${pct(amount / request.pot)} of the pot)${yrs ? ` (about ${yrs.toFixed(1)} years of withdrawals)` : ''}, kept between ${r.floorYears ?? 1} and ${r.maxYears ?? 3} years of withdrawals, aiming for ${r.targetYears ?? 2}. Cash above ${r.maxYears ?? 3} years is invested over ${r.phaseInYears ?? 5} years. Top-ups from investments pause while they are more than ${pct(r.downturnDrop ?? 0.1)} below their high.`;
   } else if (plan.cashBuffer.amount !== undefined) {
     const yrs = planned > 0 ? amount / planned : 0;
-    cash = `${gbp(amount)} from your snapshot, spent first${yrs ? ` (about ${yrs.toFixed(1)} years of withdrawals)` : ''}.`;
+    cash = `${gbp(amount)} (${pct(amount / request.pot)} of the pot), spent first${yrs ? ` (about ${yrs.toFixed(1)} years of withdrawals)` : ''}.`;
   } else {
     cash = `starts at ${gbp(amount)} (${plan.cashBuffer.years} years of withdrawals, ${pct(amount / request.pot)} of the pot), spent first.`;
   }
   const eq = Math.round(plan.mix.equities * 100);
   const split = eq === 100 ? 'all shares' : `${eq}% shares, ${100 - eq}% bonds`;
-  const rest = `${split}${plan.fromSnapshot ? ', as in your snapshot' : ''}.`;
+  const rest = plan.fromCurrent ? `${split} of the invested part, as in your current mix.` : `${split}.`;
   return { income, cash, rest };
 }

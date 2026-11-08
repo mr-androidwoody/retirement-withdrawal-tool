@@ -1,9 +1,8 @@
 // The page: wizard, results and option detail. All modelling happens in engine/.
 
 import { validateDataset, makeWindows } from '../engine/dataset.js';
-import { runSearch, whatIf, buildGrid, strategySettings, SNAPSHOT_RULES } from '../engine/search.js';
+import { runSearch, whatIf, buildGrid, strategySettings, CASH_RULES, currentFromMix } from '../engine/search.js';
 import { simulate } from '../engine/simulate.js';
-import { parseSnapshot } from '../engine/snapshot.js';
 import { buildProfile } from '../engine/profile.js';
 import { gbp, pct, escapeHtml, parseAmount, formatAmount, planName, recipe } from './format.js';
 import { lineChart } from './charts.js';
@@ -12,7 +11,7 @@ const $ = (id) => document.getElementById(id);
 const state = {
   config: null,
   dataset: null,
-  snapshot: null,
+  mixLabel: null,
   maxFailures: 1,
   result: null,
   request: null,
@@ -106,12 +105,19 @@ function initForm() {
     if (open) $('fee').focus();
   });
 
-  // Snapshot paste-in.
-  $('snapshot').addEventListener('input', onSnapshot);
+  // Current mix: predefined splits plus a custom one.
+  const mixes = config.currentMixes || [];
+  $('mixes').innerHTML = [...mixes.map((m) => m.label), 'Custom'].map((label) =>
+    `<button type="button" class="chip" role="radio" aria-checked="false" data-mix="${label}">${label === 'Custom' ? 'Custom' : label}</button>`).join('');
+  $('mixes').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-mix]');
+    if (btn) selectMix(btn.dataset.mix);
+  });
+  selectMix(config.defaultMix || mixes[0]?.label || 'Custom');
 
   // Any edit refreshes the goal; money fields get thousands separators on blur.
   $('plan-form').addEventListener('input', (e) => {
-    if (e.target.id !== 'snapshot') clearPreset();
+    if (!['mix-eq', 'mix-bd', 'mix-cash'].includes(e.target.id)) clearPreset();
     refresh();
   });
   $('plan-form').addEventListener('change', refresh);
@@ -203,8 +209,6 @@ function applyValues(v) {
 function applyPreset(id) {
   const p = state.config.presets.find((x) => x.id === id);
   if (!p) return;
-  // A preset sets the pot, so a pasted snapshot no longer applies.
-  if (state.snapshot) { $('snapshot').value = ''; onSnapshot(); }
   applyValues({ incomeChange: null, ...p.values });
   for (const b of $('presets').querySelectorAll('[data-preset]')) b.setAttribute('aria-pressed', String(b.dataset.preset === id));
   renderRisk();
@@ -215,31 +219,31 @@ function clearPreset() {
   for (const b of $('presets').querySelectorAll('[aria-pressed="true"]')) b.setAttribute('aria-pressed', 'false');
 }
 
-function onSnapshot() {
-  const text = $('snapshot').value;
-  const box = $('snapshot-status');
-  if (!text.trim()) {
-    state.snapshot = null;
-    box.hidden = true;
-    refresh();
-    return;
-  }
-  const s = parseSnapshot(text);
-  box.hidden = false;
-  if (!s.ok) {
-    state.snapshot = null;
-    box.className = 'status error';
-    box.textContent = `Nothing was filled in: ${s.error}`;
-  } else {
-    state.snapshot = s;
-    $('pot').value = formatAmount(s.net);
-    box.className = 'status ok';
-    box.innerHTML = `<span>Read${s.date ? ` from ${escapeHtml(s.date)} snapshot` : ''}: <strong>pot ${gbp(s.net)}</strong> · cash buffer ${gbp(s.cashBuffer)} · invested ${Math.round(s.equitiesShare * 100)}% shares, ${100 - Math.round(s.equitiesShare * 100)}% bonds</span>`
-      + '<button type="button" class="link" id="edit-pot">Edit</button>';
-    $('edit-pot').addEventListener('click', () => $('pot').focus());
-    clearPreset();
+function selectMix(label) {
+  state.mixLabel = label;
+  for (const b of $('mixes').querySelectorAll('[data-mix]')) b.setAttribute('aria-checked', String(b.dataset.mix === label));
+  const custom = label === 'Custom';
+  $('custom-mix').hidden = !custom;
+  if (custom && !$('mix-eq').value) {
+    const m = state.config.currentMixes.find((x) => x.label === state.config.defaultMix) || { equities: 0.6, bonds: 0.3, cash: 0.1 };
+    $('mix-eq').value = Math.round(m.equities * 100);
+    $('mix-bd').value = Math.round(m.bonds * 100);
+    $('mix-cash').value = Math.round(m.cash * 100);
   }
   refresh();
+}
+
+/** The current mix as fractions { equities, bonds, cash }, or { error } for a bad custom split. */
+function readMix() {
+  if (state.mixLabel !== 'Custom') {
+    const m = state.config.currentMixes.find((x) => x.label === state.mixLabel);
+    return m ? { equities: m.equities, bonds: m.bonds, cash: m.cash } : { error: 'Choose your current mix.' };
+  }
+  const v = ['mix-eq', 'mix-bd', 'mix-cash'].map((id) => Number(String($(id).value).replace('%', '').trim() || 0));
+  if (v.some((x) => !Number.isFinite(x) || x < 0)) return { error: 'Mix percentages must be zero or more.' };
+  const total = v[0] + v[1] + v[2];
+  if (Math.abs(total - 100) > 0.5) return { error: `Your mix adds up to ${+total.toFixed(1)}%, not 100%.` };
+  return { equities: v[0] / 100, bonds: v[1] / 100, cash: v[2] / 100 };
 }
 
 function renderRisk() {
@@ -256,6 +260,8 @@ function renderRisk() {
 function readRequest() {
   const errors = [];
   const years = Number($('years').value);
+  const mixRead = readMix();
+  if (mixRead.error) errors.push(mixRead.error);
   const pot = parseAmount($('pot').value);
   const wanted = parseAmount($('wanted').value);
   const minimum = parseAmount($('minimum').value);
@@ -341,13 +347,14 @@ function readRequest() {
   }
 
   return {
+    mix: mixRead.error ? null : mixRead,
     request: { pot, years, age: ageOk ? age : null, wanted, minimum, incomeChange, otherIncome, maxFailures: state.maxFailures, annualFee: fee },
     errors,
   };
 }
 
 function planCount() {
-  return buildGrid(state.config).length + (state.snapshot ? SNAPSHOT_RULES.length * strategySettings(state.config).length : 0);
+  return buildGrid(state.config).length + CASH_RULES.length * strategySettings(state.config).length;
 }
 
 function refresh() {
@@ -371,6 +378,13 @@ function refresh() {
   const mixes = `${Math.round(g.mixes[0] * 100)}% to ${Math.round(g.mixes.at(-1) * 100)}% shares`;
   const buffers = `cash buffers of ${g.cashBufferYears.slice(0, -1).join(', ')} and ${g.cashBufferYears.at(-1)} years`;
   const fee = Number($('fee').value);
+  const mix = readMix();
+  const potNow = parseAmount($('pot').value);
+  if (mix.error) $('mix-summary').textContent = mix.error;
+  else if (potNow > 0) {
+    $('mix-summary').textContent = `${gbp(potNow * mix.equities)} shares \u00b7 ${gbp(potNow * mix.bonds)} bonds \u00b7 ${gbp(potNow * mix.cash)} cash. `
+      + 'Used for the "Your mix as it is now" rows; the search also tries other mixes.';
+  } else $('mix-summary').textContent = '';
   pensionHint(1);
   pensionHint(2);
   const sp = state.config.statePension;
@@ -383,7 +397,7 @@ function refresh() {
     const y = Number(opt.value);
     opt.textContent = age ? `${y} years (to age ${age + y - 1})` : `${y} years`;
   }
-  $('settings-summary').textContent = `Global shares (£) and UK gilts · starts ${first} to ${last} · all four approaches · ${mixes} · ${buffers}${state.snapshot ? ' · plus your current portfolio' : ''} · charges ${Number.isFinite(fee) ? fee : '?'}% a year`;
+  $('settings-summary').textContent = `Global shares (£) and UK gilts · starts ${first} to ${last} · all four approaches · ${mixes} · ${buffers} · plus your current mix · charges ${Number.isFinite(fee) ? fee : '?'}% a year`;
 
   // Goal in words.
   const { request } = readRequest();
@@ -412,7 +426,7 @@ function refresh() {
 
 function onFind(e) {
   e.preventDefault();
-  const { request, errors } = readRequest();
+  const { request, errors, mix } = readRequest();
   const box = $('form-errors');
   if (errors.length) {
     box.hidden = false;
@@ -427,7 +441,7 @@ function onFind(e) {
   setTimeout(() => {
     try {
       state.request = request;
-      state.result = runSearch({ dataset: state.dataset, config: state.config, request, snapshot: state.snapshot });
+      state.result = runSearch({ dataset: state.dataset, config: state.config, request, current: currentFromMix(request.pot, mix) });
       renderResults();
       show('results');
     } catch (err) {
@@ -514,13 +528,13 @@ function renderResults() {
       + '</ul></section>';
   }
 
-  if (r.snapshotRows && r.snapshotRows.length) {
+  if (r.currentRows && r.currentRows.length) {
     const RULE_TEXT = { 'spend-first': 'Cash spent first', flexible: 'Cash kept as a reserve' };
     html += `<div class="table-box mine"><table class="results-table">${HEAD(n, req.years)}<tbody>`;
-    for (const s of r.snapshotRows) {
-      const badges = [{ text: 'Your portfolio as it is now', cls: 'strong' }, { text: RULE_TEXT[s.cashRule] || s.cashRule, cls: 'plain' }];
+    for (const s of r.currentRows) {
+      const badges = [{ text: 'Your mix as it is now', cls: 'strong' }, { text: RULE_TEXT[s.cashRule] || s.cashRule, cls: 'plain' }];
       html += `<tr>${optionCell(s.result, badges, req)}${cells(s.result, n)}</tr>`;
-      if (!s.meetsNeeds) html += `<tr><td colspan="7" class="recipe flag">With this cash rule and any of the four approaches, your current portfolio did not meet these needs; this is its nearest miss.</td></tr>`;
+      if (!s.meetsNeeds) html += `<tr><td colspan="7" class="recipe flag">With this cash rule and any of the four approaches, your current mix did not meet these needs; this is its nearest miss.</td></tr>`;
     }
     html += '</tbody></table></div>';
   }
