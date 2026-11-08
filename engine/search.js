@@ -4,21 +4,43 @@ import { makeWindows } from './dataset.js';
 import { simulate } from './simulate.js';
 import { summarisePlan } from './metrics.js';
 import { STRATEGIES } from './strategies.js';
+import { buildProfile } from './profile.js';
 
-/** Every strategy setting in the config, as { strategy, params }. */
-export function strategySettings(config) {
+/**
+ * The starting rate that pays exactly the income wanted in year 1: wanted income less any
+ * lasting income already in force (pensions; earnings are left out because they stop),
+ * as a share of the pot. Null when the pot or the need is zero.
+ */
+export function pinnedRate(request) {
+  if (!request || !(request.pot > 0)) return null;
+  const p = buildProfile(request);
+  const lasting = p.other[0] - (p.earned[0] || 0);
+  const rate = Math.max(0, p.wanted[0] - lasting) / request.pot;
+  return rate > 0 && Number.isFinite(rate) ? rate : null;
+}
+
+/**
+ * Every strategy setting, as { strategy, params }. With a request, each strategy is also
+ * tried at the rate that pays exactly the income wanted (params.pinned = true), so there is
+ * always an option at the user's own figure.
+ */
+export function strategySettings(config, request = null) {
   const gk = config.guytonKlinger || {};
+  const pin = pinnedRate(request);
   const out = [];
   for (const s of config.grid.strategies) {
-    for (const rate of s.rates) {
+    const rates = [...s.rates];
+    if (pin !== null && !rates.some((x) => Math.abs(x - pin) < 1e-4)) rates.push(pin);
+    for (const rate of rates) {
+      const pinned = pin !== null && Math.abs(rate - pin) < 1e-4;
       if (s.strategy === 'floor-ceiling') {
         for (const floorPct of s.floorPct) {
-          for (const ceilingPct of s.ceilingPct) out.push({ strategy: s.strategy, params: { rate, floorPct, ceilingPct } });
+          for (const ceilingPct of s.ceilingPct) out.push({ strategy: s.strategy, params: { rate, floorPct, ceilingPct, ...(pinned ? { pinned } : {}) } });
         }
       } else if (s.strategy === 'guyton-klinger') {
-        out.push({ strategy: s.strategy, params: { rate, ...gk } });
+        out.push({ strategy: s.strategy, params: { rate, ...gk, ...(pinned ? { pinned } : {}) } });
       } else {
-        out.push({ strategy: s.strategy, params: { rate } });
+        out.push({ strategy: s.strategy, params: { rate, ...(pinned ? { pinned } : {}) } });
       }
     }
   }
@@ -26,9 +48,9 @@ export function strategySettings(config) {
 }
 
 /** The full grid: strategy settings x share mixes x cash buffers, in a fixed order. */
-export function buildGrid(config) {
+export function buildGrid(config, request = null) {
   const plans = [];
-  for (const setting of strategySettings(config)) {
+  for (const setting of strategySettings(config, request)) {
     for (const equities of config.grid.mixes) {
       for (const years of config.grid.cashBufferYears) {
         plans.push({ ...setting, mix: { equities }, cashBuffer: { years } });
@@ -59,8 +81,8 @@ export function currentFromMix(pot, mix) {
  * Plans for the current mix: its own split and cash amount, with every strategy setting,
  * for one cash rule ('spend-first' or 'flexible').
  */
-export function currentPlans(config, current, firstIndex, cashRule = 'spend-first') {
-  return strategySettings(config).map((setting, i) => ({
+export function currentPlans(config, current, firstIndex, cashRule = 'spend-first', request = null) {
+  return strategySettings(config, request).map((setting, i) => ({
     ...setting,
     mix: { equities: current.equitiesShare },
     cashBuffer: { amount: current.cashBuffer },
@@ -128,13 +150,19 @@ export function reasonNotShown(r, request) {
 
 /**
  * The whole search. Returns everything the results page needs.
- * input: { dataset, config, request, current? }  (current: from currentFromMix)
+ * input: { dataset, config, request, current?, keepMix? }
+ *   current  from currentFromMix: adds the "your mix as it is now" rows
+ *   keepMix  true: every option uses the current mix; only approach, rate and cash rule vary
  */
-export function runSearch({ dataset, config, request, current = null }) {
+export function runSearch({ dataset, config, request, current = null, keepMix = false }) {
   const windows = makeWindows(dataset, request.years, config.firstStartYear);
   if (windows.length === 0) throw new Error('No past retirements of that length in the data.');
   const thresholds = config.thresholds;
-  const grid = buildGrid(config);
+  const perRule = strategySettings(config, request).length;
+  const onlyMine = Boolean(keepMix && current);
+  const grid = onlyMine
+    ? CASH_RULES.flatMap((rule, k) => currentPlans(config, current, k * perRule, rule, request))
+    : buildGrid(config, request);
   const results = grid.map((p) => evaluatePlan(p, windows, request, thresholds));
   const eligible = results.filter((r) => r.status !== 'does-not-meet');
 
@@ -167,12 +195,11 @@ export function runSearch({ dataset, config, request, current = null }) {
       return { strategy: s.id, result: pick, reason: reasonNotShown(pick, request) };
     });
 
-  // Your mix as it is now: one row per cash rule.
+  // Your mix as it is now: one row per cash rule (not needed when every option is your mix).
   const currentRows = [];
-  if (current) {
-    const per = strategySettings(config).length;
+  if (current && !onlyMine) {
     CASH_RULES.forEach((rule, k) => {
-      const own = currentPlans(config, current, grid.length + k * per, rule).map((p) => evaluatePlan(p, windows, request, thresholds));
+      const own = currentPlans(config, current, grid.length + k * perRule, rule, request).map((p) => evaluatePlan(p, windows, request, thresholds));
       const pool = own.filter((r) => r.status !== 'does-not-meet');
       currentRows.push({ cashRule: rule, result: pool.length ? best(pool, 'recommended') : best(own, 'closest'), meetsNeeds: pool.length > 0 });
     });
@@ -194,7 +221,8 @@ export function runSearch({ dataset, config, request, current = null }) {
     datasetId: dataset.id,
     datasetVersion: dataset.version,
     windows: windows.map((w) => ({ startYear: w.startYear, endYear: w.endYear })),
-    plansTried: grid.length + (current ? CASH_RULES.length * strategySettings(config).length : 0),
+    plansTried: grid.length + (current && !onlyMine ? CASH_RULES.length * perRule : 0),
+    keepMix: onlyMine,
     eligibleCount: eligible.length,
     rows,
     others,

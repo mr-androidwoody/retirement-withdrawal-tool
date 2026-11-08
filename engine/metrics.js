@@ -41,9 +41,12 @@ export function investmentIndex(rows) {
  */
 export function summarisePath(rows, { startPot, depletionYear, firstWithdrawalReal, nearlyRanOutYears = 1 }) {
   const incomes = rows.map((r) => r.totalIncomeReal);
+  // Year-to-year change in income relative to the income planned for each year, so a
+  // step-down the user entered is not counted as a change.
+  const relative = rows.map((r) => r.totalIncomeReal / (r.wantedReal > 0 ? r.wantedReal : 1));
   const changes = [];
-  for (let i = 1; i < incomes.length; i += 1) {
-    if (incomes[i - 1] > 0) changes.push(incomes[i] / incomes[i - 1] - 1);
+  for (let i = 1; i < relative.length; i += 1) {
+    if (relative[i - 1] > 0) changes.push(relative[i] / relative[i - 1] - 1);
   }
   const endReal = rows.length ? rows[rows.length - 1].endTotalReal : startPot;
   const depleted = depletionYear !== null;
