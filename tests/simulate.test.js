@@ -157,3 +157,9 @@ test('the same inputs give identical results', () => {
   const b = JSON.stringify(simulate(p, m, request(), { rows: true }));
   assert.equal(a, b);
 });
+
+test('a planned step-down in income is not counted as a change in spending', () => {
+  const req = request({ years: 6, wanted: 4000, incomeChange: { fromYear: 4, wanted: 3000, minimum: 2500 } });
+  const r = simulate(plan('constant-real', { rate: 0.04 }), market(6), req);
+  assert.ok(r.incomeVolatility < 1e-12);
+});

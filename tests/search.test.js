@@ -92,3 +92,36 @@ test('the search is deterministic', () => {
   const pick = (r) => JSON.stringify(r.rows.map((x) => [x.labels, x.result.plan, x.result.typicalIncome, x.result.medianEnd]));
   assert.equal(pick(again), pick(typical));
 });
+
+test('each strategy is also tried at the rate that pays exactly the income wanted', () => {
+  const request = { ...config.defaults, pot: 1843050, wanted: 60000, minimum: 50000 };
+  const pin = 60000 / 1843050;
+  const settings = strategySettings(config, request);
+  assert.equal(settings.length, 22 + 5); // one extra rate for each strategy; floor and ceiling has two floors
+  const pinned = settings.filter((s) => s.params.pinned);
+  assert.equal(pinned.length, 5);
+  for (const s of pinned) assert.ok(Math.abs(s.params.rate - pin) < 1e-12);
+  // A wanted income that is already a preset rate adds nothing.
+  assert.equal(strategySettings(config, { ...request, pot: 500000, wanted: 22500 }).length, 22);
+});
+
+test('the pinned rate leaves out earnings but counts lasting pensions in year 1', () => {
+  const base = { ...config.defaults, pot: 1000000, wanted: 50000, minimum: 40000 };
+  const withJob = { ...base, otherIncome: [{ amount: 20000, fromYear: 1, toYear: 3, kind: 'earned' }] };
+  const withPension = { ...base, otherIncome: [{ amount: 10000, fromYear: 1 }] };
+  assert.equal(strategySettings(config, withJob).find((s) => s.params.pinned).params.rate, 0.05);
+  assert.equal(strategySettings(config, withPension).find((s) => s.params.pinned).params.rate, 0.04);
+});
+
+test('keep my mix: every option uses the current mix, and there is no separate box', () => {
+  const current = currentFromMix(1843050, { equities: 0.6, bonds: 0.3, cash: 0.1 });
+  const request = { ...config.defaults, pot: 1843050, wanted: 60000, minimum: 50000 };
+  const r = runSearch({ dataset, config, request, current, keepMix: true });
+  assert.equal(r.keepMix, true);
+  assert.equal(r.plansTried, 2 * 27);
+  assert.equal(r.currentRows.length, 0);
+  for (const row of r.rows) {
+    assert.equal(row.result.plan.fromCurrent, true);
+    assert.equal(row.result.plan.cashBuffer.amount, current.cashBuffer);
+  }
+});
