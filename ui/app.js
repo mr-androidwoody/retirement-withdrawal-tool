@@ -48,6 +48,60 @@ function windowsFor(years) {
   return makeWindows(state.dataset, years, state.config.firstStartYear);
 }
 
+// ---------------------------------------------------------------- saved inputs
+// The form is saved in this browser's localStorage on every change and put back on reload.
+// Nothing leaves the browser. Storage can be unavailable (private windows, blocked
+// storage), so every read and write is wrapped and simply does nothing if it fails.
+
+const SAVE_KEY = 'retirement-withdrawal-tool.inputs.v1';
+const SAVED_FIELDS = ['pot', 'age', 'partner-age', 'years', 'wanted', 'minimum',
+  'change-age', 'change-wanted', 'change-minimum',
+  'other1-label', 'other1-amount', 'other1-age', 'other2-label', 'other2-amount', 'other2-age',
+  'earned1-label', 'earned1-amount', 'earned1-stop', 'earned2-label', 'earned2-amount', 'earned2-stop',
+  'fee', 'mix-eq', 'mix-bd', 'mix-cash'];
+const SAVED_BOXES = ['change-box', 'other-box', 'other2', 'earned-box', 'earned2'];
+
+function saveInputs() {
+  if (!state.ready) return;
+  const data = { version: 1, fields: {}, open: {}, mix: state.mixLabel, maxFailures: state.maxFailures, keepMix: $('keep-mix').checked };
+  for (const id of SAVED_FIELDS) data.fields[id] = $(id).value;
+  for (const id of SAVED_BOXES) data.open[id] = !$(id).hidden;
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch { /* storage unavailable: nothing to do */ }
+}
+
+function loadSaved() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    const data = raw ? JSON.parse(raw) : null;
+    return data && data.version === 1 ? data : null;
+  } catch { return null; }
+}
+
+/** Put saved inputs back into the form. Returns true if there were any. */
+function restoreInputs() {
+  const data = loadSaved();
+  if (!data) return false;
+  for (const id of SAVED_FIELDS) if (typeof data.fields?.[id] === 'string' && $(id)) $(id).value = data.fields[id];
+  if (![...$('years').options].some((o) => o.value === $('years').value)) $('years').value = String(state.config.defaults.years);
+  const open = data.open || {};
+  for (const which of ['change', 'other', 'earned']) {
+    const isOpen = Boolean(open[`${which}-box`]);
+    $(`${which}-box`).hidden = !isOpen;
+    $(`toggle-${which}`).hidden = isOpen;
+    $(`toggle-${which}`).setAttribute('aria-expanded', String(isOpen));
+  }
+  $('other2').hidden = !open.other2;
+  $('other2-hint').hidden = !open.other2;
+  $('add-other2').hidden = Boolean(open.other2);
+  $('earned2').hidden = !open.earned2;
+  $('add-earned2').hidden = Boolean(open.earned2);
+  if (Number.isInteger(data.maxFailures)) state.maxFailures = data.maxFailures;
+  $('keep-mix').checked = Boolean(data.keepMix);
+  const labels = [...(state.config.currentMixes || []).map((m) => m.label), 'Custom'];
+  selectMix(labels.includes(data.mix) ? data.mix : (state.config.defaultMix || 'Custom'));
+  return true;
+}
+
 // ---------------------------------------------------------------- form
 
 function initForm() {
@@ -136,8 +190,18 @@ function initForm() {
 
   $('fee').value = (config.defaults.annualFee * 100).toFixed(2);
   applyValues(config.defaults);
-  const typical = config.presets.find((p) => p.id === 'typical');
-  if (typical) applyPreset('typical');
+  if (!restoreInputs()) {
+    const typical = config.presets.find((p) => p.id === 'typical');
+    if (typical) applyPreset('typical');
+  }
+  $('clear-saved').addEventListener('click', () => {
+    try { localStorage.removeItem(SAVE_KEY); } catch { /* nothing saved */ }
+    window.location.reload();
+  });
+  // From here on, every change is saved.
+  state.ready = true;
+  renderRisk();
+  refresh();
 }
 
 /** Fill a pension row with today's full State Pension and age, if the user has not typed one. */
@@ -452,6 +516,7 @@ function refresh() {
   $('goal-text').innerHTML = text.trim();
   // Re-reading the form should not leave stale error marks on untouched fields.
   if ($('form-errors').hidden) for (const el of document.querySelectorAll('[aria-invalid="true"]')) el.removeAttribute('aria-invalid');
+  saveInputs();
 }
 
 // ---------------------------------------------------------------- search
