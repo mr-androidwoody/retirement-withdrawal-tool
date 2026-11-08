@@ -24,6 +24,16 @@
   },
   "displayInflation": 0.025,
 
+  "currentMixes": [
+    { "label": "60/30/10", "equities": 0.6, "bonds": 0.3, "cash": 0.1 },
+    { "label": "70/20/10", "equities": 0.7, "bonds": 0.2, "cash": 0.1 },
+    { "label": "80/10/10", "equities": 0.8, "bonds": 0.1, "cash": 0.1 },
+    { "label": "60/40/0", "equities": 0.6, "bonds": 0.4, "cash": 0 },
+    { "label": "70/30/0", "equities": 0.7, "bonds": 0.3, "cash": 0 },
+    { "label": "50/25/25", "equities": 0.5, "bonds": 0.25, "cash": 0.25 }
+  ],
+  "defaultMix": "60/30/10",
+
   "thresholds": {
     "nearlyRanOutYears": 1,
     "incomeTolerance": 1
