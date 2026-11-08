@@ -88,7 +88,23 @@ input[aria-invalid="true"] { border-color: var(--bad); }
 .segmented button small { display: block; font-size: 12px; opacity: .8; margin-top: 1px; }
 .periods-bar { display: flex; flex-direction: column; gap: 8px; }
 .tag { display: inline-block; vertical-align: 2px; margin-left: 8px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-dark); }
-.rank-line { margin: 0; font-size: 13px; color: var(--muted); }
+.sel-box { border: 1px solid var(--line-strong); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+.sel-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 4px 16px; }
+.sel-head h4 { margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.sel-head p { margin: 0; font-size: 12px; color: var(--muted); }
+.st-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+.st-chip svg { width: 12px; height: 12px; }
+.st-chip.good { background: var(--good-soft); color: #1e5b3a; }
+.st-chip.warn { background: var(--warn-soft); color: #7a3d06; }
+.st-chip.bad { background: var(--critical-soft); color: #8a1c13; }
+.sel-figs { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.sel-fig { background: #f5f6f4; border-radius: 8px; padding: 10px 12px; }
+.sel-fig .k { font-size: 12px; color: var(--muted); }
+.sel-fig .v { font: 600 18px var(--display); font-variant-numeric: tabular-nums; }
+.sel-fig .sub { font-size: 12px; color: var(--muted); }
+.sel-fig .sub.good { color: var(--good); }
+.sel-fig .sub.warn { color: var(--warn); }
+.sel-fig .sub.bad { color: var(--critical); }
 
 .goal { background: var(--ground); border-radius: 10px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
 .goal-label { font-size: 13px; font-weight: 600; color: var(--muted); }
