@@ -12,19 +12,20 @@ test('the shipped dataset is valid and runs 1950 to 2020', () => {
   assert.equal(ds.years.at(-1).year, 2020);
 });
 
-test('30-year retirements from 1970 give 22 windows, 1970 to 1991', () => {
+test('30-year retirements from 1950 give 42 windows, 1950 to 1991', () => {
   const w = makeWindows(ds, 30, config.firstStartYear);
-  assert.equal(w.length, 22);
-  assert.equal(w[0].startYear, 1970);
-  assert.equal(w[0].endYear, 1999);
+  assert.equal(w.length, 42);
+  assert.equal(w[0].startYear, 1950);
+  assert.equal(w[0].endYear, 1979);
   assert.equal(w.at(-1).startYear, 1991);
   assert.equal(w.at(-1).endYear, 2020);
   assert.ok(w.every((x) => x.rows.length === 30));
 });
 
-test('35-year retirements give 17 windows; 25-year give 27', () => {
-  assert.equal(makeWindows(ds, 35, 1970).length, 17);
-  assert.equal(makeWindows(ds, 25, 1970).length, 27);
+test('35-year retirements give 37 windows; 25-year give 47; a later first start gives fewer', () => {
+  assert.equal(makeWindows(ds, 35, config.firstStartYear).length, 37);
+  assert.equal(makeWindows(ds, 25, config.firstStartYear).length, 47);
+  assert.equal(makeWindows(ds, 30, 1970).length, 22);
 });
 
 test('a gap in the years is refused', () => {
