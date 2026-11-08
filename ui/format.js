@@ -4,9 +4,46 @@ import { getStrategy } from '../engine/strategies.js';
 import { buildProfile } from '../engine/profile.js';
 
 export const gbp = (x) => (x === null || x === undefined || !Number.isFinite(x)
-  ? 'n/a' : `£${Math.round(x).toLocaleString('en-GB')}`);
+  ? 'n/a' : `\u00a3${Math.round(x).toLocaleString('en-GB')}`);
 export const pct = (x, dp = 0) => `${(x * 100).toFixed(dp)}%`;
 export const rate = (x) => `${+(x * 100).toFixed(2)}%`;
+
+// Report formatting: rounded to what the history can support, with a true minus sign.
+const MINUS = '\u2212';
+const POUND = '\u00a3';
+const finite = (x) => x !== null && x !== undefined && Number.isFinite(x);
+
+/** Money to the nearest 100: "£82,900". */
+export const money = (x) => {
+  if (!finite(x)) return 'n/a';
+  const r = Math.round(x / 100) * 100;
+  return `${r < 0 ? MINUS : ''}${POUND}${Math.abs(r).toLocaleString('en-GB')}`;
+};
+
+/** Large sums: "£6.5m" from a million (dp places), "£948k" below that, pounds under £10,000. */
+export const bigMoney = (x, dp = 1) => {
+  if (!finite(x)) return 'n/a';
+  const a = Math.abs(x);
+  const sign = x < 0 ? MINUS : '';
+  if (a >= 1e6) return `${sign}${POUND}${(a / 1e6).toFixed(dp)}m`;
+  if (a >= 1e4) return `${sign}${POUND}${Math.round(a / 1000)}k`;
+  return `${sign}${POUND}${Math.round(a).toLocaleString('en-GB')}`;
+};
+
+/** A difference: "+£30,000", "−£2,000", or "£0". */
+export const signedMoney = (x) => {
+  if (!finite(x)) return 'n/a';
+  const r = Math.round(x / 100) * 100;
+  if (r === 0) return `${POUND}0`;
+  return `${r > 0 ? '+' : MINUS}${POUND}${Math.abs(r).toLocaleString('en-GB')}`;
+};
+
+/** A percentage with a true minus sign: "−20.0%". */
+export const signedPct = (x, dp = 1) => {
+  if (!finite(x)) return 'n/a';
+  const s = (Math.abs(x) * 100).toFixed(dp);
+  return `${x < 0 && Number(s) !== 0 ? MINUS : ''}${s}%`;
+};
 
 export function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -14,7 +51,7 @@ export function escapeHtml(s) {
 
 /** Parse a typed amount: "1,843,050", "£600000", " 22500 " -> number, or NaN. */
 export function parseAmount(s) {
-  const t = String(s ?? '').replace(/[£,\s]/g, '');
+  const t = String(s ?? '').replace(/[\u00a3,\s]/g, '');
   return t === '' ? NaN : Number(t);
 }
 

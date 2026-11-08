@@ -4,8 +4,8 @@ import { validateDataset, makeWindows } from '../engine/dataset.js';
 import { runSearch, whatIf, buildGrid, strategySettings, CASH_RULES, currentFromMix } from '../engine/search.js';
 import { simulate } from '../engine/simulate.js';
 import { buildProfile } from '../engine/profile.js';
-import { gbp, pct, escapeHtml, parseAmount, formatAmount, planName, recipe, holdingsText } from './format.js';
-import { lineChart } from './charts.js';
+import { gbp, pct, escapeHtml, parseAmount, formatAmount, planName, recipe, holdingsText, money, bigMoney, signedMoney, signedPct } from './format.js';
+import { lineChart, wireCharts } from './charts.js';
 
 const $ = (id) => document.getElementById(id);
 const state = {
@@ -537,39 +537,100 @@ function show(view) {
 
 // ---------------------------------------------------------------- results
 
-function cells(r, n) {
-  // data-label lets phones show each figure with its heading when the table stacks.
-  return `<td class="num" data-label="Typically you could spend a year">${gbp(r.typicalIncome)}</td>`
-    + `<td class="num" data-label="Least you could spend in a year">${gbp(r.worstIncome)}</td>`
-    + `<td class="num" data-label="Ran out, or nearly">${r.ranOutOrNearly} of ${n}</td>`
-    + `<td class="num" data-label="Income cut">${r.cutCount} of ${n}</td>`
-    + `<td class="num" data-label="Typically left">${gbp(r.medianEnd)}</td>`
-    + `<td class="num" data-label="Biggest fall">${pct(r.worstDrawdown)}</td>`;
+// Status marks: colour is never the only signal, each comes with an icon and words.
+const ICON = {
+  good: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  warn: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.2l6.3 11.3H1.7z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M8 6.6v3.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="8" cy="11.9" r="1" fill="currentColor"/></svg>',
+  bad: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5.6 5.6l4.8 4.8M10.4 5.6l-4.8 4.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+};
+
+/** Status of a count of past retirements: ran out (against your limit) or income cut. */
+function countStatus(count, kind, limit) {
+  if (count === 0) return { cls: 'good', word: kind === 'ranout' ? 'none ran out' : 'no cuts' };
+  if (kind === 'cut') return { cls: 'warn', word: 'some years below what you want' };
+  return count <= limit ? { cls: 'warn', word: 'within your limit' } : { cls: 'bad', word: 'over your limit' };
 }
 
-function optionCell(r, badges, request) {
+function statusMark(count, kind, limit) {
+  const s = countStatus(count, kind, limit);
+  return `<span class="st ${s.cls}">${ICON[s.cls]}<span class="st-n">${count}</span><span class="sr">, ${s.word}</span></span>`;
+}
+
+// Column specs shared by the results tables and the what-if tables.
+const COLS = [
+  { key: 'typicalIncome', head: 'Typical spending', unit: 'a year', better: 'high', cmp: (v) => Math.round(v / 100) },
+  { key: 'worstIncome', head: 'Lowest year', unit: 'a year', better: 'high', cmp: (v) => Math.round(v / 100) },
+  { key: 'ranOutOrNearly', head: 'Ran out or nearly', unit: (n) => `of ${n}`, better: 'low', cmp: (v) => v },
+  { key: 'cutCount', head: 'Income cut', unit: (n) => `of ${n}`, better: 'low', cmp: (v) => v },
+  { key: 'medianEnd', head: 'Typically left', unit: (n, years) => `after ${years} years`, better: 'high', cmp: (v) => Math.round(v / 1e5) },
+  { key: 'worstDrawdown', head: 'Biggest fall', unit: 'in investments', better: 'low', cmp: (v) => Math.round(v * 100) },
+];
+
+/** For each column, the winning value, or null when there is nothing to choose between. */
+function bestValues(results) {
+  const best = {};
+  for (const c of COLS) {
+    const vals = results.map((r) => c.cmp(r[c.key])).filter(Number.isFinite);
+    const top = c.better === 'high' ? Math.max(...vals) : Math.min(...vals);
+    best[c.key] = results.length > 1 && vals.some((v) => v !== top) ? top : null;
+  }
+  return best;
+}
+
+const isBest = (best, c, r) => best[c.key] !== null && c.cmp(r[c.key]) === best[c.key];
+
+function figure(c, r, n, req) {
+  const v = r[c.key];
+  switch (c.key) {
+    case 'typicalIncome': return `${money(v)}<span class="gap">${signedMoney(v - req.wanted)} vs wanted</span>`;
+    case 'worstIncome': return `${money(v)}<span class="gap">${signedMoney(v - req.minimum)} vs minimum</span>`;
+    case 'ranOutOrNearly': return statusMark(v, 'ranout', req.maxFailures);
+    case 'cutCount': return statusMark(v, 'cut', req.maxFailures);
+    case 'medianEnd': return bigMoney(v);
+    default: return pct(v);
+  }
+}
+
+function cells(r, n, req, best) {
+  // data-label lets phones show each figure with its heading when the table stacks.
+  return COLS.map((c) => `<td class="num${isBest(best, c, r) ? ' best' : ''}" data-label="${c.head}"><span class="fig">${figure(c, r, n, req)}</span></td>`).join('');
+}
+
+function headRow(n, years, first = 'Option') {
+  const unit = (c) => (typeof c.unit === 'function' ? c.unit(n, years) : c.unit);
+  return `<thead><tr><th scope="col">${first}</th>${COLS.map((c) => `<th scope="col" class="num">${c.head}<span class="unit">${unit(c)}</span></th>`).join('')}</tr></thead>`;
+}
+
+function optionRows(r, badges, req, n, best, flag) {
   const idx = state.openable.push({ result: r, labels: badges.map((b) => b.text) }) - 1;
-  const rec = recipe(r.plan, request);
-  return `<td><div class="option">
+  const rec = recipe(r.plan, req);
+  const diff = !r.plan.fromCurrent && state.mix
+    ? `<p class="diff">Different mix from yours: ${escapeHtml(holdingsText(r.plan))} (yours: ${mixLabelText(state.mix)})</p>` : '';
+  return `<tbody class="opt">
+    <tr class="opt-main"><td><div class="option">
       <div class="badges">${badges.map((b) => `<span class="badge ${b.cls || ''}">${escapeHtml(b.text)}</span>`).join('')}</div>
       <div class="plan-name">${escapeHtml(planName(r.plan))}</div>
-      <div class="recipe"><strong>Income:</strong> ${escapeHtml(rec.income)}</div>
-      <div class="recipe"><strong>Cash:</strong> ${escapeHtml(rec.cash)}</div>
-      <div class="recipe"><strong>The rest:</strong> ${escapeHtml(rec.rest)}</div>
-      ${!r.plan.fromCurrent && state.mix ? `<div class="recipe diff">Different mix from yours: ${escapeHtml(holdingsText(r.plan))} (yours: ${mixLabelText(state.mix)})</div>` : ''}
-      <div><button type="button" class="link" data-open="${idx}">See this option in detail ›</button></div>
-    </div></td>`;
+    </div></td>${cells(r, n, req, best)}</tr>
+    <tr class="opt-recipe"><td colspan="${COLS.length + 1}">
+      <div class="recipe-grid">
+        <p><strong>Income</strong>${escapeHtml(rec.income)}</p>
+        <p><strong>Cash</strong>${escapeHtml(rec.cash)}</p>
+        <p><strong>The rest</strong>${escapeHtml(rec.rest)}</p>
+      </div>
+      ${diff}
+      <button type="button" class="link" data-open="${idx}">See this option in detail ›</button>
+    </td></tr>
+    ${flag ? `<tr><td colspan="${COLS.length + 1}" class="recipe flag">${flag}</td></tr>` : ''}
+  </tbody>`;
 }
 
-const HEAD = (n, years) => `<thead><tr>
-    <th scope="col">Option</th>
-    <th scope="col" class="num">Typically you could spend a year</th>
-    <th scope="col" class="num">Least you could spend in a year</th>
-    <th scope="col" class="num">Ran out, or nearly (of ${n})</th>
-    <th scope="col" class="num">Income cut (of ${n})</th>
-    <th scope="col" class="num">Typically left after ${years} years</th>
-    <th scope="col" class="num">Biggest fall</th>
-  </tr></thead>`;
+/** items: [{ result, badges, flag? }] */
+function optionsTable(items, n, req, mine = false) {
+  const best = bestValues(items.map((i) => i.result));
+  return `<div class="table-box${mine ? ' mine' : ''}"><table class="results-table">${headRow(n, req.years)}`
+    + items.map((i) => optionRows(i.result, i.badges, req, n, best, i.flag)).join('')
+    + '</table></div>';
+}
 
 function renderResults() {
   const r = state.result;
@@ -594,13 +655,11 @@ function renderResults() {
     const RULE_TEXT = { 'spend-first': 'Cash spent first', flexible: 'Cash kept as a reserve' };
     html += `<h2 class="section-title">Your ${mixName} mix as it is now</h2>
       <p class="hint">Your current split, drawn whichever of the four ways suited it best, with your cash handled two ways.</p>
-      <div class="table-box mine"><table class="results-table">${HEAD(n, req.years)}<tbody>`;
-    for (const c of r.currentRows) {
-      const badges = [{ text: 'Your mix as it is now', cls: 'strong' }, { text: RULE_TEXT[c.cashRule] || c.cashRule, cls: 'plain' }];
-      html += `<tr>${optionCell(c.result, badges, req)}${cells(c.result, n)}</tr>`;
-      if (!c.meetsNeeds) html += `<tr><td colspan="7" class="recipe flag">With this cash rule and any of the four approaches, your current mix did not meet these needs; this is its nearest miss.</td></tr>`;
-    }
-    html += '</tbody></table></div>';
+      ${optionsTable(r.currentRows.map((c) => ({
+        result: c.result,
+        badges: [{ text: 'Your mix as it is now', cls: 'strong' }, { text: RULE_TEXT[c.cashRule] || c.cashRule, cls: 'plain' }],
+        flag: c.meetsNeeds ? '' : 'With this cash rule and any of the four approaches, your current mix did not meet these needs; this is its nearest miss.',
+      })), n, req, true)}`;
   }
 
   // 2. The best options found.
@@ -610,19 +669,15 @@ function renderResults() {
       <p class="hint">The best options from the full search. They may use a different mix from yours; each one says how. Tick "Keep my mix" in step 4 to search only your mix.</p>`;
   }
   if (k) {
-    html += `<div class="table-box"><table class="results-table">${HEAD(n, req.years)}<tbody>`;
-    r.rows.forEach((row, i) => {
-      const badges = row.labels.map((t) => ({ text: t, cls: t === 'Recommended' ? 'strong' : '' }));
-      html += `<tr>${optionCell(row.result, badges, req)}${cells(row.result, n)}</tr>`;
-      if (i === 0 && row.result.status === 'meets-minimum') {
-        html += `<tr><td colspan="7" class="recipe">No plan paid the full ${gbp(req.wanted)} in every past retirement; these options stay above your minimum.</td></tr>`;
-      }
-    });
-    html += '</tbody></table></div>';
+    html += optionsTable(r.rows.map((row, i) => ({
+      result: row.result,
+      badges: row.labels.map((t) => ({ text: t, cls: t === 'Recommended' ? 'strong' : '' })),
+      flag: i === 0 && row.result.status === 'meets-minimum' ? `No plan paid the full ${money(req.wanted)} in every past retirement; these options stay above your minimum.` : '',
+    })), n, req);
   } else {
     html += `<section class="closest"><h2>Closest options</h2>
       <p class="hint">Try a lower income, a lower minimum, or allowing more past retirements to run out. The nearest misses were:</p><ul>`
-      + r.closest.map((c) => `<li><strong>${escapeHtml(planName(c.plan))}</strong>: ran out or fell below your minimum in ${c.failingMinimum} of ${n}; typical income ${gbp(c.typicalIncome)}. <button type="button" class="link" data-open="${state.openable.push({ result: c, labels: ['Closest'] }) - 1}">See detail</button></li>`).join('')
+      + r.closest.map((c) => `<li><strong>${escapeHtml(planName(c.plan))}</strong>: ran out or fell below your minimum in ${c.failingMinimum} of ${n}; typical spending ${money(c.typicalIncome)}. <button type="button" class="link" data-open="${state.openable.push({ result: c, labels: ['Closest'] }) - 1}">See detail</button></li>`).join('')
       + '</ul></section>';
   }
 
@@ -632,13 +687,13 @@ function renderResults() {
       + r.others.map((o) => {
         const idx = state.openable.push({ result: o.result, labels: ['Comparison'] }) - 1;
         return `<div class="mini"><h3>${escapeHtml(planName(o.result.plan))}</h3>
-          <div class="hint">Typical ${gbp(o.result.typicalIncome)} · worst year ${gbp(o.result.worstIncome)} · ran out ${o.result.failures} of ${n}</div>
+          <div class="hint">Typical ${money(o.result.typicalIncome)} · lowest year ${money(o.result.worstIncome)} · ran out ${o.result.failures} of ${n}</div>
           <div class="why">Not shown because it ${escapeHtml(o.reason)}.</div>
           <div><button type="button" class="link" data-open="${idx}">See detail ›</button></div></div>`;
       }).join('') + '</div></section>';
   }
 
-  html += `<p class="hint">Ran out, or nearly: ran out, or less than one year's withdrawal left at the end. Typically you could spend: what you would have to live on each year (from the pot plus other income, before tax, in today's money), in a typical past retirement. Income cut: any year below what you want to spend. Least you could spend in a year: the lowest year in any past retirement that did not run out. Biggest fall: the largest drop in your investments from a high point, from year-end values.</p>`;
+  html += `<p class="hint">All money in today's pounds, before tax; spending rounded to the nearest \u00a3100. Typical spending: what you would have to live on each year (from the pot plus other income) in a typical past retirement. Lowest year: the lowest year in any past retirement that did not run out. Ran out or nearly: ran out, or less than one year's withdrawal left at the end. Income cut: past retirements with any year below what you want to spend. Biggest fall: the largest drop in your investments from a high point, from year-end values. Bold marks the best figure in each column.</p>`;
 
   const view = $('view-results');
   view.innerHTML = html;
@@ -666,16 +721,13 @@ function openDetail(item) {
   show('detail');
 }
 
-function whatIfTable(rows, firstHead, label, isCurrent, n) {
-  return `<div class="table-box"><table class="whatif"><thead><tr>
-      <th scope="col">${firstHead}</th><th scope="col" class="num">Typically you could spend</th><th scope="col" class="num">Least in a year</th>
-      <th scope="col" class="num">Ran out, or nearly</th><th scope="col" class="num">Income cut</th>
-      <th scope="col" class="num">Typically left</th><th scope="col" class="num">Biggest fall</th><th scope="col" class="num">Typical yearly change in spending</th>
-    </tr></thead><tbody>`
-    + rows.map(({ value, result: r }) => `<tr class="${isCurrent(value) ? 'current' : ''}"><td>${label(value)}${isCurrent(value) ? ' (this option)' : ''}</td>
-        <td class="num">${gbp(r.typicalIncome)}</td><td class="num">${gbp(r.worstIncome)}</td>
-        <td class="num">${r.ranOutOrNearly} of ${n}</td><td class="num">${r.cutCount} of ${n}</td>
-        <td class="num">${gbp(r.medianEnd)}</td><td class="num">${pct(r.worstDrawdown)}</td><td class="num">${pct(r.medianVolatility, 1)}</td></tr>`).join('')
+function whatIfTable(rows, firstHead, label, isCurrent, n, req) {
+  const best = bestValues(rows.map((x) => x.result));
+  return `<div class="table-box"><table class="whatif">`
+    + headRow(n, req.years, firstHead).replace('</tr></thead>', '<th scope="col" class="num">Spending change<span class="unit">typical, yearly</span></th></tr></thead>')
+    + '<tbody>'
+    + rows.map(({ value, result: r }) => `<tr class="${isCurrent(value) ? 'current' : ''}"><td>${label(value)}${isCurrent(value) ? ' (this option)' : ''}</td>`
+        + cells(r, n, req, best) + `<td class="num">${pct(r.medianVolatility, 1)}</td></tr>`).join('')
     + '</tbody></table></div>';
 }
 
@@ -689,37 +741,68 @@ function renderDetail() {
   const profile = buildProfile(req);
   const sel = sims.find((s) => s.startYear === selected);
 
+  const chartLines = (pick) => sims.map((s) => ({
+    values: s.rows.map(pick), highlight: s.startYear === selected, ranOut: s.depleted || s.nearlyDepleted, label: `Retired ${s.startYear}`,
+  }));
+  const anyRanOut = sims.some((s) => s.depleted || s.nearlyDepleted);
   const incomeChart = lineChart({
-    title: 'What you could afford to spend each year in each past retirement',
-    startAge: req.age,
-    lines: sims.map((s) => ({ values: s.rows.map((x) => x.totalIncomeReal), highlight: s.startYear === selected, label: `Retired ${s.startYear}` })),
+    title: 'What you could afford to spend each year across past retirements',
+    startAge: req.age, startYear: selected, kind: 'income',
+    lines: chartLines((x) => x.totalIncomeReal),
     refs: [
-      { values: profile.wanted, colour: '#2f855a', dash: '7 5' },
-      { values: profile.minimum, colour: '#9a3412', dash: '2 4' },
+      { values: profile.wanted, colour: '#2f855a', dash: '7 5', label: `Want ${money(profile.wanted.at(-1))}` },
+      { values: profile.minimum, colour: '#9a3412', dash: '2 4', label: `Minimum ${money(profile.minimum.at(-1))}` },
     ],
   });
   const potChart = lineChart({
-    title: 'Pot at the end of each year in each past retirement',
-    startAge: req.age,
-    lines: sims.map((s) => ({ values: s.rows.map((x) => x.endTotalReal), highlight: s.startYear === selected, label: `Retired ${s.startYear}` })),
+    title: 'Pot at the end of each year across past retirements',
+    startAge: req.age, startYear: selected, kind: 'pot',
+    lines: chartLines((x) => x.endTotalReal),
   });
+  const selRanOut = sel.depleted || sel.nearlyDepleted;
+  const key = (colour, width, dash = '') => `<svg class="key" viewBox="0 0 22 8" aria-hidden="true"><line x1="1" x2="21" y1="4" y2="4" stroke="${colour}" stroke-width="${width}" ${dash ? `stroke-dasharray="${dash}"` : ''} stroke-linecap="butt"/></svg>`;
+  const legend = (refs) => `<div class="legend">
+      <span>${key(selRanOut ? '#b42318' : '#0b5f7a', 3)}Retired ${selected}</span>
+      <span>${key('#4b5563', 1.5)}Median</span>
+      <span><i class="box mid"></i>Middle half of past retirements</span>
+      <span><i class="box range"></i>Full range</span>
+      ${anyRanOut ? `<span>${key('#b42318', 1.5)}Ran out or nearly</span>` : ''}
+      ${refs ? `<span>${key('#2f855a', 2, '5 3')}What you want to spend</span><span>${key('#9a3412', 2, '2 3')}Lowest you could live on</span>` : ''}
+    </div>
+    <p class="hint chart-help">Point at the chart, or select it and use the arrow keys, to read the figures for each year.</p>`;
 
   const strip = sims.map((s) => {
-    const cls = s.depleted ? 'ranout' : (s.nearlyDepleted ? 'nearly' : 'fine');
-    const word = s.depleted ? `ran out yr ${s.depletionYear}` : (s.nearlyDepleted ? 'nearly' : 'lasted');
-    return `<button type="button" class="yr ${cls}" data-year="${s.startYear}" aria-pressed="${s.startYear === selected}">${s.startYear}<small>${word}</small></button>`;
+    const cuts = s.rows.filter((x) => x.belowWanted).length;
+    const ranOutAge = req.age ? req.age + s.depletionYear - 1 : s.depletionYear;
+    const [cls, word] = s.depleted ? ['bad', `out ${req.age ? 'at ' : 'yr '}${ranOutAge}`]
+      : s.nearlyDepleted ? ['bad', 'nearly ran out']
+        : cuts ? ['warn', `${cuts} yr${cuts > 1 ? 's' : ''} cut`] : ['good', 'lasted'];
+    return `<button type="button" class="yr ${cls}" data-year="${s.startYear}" aria-pressed="${s.startYear === selected}"><span class="yr-y">${ICON[cls]}${s.startYear}</span><small>${word}</small></button>`;
   }).join('');
 
+  const zeroOr = (v, f) => (Math.round(v / 100) === 0 ? '<span class="zero">0</span>' : f(v));
   const yearRows = sel.rows.map((x) => {
     const fromCash = x.cashUsed / x.inflationIndex;
     const fromInv = (x.actualWithdrawal - x.cashUsed) / x.inflationIndex;
     const short = x.actualWithdrawal < x.targetWithdrawal - 1e-6;
-    const notes = [...(x.events || []).map((ev) => EVENT_TEXT[ev] || ev), short ? 'Ran out' : '', x.belowMinimum ? 'Below minimum' : (x.belowWanted ? 'Below income wanted' : '')].filter(Boolean).join(', ');
-    return `<tr class="${short ? 'short' : ''}"><td>${req.age ? req.age + x.yearIndex - 1 : x.yearIndex}</td><td>${x.calendarYear}</td><td class="num">${gbp(x.totalIncomeReal)}</td>
-      <td class="num">${gbp(fromCash)}</td><td class="num">${gbp(fromInv)}</td><td class="num">${gbp(x.guaranteedIncome / x.inflationIndex)}</td>
-      <td class="num">${pct(x.portfolioReturn, 1)}</td><td class="num">${pct(x.inflation, 1)}</td><td class="num">${gbp(x.endTotalReal)}</td><td>${escapeHtml(notes)}</td></tr>`;
+    const notes = short ? 'Ran out' : [...(x.events || []).map((ev) => EVENT_TEXT[ev] || ev), x.belowMinimum ? 'Below minimum' : (x.belowWanted ? 'Below what you want' : '')].filter(Boolean).join(', ');
+    const cls = short || x.belowMinimum ? 'bad' : (x.belowWanted ? 'warn' : '');
+    return `<tr class="${cls}"><td>${req.age ? req.age + x.yearIndex - 1 : x.yearIndex}</td><td>${x.calendarYear}</td><td class="num strong">${money(x.totalIncomeReal)}</td>
+      <td class="num">${zeroOr(fromCash, money)}</td><td class="num">${zeroOr(fromInv, money)}</td><td class="num">${zeroOr(x.guaranteedIncome / x.inflationIndex, money)}</td>
+      <td class="num${x.portfolioReturn < 0 ? ' neg' : ''}">${signedPct(x.portfolioReturn, 1)}</td><td class="num">${signedPct(x.inflation, 1)}</td><td class="num">${zeroOr(x.endTotalReal, (v) => bigMoney(v, 2))}</td><td class="notes">${escapeHtml(notes)}</td></tr>`;
   }).join('');
 
+  const ro = countStatus(r.ranOutOrNearly, 'ranout', req.maxFailures);
+  const cut = countStatus(r.cutCount, 'cut', req.maxFailures);
+  const fact = (k, v, ref, cls = 'neutral') => `<div class="fact ${cls}"><div class="k">${k}</div><div class="v">${v}</div><div class="ref">${cls !== 'neutral' ? ICON[cls] : ''}${ref}</div></div>`;
+  const facts = [
+    fact('Typical spending a year', money(r.typicalIncome), `${signedMoney(r.typicalIncome - req.wanted)} vs ${money(req.wanted)} wanted`, r.typicalIncome >= req.wanted - 100 ? 'good' : 'warn'),
+    fact('Lowest year', money(r.worstIncome), `${signedMoney(r.worstIncome - req.minimum)} vs ${money(req.minimum)} minimum`, r.worstIncome >= req.minimum - 100 ? 'good' : 'bad'),
+    fact('Ran out or nearly', `${r.ranOutOrNearly} of ${n}`, `${ro.word}, limit ${req.maxFailures}`, ro.cls),
+    fact('Income cut', `${r.cutCount} of ${n}`, r.cutCount ? 'past retirements with a year below what you want' : 'never below what you want', cut.cls),
+    fact(`Typically left after ${req.years} years`, bigMoney(r.medianEnd), "in today's money"),
+    fact('Biggest fall', pct(r.worstDrawdown), 'largest drop in your investments'),
+  ].join('');
   const isBufferYears = plan.cashBuffer.years !== undefined;
   const html = `<button type="button" class="link back" data-nav="results">‹ Back to your options</button>
     <div class="detail">
@@ -731,33 +814,26 @@ function renderDetail() {
         <p class="recipe"><strong>The rest:</strong> ${escapeHtml(rec.rest)}</p>
       </header>
 
-      <div class="facts">
-        <div class="fact"><div class="k">Typically you could spend a year</div><div class="v">${gbp(r.typicalIncome)}</div></div>
-        <div class="fact"><div class="k">Least you could spend in a year</div><div class="v">${gbp(r.worstIncome)}</div></div>
-        <div class="fact"><div class="k">Ran out, or nearly</div><div class="v">${r.ranOutOrNearly} of ${n}</div></div>
-        <div class="fact"><div class="k">Income cut</div><div class="v">${r.cutCount} of ${n}</div></div>
-        <div class="fact"><div class="k">Typically left after ${req.years} years</div><div class="v">${gbp(r.medianEnd)}</div></div>
-        <div class="fact"><div class="k">Biggest fall</div><div class="v">${pct(r.worstDrawdown)}</div></div>
-      </div>
+      <div class="facts">${facts}      </div>
 
       <section class="panel">
         <h3>Each past retirement</h3>
         <p class="hint">Choose a start year to highlight it in the charts and see it year by year. It opens on the retirement with the lowest income.</p>
         <div class="strip" id="strip">${strip}</div>
-        <div class="legend"><span>Lasted: money left</span><span>Nearly: under a year's withdrawal left</span><span>Ran out: income fell to other income only</span></div>
+        <div class="legend"><span class="st good">${ICON.good}Lasted, never below what you want</span><span class="st warn">${ICON.warn}Lasted, some years below what you want</span><span class="st bad">${ICON.bad}Ran out, or under a year's withdrawal left</span></div>
       </section>
 
       <section class="panel chart">
         <h3>What you could afford to spend each year</h3>
         <p class="hint">Money from your pot plus any State Pension or other income, before tax, in today's money. This is what you would have to live on, not what your investments earned: those returns are in the table below and in the pot chart.</p>
         ${incomeChart}
-        <div class="legend"><span><i class="sw" style="border-color:#0b5f7a"></i>Retired ${selected}</span><span><i class="sw" style="border-color:#9fb7c0"></i>Other start years</span><span><i class="sw dash" style="border-color:#2f855a"></i>What you want to spend</span><span><i class="sw dash" style="border-color:#9a3412"></i>Lowest you could live on</span></div>
+        ${legend(true)}
       </section>
 
       <section class="panel chart">
         <h3>What is left in the pot, in today's money</h3>
         ${potChart}
-        <div class="legend"><span><i class="sw" style="border-color:#0b5f7a"></i>Retired ${selected}</span><span><i class="sw" style="border-color:#9fb7c0"></i>Other start years</span></div>
+        ${legend(false)}
       </section>
 
       <section class="panel">
@@ -767,22 +843,23 @@ function renderDetail() {
           <th scope="col" class="num">From cash</th><th scope="col" class="num">From investments</th><th scope="col" class="num">Pensions and earnings</th>
           <th scope="col" class="num">Investment return</th><th scope="col" class="num">Inflation</th><th scope="col" class="num">Pot left</th><th scope="col">Notes</th>
         </tr></thead><tbody>${yearRows}</tbody></table></div>
-        <p class="hint">Money figures in today's money. You could spend = from cash + from investments + other income. Investment return is what the whole pot gained or lost that year, after charges.</p>
+        <p class="hint">Money in today's pounds, rounded to the nearest \u00a3100. You could spend = from cash + from investments + pensions and earnings. Investment return is what the whole pot gained or lost that year, after charges; falls are shown in red. Shaded rows: amber is below what you want to spend, red is below your minimum or ran out.</p>
       </section>
 
       <section class="panel">
         <h3>What if the cash buffer were different?</h3>
-        ${whatIfTable(whatIfs.cash, 'Cash buffer', (v) => (v === 0 ? 'None' : `${v} year${v > 1 ? 's' : ''}`), (v) => isBufferYears && v === plan.cashBuffer.years, n)}
+        ${whatIfTable(whatIfs.cash, 'Cash buffer', (v) => (v === 0 ? 'None' : `${v} year${v > 1 ? 's' : ''}`), (v) => isBufferYears && v === plan.cashBuffer.years, n, req)}
       </section>
 
       <section class="panel">
         <h3>What if the shares and bonds mix were different?</h3>
-        ${whatIfTable(whatIfs.mix, 'Shares / bonds', (v) => `${Math.round(v * 100)} / ${100 - Math.round(v * 100)}`, (v) => Math.abs(v - plan.mix.equities) < 1e-9, n)}
+        ${whatIfTable(whatIfs.mix, 'Shares / bonds', (v) => `${Math.round(v * 100)} / ${100 - Math.round(v * 100)}`, (v) => Math.abs(v - plan.mix.equities) < 1e-9, n, req)}
       </section>
     </div>`;
 
   const view = $('view-detail');
   view.innerHTML = html;
+  wireCharts(view);
   view.onclick = (e) => {
     const yr = e.target.closest('[data-year]');
     if (yr) {
