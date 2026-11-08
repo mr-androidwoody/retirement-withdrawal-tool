@@ -14,7 +14,7 @@ import { buildProfile } from './profile.js';
 export function pinnedRate(request) {
   if (!request || !(request.pot > 0)) return null;
   const p = buildProfile(request);
-  const lasting = p.other[0] - (p.earned[0] || 0);
+  const lasting = p.other[0] - (p.earned?.[0] || 0);
   const rate = Math.max(0, p.wanted[0] - lasting) / request.pot;
   return rate > 0 && Number.isFinite(rate) ? rate : null;
 }

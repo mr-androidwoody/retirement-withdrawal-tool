@@ -8,6 +8,9 @@
 //          index    inflation index at the start of the year (1 in year 1)
 //          profile  real wanted / minimum / other income per year (see profile.js)
 // describe(params) -> plain-English recipe for the results table
+// incomeAware: true if the strategy already works in total income (pot + other income).
+//   For the others, the engine takes any earnings that year off the withdrawal, so pay from
+//   work replaces money from the pot rather than adding to it.
 
 const GK_DEFAULTS = {
   guardrail: 0.2,
@@ -26,12 +29,14 @@ const constantReal = {
   id: 'constant-real',
   label: 'Constant real',
   summary: 'Same income every year, rising with inflation.',
+  incomeAware: true,
   withdraw(params, state, ctx) {
-    // Fixes total real income in year 1 (withdrawal + guaranteed income), then keeps it,
-    // following any later change to the wanted income. Guaranteed income that starts
-    // later reduces what is taken from the pot.
+    // Fixes total real income in year 1 (withdrawal + lasting guaranteed income), then keeps
+    // it, following any later change to the wanted income. Other income in force in a year,
+    // including earnings and pensions that start later, reduces what is taken from the pot.
+    // Earnings are left out of the year-1 total, so a salary that stops is not replaced.
     const s = state || {
-      totalReal1: params.rate * ctx.pot + ctx.profile.other[0],
+      totalReal1: params.rate * ctx.pot + ctx.profile.other[0] - (ctx.profile.earned?.[0] || 0),
       wanted1: ctx.profile.wanted[0],
     };
     const scale = s.wanted1 > 0 ? ctx.profile.wanted[ctx.t] / s.wanted1 : 1;
@@ -99,6 +104,7 @@ const floorCeiling = {
   id: 'floor-ceiling',
   label: 'Floor and ceiling',
   summary: 'A share of the pot each year, kept between a floor and a ceiling.',
+  incomeAware: true,
   withdraw(params, state, ctx) {
     const other = otherNominal(ctx);
     const wanted = ctx.profile.wanted[ctx.t] * ctx.index;

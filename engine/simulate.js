@@ -65,7 +65,10 @@ export function simulate(plan, window, request, options = {}) {
     const decision = strategy.withdraw(plan.params, state, {
       t, years: n, pot: potStart, index, prevReturn, prevInflation, profile,
     });
-    const target = Math.max(0, decision.amount);
+    // Strategies that ignore other income take a share of the pot; earnings that year
+    // replace part of that withdrawal instead of adding to it.
+    const earnedNow = strategy.incomeAware ? 0 : (profile.earned?.[t] || 0) * index;
+    const target = Math.max(0, decision.amount - earnedNow);
     const actual = Math.min(target, potStart);
     if (t === 0) firstWithdrawalReal = target;
     if (actual < target - 1e-6 && depletionYear === null) depletionYear = t + 1;
