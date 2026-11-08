@@ -5,6 +5,7 @@ import { simulate } from './simulate.js';
 import { summarisePlan } from './metrics.js';
 import { STRATEGIES } from './strategies.js';
 import { buildProfile } from './profile.js';
+import { withAllowedFailures } from './periods.js';
 
 /**
  * The starting rate that pays exactly the income wanted in year 1: wanted income less any
@@ -154,9 +155,11 @@ export function reasonNotShown(r, request) {
  *   current  from currentFromMix: adds the "your mix as it is now" rows
  *   keepMix  true: every option uses the current mix; only approach, rate and cash rule vary
  */
-export function runSearch({ dataset, config, request, current = null, keepMix = false }) {
-  const windows = makeWindows(dataset, request.years, config.firstStartYear);
+export function runSearch({ dataset, config, request: input, current = null, keepMix = false }) {
+  const windows = makeWindows(dataset, input.years, config.firstStartYear);
   if (windows.length === 0) throw new Error('No past retirements of that length in the data.');
+  // "About 1 in 20" becomes a count for this number of past retirements.
+  const request = withAllowedFailures(input, windows.length);
   const thresholds = config.thresholds;
   const perRule = strategySettings(config, request).length;
   const onlyMine = Boolean(keepMix && current);
@@ -221,6 +224,7 @@ export function runSearch({ dataset, config, request, current = null, keepMix = 
     datasetId: dataset.id,
     datasetVersion: dataset.version,
     windows: windows.map((w) => ({ startYear: w.startYear, endYear: w.endYear })),
+    maxFailures: request.maxFailures,
     plansTried: grid.length + (current && !onlyMine ? CASH_RULES.length * perRule : 0),
     keepMix: onlyMine,
     eligibleCount: eligible.length,
@@ -236,8 +240,9 @@ export function runSearch({ dataset, config, request, current = null, keepMix = 
  * What-if: the same plan with a different cash buffer (years) or share mix.
  * Returns [{ value, result }] in order.
  */
-export function whatIf({ dataset, config, request, plan, dimension, values }) {
-  const windows = makeWindows(dataset, request.years, config.firstStartYear);
+export function whatIf({ dataset, config, request: input, plan, dimension, values }) {
+  const windows = makeWindows(dataset, input.years, config.firstStartYear);
+  const request = withAllowedFailures(input, windows.length);
   return values.map((value) => {
     const variant = dimension === 'cashBuffer'
       ? { ...plan, cashBuffer: { years: value } }
