@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { gbp, parseAmount, planName, recipe, escapeHtml } from '../ui/format.js';
+import { gbp, parseAmount, planName, recipe, escapeHtml, money, bigMoney, signedMoney, signedPct } from '../ui/format.js';
 
 const req = { pot: 500000, years: 30, wanted: 22500, minimum: 18000, incomeChange: null, otherIncome: [] };
 
@@ -38,4 +38,19 @@ test('all shares is described in words', () => {
 
 test('text is escaped before it goes into the page', () => {
   assert.equal(escapeHtml('<b>"x"</b>'), '&lt;b&gt;&quot;x&quot;&lt;/b&gt;');
+});
+
+test('report figures are rounded and use a true minus sign', () => {
+  assert.equal(money(82937), '\u00a382,900');
+  assert.equal(money(-1949), '\u2212\u00a31,900');
+  assert.equal(bigMoney(6469361), '\u00a36.5m');
+  assert.equal(bigMoney(1679165, 2), '\u00a31.68m');
+  assert.equal(bigMoney(948120), '\u00a3948k');
+  assert.equal(bigMoney(6636), '\u00a36,636');
+  assert.equal(signedMoney(30000), '+\u00a330,000');
+  assert.equal(signedMoney(-4500), '\u2212\u00a34,500');
+  assert.equal(signedMoney(20), '\u00a30');
+  assert.equal(signedPct(-0.2), '\u221220.0%');
+  assert.equal(signedPct(-0.0001), '0.0%');
+  assert.equal(signedPct(0.154), '15.4%');
 });
