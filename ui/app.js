@@ -736,13 +736,13 @@ function renderResults() {
         <div class="rec-label">Recommended${r.keepMix ? ` for your ${mixName} mix` : ''}</div>
         <h2 id="rec-title">${escapeHtml(info.name)}${info.aka ? ` <span class="aka">(${escapeHtml(info.aka)})</span>` : ''}</h2>
         <p class="rec-about">${escapeHtml(info.about)}</p>
-        <div class="recipe-grid">
+        <div class="recipe-grid aligned${Number.isFinite(ws) ? '' : ' four'}" style="--cols:${Number.isFinite(ws) ? 5 : 4}">
           <p><strong>Income</strong>${escapeHtml(recipeLines.income)}</p>
           <p><strong>Cash</strong>${escapeHtml(recipeLines.cash)}</p>
           <p><strong>The rest</strong>${escapeHtml(recipeLines.rest)}</p>
         </div>
         ${diff}
-        <div class="rec-figs">
+        <div class="rec-figs" style="--cols:${Number.isFinite(ws) ? 5 : 4}">
           <div><span class="k">Typical spending</span><span class="v">${money(p.typicalIncome)}</span><span class="s">a year, ${signedMoney(p.typicalIncome - req.wanted)} vs wanted</span></div>
           <div><span class="k">Lowest year</span><span class="v">${money(p.worstIncome)}</span><span class="s">${signedMoney(p.worstIncome - req.minimum)} vs minimum</span></div>
           <div><span class="k">Ran out or nearly</span><span class="v">${p.ranOutOrNearly} of ${n}</span><span class="s st ${ro.cls}">${ICON[ro.cls]}${ro.word}</span></div>
