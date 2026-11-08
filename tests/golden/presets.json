@@ -14,7 +14,8 @@
      "params": {
       "rate": 0.045,
       "floorPct": 1,
-      "ceilingPct": 1.5
+      "ceilingPct": 1.5,
+      "pinned": true
      },
      "mix": {
       "equities": 0.8
@@ -38,7 +39,8 @@
     "plan": {
      "strategy": "constant-real",
      "params": {
-      "rate": 0.045
+      "rate": 0.045,
+      "pinned": true
      },
      "mix": {
       "equities": 1
@@ -126,7 +128,8 @@
      "params": {
       "rate": 0.045,
       "floorPct": 1,
-      "ceilingPct": 1.5
+      "ceilingPct": 1.5,
+      "pinned": true
      },
      "mix": {
       "equities": 0.8
@@ -150,7 +153,8 @@
     "plan": {
      "strategy": "constant-real",
      "params": {
-      "rate": 0.045
+      "rate": 0.045,
+      "pinned": true
      },
      "mix": {
       "equities": 1
@@ -225,7 +229,7 @@
  },
  "modest": {
   "windows": 22,
-  "eligible": 240,
+  "eligible": 280,
   "rows": [
    {
     "labels": [
@@ -235,9 +239,10 @@
     "plan": {
      "strategy": "floor-ceiling",
      "params": {
-      "rate": 0.04,
+      "rate": 0.035,
       "floorPct": 1,
-      "ceilingPct": 1.5
+      "ceilingPct": 1.5,
+      "pinned": true
      },
      "mix": {
       "equities": 1
@@ -251,7 +256,7 @@
     "worstIncome": 17500,
     "ranOutOrNearly": 0,
     "cutCount": 0,
-    "medianEnd": 1683461,
+    "medianEnd": 1741210,
     "worstDrawdown": 0.367
    },
    {
@@ -285,7 +290,8 @@
     "plan": {
      "strategy": "constant-real",
      "params": {
-      "rate": 0.035
+      "rate": 0.035,
+      "pinned": true
      },
      "mix": {
       "equities": 1
@@ -372,7 +378,8 @@
      "params": {
       "rate": 0.04,
       "floorPct": 1,
-      "ceilingPct": 1.5
+      "ceilingPct": 1.5,
+      "pinned": true
      },
      "mix": {
       "equities": 1
@@ -420,7 +427,8 @@
     "plan": {
      "strategy": "constant-real",
      "params": {
-      "rate": 0.04
+      "rate": 0.04,
+      "pinned": true
      },
      "mix": {
       "equities": 0.9
@@ -508,7 +516,8 @@
      "params": {
       "rate": 0.045,
       "floorPct": 1,
-      "ceilingPct": 1.5
+      "ceilingPct": 1.5,
+      "pinned": true
      },
      "mix": {
       "equities": 0.8
@@ -532,7 +541,8 @@
     "plan": {
      "strategy": "constant-real",
      "params": {
-      "rate": 0.045
+      "rate": 0.045,
+      "pinned": true
      },
      "mix": {
       "equities": 1
@@ -612,11 +622,12 @@
   "others": [
    {
     "strategy": "constant-real",
-    "reason": "ran out in 2 of 22 past retirements",
+    "reason": "ran out in 6 of 22 past retirements",
     "plan": {
      "strategy": "constant-real",
      "params": {
-      "rate": 0.05
+      "rate": 0.07,
+      "pinned": true
      },
      "mix": {
       "equities": 0.6
@@ -626,62 +637,64 @@
      }
     },
     "status": "does-not-meet",
-    "typicalIncome": 25000,
-    "worstIncome": 25000,
-    "ranOutOrNearly": 3,
-    "cutCount": 22,
-    "medianEnd": 1417765,
+    "typicalIncome": 35000,
+    "worstIncome": 35000,
+    "ranOutOrNearly": 6,
+    "cutCount": 6,
+    "medianEnd": 370150,
     "worstDrawdown": 0.215
    },
    {
     "strategy": "fixed-percentage",
-    "reason": "fell below your minimum in 22 of 22",
+    "reason": "fell below your minimum in 17 of 22",
     "plan": {
      "strategy": "fixed-percentage",
      "params": {
-      "rate": 0.05
+      "rate": 0.07,
+      "pinned": true
      },
      "mix": {
-      "equities": 0.8
+      "equities": 0.9
      },
      "cashBuffer": {
       "years": 0
      }
     },
     "status": "does-not-meet",
-    "typicalIncome": 37438,
-    "worstIncome": 11776,
+    "typicalIncome": 36282,
+    "worstIncome": 12958,
     "ranOutOrNearly": 0,
-    "cutCount": 22,
-    "medianEnd": 901464,
-    "worstDrawdown": 0.278
+    "cutCount": 20,
+    "medianEnd": 501975,
+    "worstDrawdown": 0.323
    },
    {
     "strategy": "guyton-klinger",
-    "reason": "fell below your minimum in 22 of 22",
+    "reason": "fell below your minimum in 13 of 22",
     "plan": {
      "strategy": "guyton-klinger",
      "params": {
-      "rate": 0.06,
+      "rate": 0.07,
       "guardrail": 0.2,
       "adjustment": 0.1,
       "inflationCap": 0.06,
       "noCutFinalYears": 15,
-      "skipOnlyIfAboveStartRate": true
+      "skipOnlyIfAboveStartRate": true,
+      "pinned": true
      },
      "mix": {
       "equities": 0.8
      },
      "cashBuffer": {
-      "years": 0
+      "years": 2
      }
     },
     "status": "does-not-meet",
-    "typicalIncome": 40345,
-    "worstIncome": 11929,
+    "typicalIncome": 41122,
+    "worstIncome": 13130,
     "ranOutOrNearly": 0,
-    "cutCount": 22,
-    "medianEnd": 718682,
+    "cutCount": 18,
+    "medianEnd": 478473,
     "worstDrawdown": 0.278
    },
    {
@@ -690,9 +703,10 @@
     "plan": {
      "strategy": "floor-ceiling",
      "params": {
-      "rate": 0.04,
+      "rate": 0.07,
       "floorPct": 0.9,
-      "ceilingPct": 1.5
+      "ceilingPct": 1.5,
+      "pinned": true
      },
      "mix": {
       "equities": 0.6
@@ -702,15 +716,39 @@
      }
     },
     "status": "does-not-meet",
-    "typicalIncome": 32000,
+    "typicalIncome": 33344,
     "worstIncome": 32000,
     "ranOutOrNearly": 6,
-    "cutCount": 22,
-    "medianEnd": 632686,
+    "cutCount": 20,
+    "medianEnd": 381073,
     "worstDrawdown": 0.215
    }
   ],
   "closest": [
+   {
+    "plan": {
+     "strategy": "floor-ceiling",
+     "params": {
+      "rate": 0.07,
+      "floorPct": 0.9,
+      "ceilingPct": 1.5,
+      "pinned": true
+     },
+     "mix": {
+      "equities": 0.6
+     },
+     "cashBuffer": {
+      "years": 0
+     }
+    },
+    "status": "does-not-meet",
+    "typicalIncome": 33344,
+    "worstIncome": 32000,
+    "ranOutOrNearly": 6,
+    "cutCount": 20,
+    "medianEnd": 381073,
+    "worstDrawdown": 0.215
+   },
    {
     "plan": {
      "strategy": "floor-ceiling",
@@ -756,35 +794,12 @@
     "cutCount": 22,
     "medianEnd": 618568,
     "worstDrawdown": 0.215
-   },
-   {
-    "plan": {
-     "strategy": "floor-ceiling",
-     "params": {
-      "rate": 0.05,
-      "floorPct": 0.9,
-      "ceilingPct": 1.5
-     },
-     "mix": {
-      "equities": 0.6
-     },
-     "cashBuffer": {
-      "years": 0
-     }
-    },
-    "status": "does-not-meet",
-    "typicalIncome": 32000,
-    "worstIncome": 32000,
-    "ranOutOrNearly": 6,
-    "cutCount": 22,
-    "medianEnd": 593776,
-    "worstDrawdown": 0.215
    }
   ]
  },
  "change": {
   "windows": 22,
-  "eligible": 200,
+  "eligible": 260,
   "rows": [
    {
     "labels": [
@@ -819,36 +834,10 @@
      "Most left behind"
     ],
     "plan": {
-     "strategy": "floor-ceiling",
-     "params": {
-      "rate": 0.04,
-      "floorPct": 1,
-      "ceilingPct": 1.5
-     },
-     "mix": {
-      "equities": 1
-     },
-     "cashBuffer": {
-      "years": 0
-     }
-    },
-    "status": "meets-both",
-    "typicalIncome": 29520,
-    "worstIncome": 20000,
-    "ranOutOrNearly": 1,
-    "cutCount": 1,
-    "medianEnd": 1216515,
-    "worstDrawdown": 0.367
-   }
-  ],
-  "others": [
-   {
-    "strategy": "constant-real",
-    "reason": "was beaten by the options above",
-    "plan": {
      "strategy": "constant-real",
      "params": {
-      "rate": 0.05
+      "rate": 0.052,
+      "pinned": true
      },
      "mix": {
       "equities": 0.9
@@ -857,14 +846,16 @@
       "years": 0
      }
     },
-    "status": "meets-minimum",
-    "typicalIncome": 19231,
-    "worstIncome": 19231,
-    "ranOutOrNearly": 0,
-    "cutCount": 22,
-    "medianEnd": 1709862,
+    "status": "meets-both",
+    "typicalIncome": 20000,
+    "worstIncome": 20000,
+    "ranOutOrNearly": 1,
+    "cutCount": 1,
+    "medianEnd": 1613611,
     "worstDrawdown": 0.323
-   },
+   }
+  ],
+  "others": [
    {
     "strategy": "fixed-percentage",
     "reason": "fell below your minimum in 5 of 22",
