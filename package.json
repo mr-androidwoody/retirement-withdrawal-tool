@@ -1,0 +1,9 @@
+{
+  "name": "retirement-withdrawal-tool",
+  "private": true,
+  "type": "module",
+  "description": "Tests ways of drawing a retirement pot against actual past retirements.",
+  "scripts": {
+    "test": "node --test"
+  }
+}
