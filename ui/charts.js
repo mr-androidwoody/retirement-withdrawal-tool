@@ -92,16 +92,28 @@ export function lineChart({ lines, refs = [], kind = 'income', title, startAge =
     .map((l) => `<path d="${path(l.values)}" fill="none" stroke="${COLOURS.ranOut}" stroke-width="1.5" opacity="0.85"/>`);
   const refLines = refs.map((r) => `<path d="${path(r.values)}" fill="none" stroke="${r.colour}" stroke-width="2" ${r.dash ? `stroke-dasharray="${r.dash}"` : ''}/>`);
 
-  // Direct labels at the right-hand end, nudged apart so they never overlap.
+  // Direct labels at the right-hand end, nudged apart so they never overlap. A label with a
+  // note in brackets ("Retired 1973 (worst case)") goes on two lines, and any label too long
+  // for the space is set smaller so it always fits.
+  const room = PAD.right - 10;
+  const fit = (text, size, weight) => Math.min(size, room / (text.length * (weight ? 0.62 : 0.56)));
+  const split = (text) => {
+    const m = /^(.*) \((.*)\)$/.exec(text);
+    return m ? { text: m[1], note: m[2] } : { text, note: '' };
+  };
   const labels = [
-    ...refs.map((r) => ({ text: r.label, colour: r.colour, v: r.values.at(-1) })),
-    ...(hi ? [{ text: hi.label, colour: hi.ranOut ? COLOURS.ranOut : COLOURS.accent, v: hi.values.at(-1), bold: true }] : []),
-    { text: 'Median', colour: COLOURS.median, v: stats.median.at(-1) },
-  ].map((l) => ({ ...l, y: y(l.v) + 4 })).sort((a, b) => a.y - b.y);
-  for (let i = 1; i < labels.length; i += 1) labels[i].y = Math.max(labels[i].y, labels[i - 1].y + 14);
-  const overflow = labels.length ? labels.at(-1).y - (H - PAD.bottom + 4) : 0;
+    ...refs.map((r) => ({ ...split(r.label), colour: r.colour, v: r.values.at(-1) })),
+    ...(hi ? [{ ...split(hi.label), colour: hi.ranOut ? COLOURS.ranOut : COLOURS.accent, v: hi.values.at(-1), bold: true }] : []),
+    { text: 'Median', note: '', colour: COLOURS.median, v: stats.median.at(-1) },
+  ].map((l) => ({ ...l, y: y(l.v) + 4, h: l.note ? 26 : 14 })).sort((a, b) => a.y - b.y);
+  for (let i = 1; i < labels.length; i += 1) labels[i].y = Math.max(labels[i].y, labels[i - 1].y + labels[i - 1].h);
+  const overflow = labels.length ? labels.at(-1).y + labels.at(-1).h - 14 - (H - PAD.bottom + 4) : 0;
   if (overflow > 0) for (const l of labels) l.y -= overflow;
-  const endLabels = labels.map((l) => `<text x="${W - PAD.right + 8}" y="${l.y.toFixed(1)}" font-size="12" ${l.bold ? 'font-weight="600"' : ''} fill="${l.colour}">${esc(l.text)}</text>`);
+  const endLabels = labels.map((l) => {
+    const size = fit(l.text, 12, l.bold).toFixed(1);
+    const note = l.note ? `<tspan x="${W - PAD.right + 8}" dy="13" font-size="${fit(l.note, 11, false).toFixed(1)}" font-weight="400">${esc(l.note)}</tspan>` : '';
+    return `<text x="${W - PAD.right + 8}" y="${l.y.toFixed(1)}" font-size="${size}" ${l.bold ? 'font-weight="600"' : ''} fill="${l.colour}">${esc(l.text)}${note}</text>`;
+  });
 
   const data = {
     n, startAge, startYear, kind, top, W, H, PAD,
