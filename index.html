@@ -1,1 +1,204 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Retirement Withdrawal Tool</title>
+<meta name="description" content="How much can I take from my pot, and will it last? Tested against real past retirements.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="page">
 
+<!-- ================= 1. PLAN ================= -->
+<section id="view-plan" class="view" aria-labelledby="plan-title">
+  <header class="masthead">
+    <div class="eyebrow">Retirement Withdrawal Tool</div>
+    <h1 id="plan-title">How much can I take from my pot, and will it last?</h1>
+    <p class="source"><span class="dot" aria-hidden="true"></span><span id="source-line">Loading the historical data...</span></p>
+  </header>
+
+  <section class="how">
+    <h2>How this works</h2>
+    <ol>
+      <li>Tell us your pot, the income you want and the least you could live on.</li>
+      <li>We try <span data-bind="plan-count">hundreds of</span> ways of drawing your pot against every past retirement.</li>
+      <li>You see the few that meet your needs, each the best at one thing.</li>
+    </ol>
+  </section>
+
+  <section class="presets" aria-labelledby="presets-title">
+    <h2 id="presets-title">Start from an example</h2>
+    <div class="chips" id="presets"></div>
+    <p class="hint">Examples only fill in the form. You can change any figure afterwards.</p>
+  </section>
+
+  <form id="plan-form" novalidate>
+    <section class="card step">
+      <div class="step-head">
+        <span class="step-num" aria-hidden="true">1</span>
+        <div>
+          <h2>Your pot</h2>
+          <p class="hint">Type it in, or paste a snapshot from your tracker to fill in the pot, your mix and your cash.</p>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="snapshot">Paste your portfolio snapshot (optional)</label>
+        <textarea id="snapshot" rows="4" spellcheck="false" placeholder="Portfolio Snapshot ..."></textarea>
+        <div id="snapshot-status" class="status" hidden></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="field">
+          <label for="pot">Pot (&pound;)</label>
+          <input id="pot" name="pot" inputmode="numeric" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="years">Retirement length</label>
+          <select id="years" name="years"></select>
+        </div>
+      </div>
+    </section>
+
+    <section class="card step">
+      <div class="step-head">
+        <span class="step-num" aria-hidden="true">2</span>
+        <div>
+          <h2>The income you need</h2>
+          <p class="hint">Household income a year, in today's money. These two figures decide which options are shown.</p>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="field">
+          <label for="wanted">Income you want (&pound; a year)</label>
+          <input id="wanted" name="wanted" inputmode="numeric" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="minimum">Lowest you could live on (&pound; a year)</label>
+          <input id="minimum" name="minimum" inputmode="numeric" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="links">
+        <button type="button" class="link" id="toggle-change" aria-expanded="false" aria-controls="change-box">+ Income changes later</button>
+        <button type="button" class="link" id="toggle-other" aria-expanded="false" aria-controls="other-box">+ Add State Pension or other income</button>
+      </div>
+
+      <div id="change-box" class="subbox" hidden>
+        <div class="subbox-head">
+          <span>Income changes later</span>
+          <button type="button" class="link" id="remove-change">Remove</button>
+        </div>
+        <div class="grid-3">
+          <div class="field">
+            <label for="change-year">From retirement year</label>
+            <input id="change-year" inputmode="numeric" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="change-wanted">Income you want</label>
+            <input id="change-wanted" inputmode="numeric" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="change-minimum">Lowest you could live on</label>
+            <input id="change-minimum" inputmode="numeric" autocomplete="off">
+          </div>
+        </div>
+      </div>
+
+      <div id="other-box" class="subbox" hidden>
+        <div class="subbox-head">
+          <span>State Pension or other income, in today's money</span>
+          <button type="button" class="link" id="remove-other">Remove</button>
+        </div>
+        <div class="grid-3 other-row">
+          <div class="field">
+            <label for="other1-label">What</label>
+            <input id="other1-label" value="State Pension (you)" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="other1-amount">&pound; a year</label>
+            <input id="other1-amount" inputmode="numeric" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="other1-year">Starts in retirement year</label>
+            <input id="other1-year" inputmode="numeric" autocomplete="off" value="1">
+          </div>
+        </div>
+        <div id="other2" class="grid-3 other-row" hidden>
+          <div class="field">
+            <label for="other2-label">What</label>
+            <input id="other2-label" value="State Pension (partner)" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="other2-amount">&pound; a year</label>
+            <input id="other2-amount" inputmode="numeric" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="other2-year">Starts in retirement year</label>
+            <input id="other2-year" inputmode="numeric" autocomplete="off" value="1">
+          </div>
+        </div>
+        <button type="button" class="link" id="add-other2">+ Add a second person's income</button>
+      </div>
+    </section>
+
+    <section class="card step">
+      <div class="step-head">
+        <span class="step-num" aria-hidden="true">3</span>
+        <div>
+          <h2>How much risk you would accept</h2>
+          <p class="hint" id="risk-hint">Of the past retirements, how many may run out of money?</p>
+        </div>
+      </div>
+      <div class="segmented" role="radiogroup" aria-labelledby="risk-hint" id="risk"></div>
+    </section>
+
+    <section class="card step step-compact">
+      <span class="step-num muted" aria-hidden="true">4</span>
+      <div class="grow">
+        <h2 class="h-small">Mix, history and approaches</h2>
+        <p class="hint" id="settings-summary"></p>
+        <div id="fee-box" class="field fee" hidden>
+          <label for="fee">Annual charges (% of the pot)</label>
+          <input id="fee" inputmode="decimal" autocomplete="off">
+        </div>
+      </div>
+      <button type="button" class="link" id="toggle-fee" aria-expanded="false" aria-controls="fee-box">Edit charges</button>
+    </section>
+
+    <section class="card step">
+      <div class="step-head">
+        <span class="step-num" aria-hidden="true">5</span>
+        <div>
+          <h2>Check and find options</h2>
+          <p class="hint">Check your goal in words, then press the button.</p>
+        </div>
+      </div>
+      <div class="goal">
+        <div class="goal-label">Your goal, in words</div>
+        <p id="goal-text"></p>
+        <div class="goal-count"><span class="big" data-bind="plan-count-number">0</span> <span>ways of drawing your pot will be tried</span></div>
+      </div>
+      <div id="form-errors" class="errors" role="alert" hidden></div>
+      <button type="submit" class="primary" id="find">Find options</button>
+    </section>
+  </form>
+</section>
+
+<!-- ================= 2. RESULTS ================= -->
+<section id="view-results" class="view" hidden aria-live="polite"></section>
+
+<!-- ================= 3. OPTION DETAIL ================= -->
+<section id="view-detail" class="view" hidden></section>
+
+<footer class="footnote" id="footnote"></footer>
+</main>
+<script type="module" src="ui/app.js"></script>
+</body>
+</html>
