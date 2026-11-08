@@ -70,7 +70,7 @@ function report(runs) {
     lines.push(`## ${preset.label}`, '');
     const change = request.incomeChange
       ? `; from year ${request.incomeChange.fromYear} wanted ${gbp(request.incomeChange.wanted)}, minimum ${gbp(request.incomeChange.minimum)}` : '';
-    lines.push(`Pot ${gbp(request.pot)}, ${request.years} years, wanted ${gbp(request.wanted)}, minimum ${gbp(request.minimum)}${change}, up to ${request.maxFailures} of ${n} may run out. ${result.plansTried} plans tried, ${result.eligibleCount} meet the needs.`, '');
+    lines.push(`Pot ${gbp(request.pot)}, ${request.years} years, wanted ${gbp(request.wanted)}, minimum ${gbp(request.minimum)}${change}, up to ${result.maxFailures} of ${n} may run out. ${result.plansTried} plans tried, ${result.eligibleCount} meet the needs.`, '');
     if (result.rows.length) {
       lines.push('| Option | Plan | Typical income | Worst year | Ran out, or nearly | Income cut | Typically left | Biggest fall |',
         '| --- | --- | --- | --- | --- | --- | --- | --- |');
