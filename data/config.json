@@ -1,6 +1,6 @@
 {
   "dataset": "data/jst-r6-global-gbp.json",
-  "firstStartYear": 1970,
+  "firstStartYear": 1950,
   "retirementLengths": [25, 30, 35],
 
   "defaults": {
@@ -11,7 +11,7 @@
     "minimum": 18000,
     "incomeChange": null,
     "otherIncome": [],
-    "maxFailures": 1,
+    "riskShare": 0.05,
     "annualFee": 0.0025
   },
 
@@ -33,6 +33,16 @@
     { "label": "50/25/25", "equities": 0.5, "bonds": 0.25, "cash": 0.25 }
   ],
   "defaultMix": "60/30/10",
+
+  "risk": {
+    "choices": [
+      { "share": 0, "label": "None" },
+      { "share": 0.05, "label": "About 1 in 20" },
+      { "share": 0.1, "label": "About 1 in 10" }
+    ],
+    "rankYears": 10,
+    "subsetSize": 10
+  },
 
   "thresholds": {
     "nearlyRanOutYears": 1,
@@ -67,12 +77,12 @@
   },
 
   "presets": [
-    { "id": "typical", "label": "Typical retirement", "values": { "pot": 500000, "years": 30, "wanted": 22500, "minimum": 18000, "maxFailures": 1 } },
-    { "id": "nothing-runs-out", "label": "Nothing may run out", "values": { "pot": 500000, "years": 30, "wanted": 22500, "minimum": 18000, "maxFailures": 0 } },
-    { "id": "modest", "label": "Modest income", "values": { "pot": 500000, "years": 30, "wanted": 17500, "minimum": 15000, "maxFailures": 1 } },
-    { "id": "early", "label": "Retiring early", "values": { "pot": 500000, "years": 35, "wanted": 20000, "minimum": 16000, "maxFailures": 1 } },
-    { "id": "can-vary", "label": "Income can vary", "values": { "pot": 500000, "years": 30, "wanted": 22500, "minimum": 15000, "maxFailures": 1 } },
-    { "id": "too-much", "label": "Asking for too much", "values": { "pot": 500000, "years": 30, "wanted": 35000, "minimum": 32000, "maxFailures": 0 } },
-    { "id": "change", "label": "Income changes later", "values": { "pot": 500000, "years": 30, "wanted": 26000, "minimum": 20000, "maxFailures": 1, "incomeChange": { "fromYear": 11, "wanted": 20000, "minimum": 16000 } } }
+    { "id": "typical", "label": "Typical retirement", "values": { "pot": 500000, "years": 30, "wanted": 22500, "minimum": 18000, "riskShare": 0.05 } },
+    { "id": "nothing-runs-out", "label": "Nothing may run out", "values": { "pot": 500000, "years": 30, "wanted": 22500, "minimum": 18000, "riskShare": 0 } },
+    { "id": "modest", "label": "Modest income", "values": { "pot": 500000, "years": 30, "wanted": 17500, "minimum": 15000, "riskShare": 0.05 } },
+    { "id": "early", "label": "Retiring early", "values": { "pot": 500000, "years": 35, "wanted": 20000, "minimum": 16000, "riskShare": 0.05 } },
+    { "id": "can-vary", "label": "Income can vary", "values": { "pot": 500000, "years": 30, "wanted": 22500, "minimum": 15000, "riskShare": 0.05 } },
+    { "id": "too-much", "label": "Asking for too much", "values": { "pot": 500000, "years": 30, "wanted": 35000, "minimum": 32000, "riskShare": 0 } },
+    { "id": "change", "label": "Income changes later", "values": { "pot": 500000, "years": 30, "wanted": 26000, "minimum": 20000, "riskShare": 0.05, "incomeChange": { "fromYear": 11, "wanted": 20000, "minimum": 16000 } } }
   ]
 }
