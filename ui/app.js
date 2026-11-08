@@ -332,8 +332,8 @@ function show(view) {
 
 function cells(r, n) {
   // data-label lets phones show each figure with its heading when the table stacks.
-  return `<td class="num" data-label="Typical income a year">${gbp(r.typicalIncome)}</td>`
-    + `<td class="num" data-label="Your worst year">${gbp(r.worstIncome)}</td>`
+  return `<td class="num" data-label="Typically you could spend a year">${gbp(r.typicalIncome)}</td>`
+    + `<td class="num" data-label="Least you could spend in a year">${gbp(r.worstIncome)}</td>`
     + `<td class="num" data-label="Ran out, or nearly">${r.ranOutOrNearly} of ${n}</td>`
     + `<td class="num" data-label="Income cut">${r.cutCount} of ${n}</td>`
     + `<td class="num" data-label="Typically left">${gbp(r.medianEnd)}</td>`
@@ -355,8 +355,8 @@ function optionCell(r, badges, request) {
 
 const HEAD = (n, years) => `<thead><tr>
     <th scope="col">Option</th>
-    <th scope="col" class="num">Typical income a year</th>
-    <th scope="col" class="num">Your worst year</th>
+    <th scope="col" class="num">Typically you could spend a year</th>
+    <th scope="col" class="num">Least you could spend in a year</th>
     <th scope="col" class="num">Ran out, or nearly (of ${n})</th>
     <th scope="col" class="num">Income cut (of ${n})</th>
     <th scope="col" class="num">Typically left after ${years} years</th>
@@ -415,7 +415,7 @@ function renderResults() {
       }).join('') + '</div></section>';
   }
 
-  html += `<p class="hint">Ran out, or nearly: ran out, or less than one year's withdrawal left at the end. Income cut: any year below the income you want. Your worst year: the lowest income in any past retirement that did not run out. Biggest fall: the largest drop in your investments from a high point, from year-end values.</p>`;
+  html += `<p class="hint">Ran out, or nearly: ran out, or less than one year's withdrawal left at the end. Typically you could spend: what you would have to live on each year (from the pot plus other income, before tax, in today's money), in a typical past retirement. Income cut: any year below what you want to spend. Least you could spend in a year: the lowest year in any past retirement that did not run out. Biggest fall: the largest drop in your investments from a high point, from year-end values.</p>`;
 
   const view = $('view-results');
   view.innerHTML = html;
@@ -445,9 +445,9 @@ function openDetail(item) {
 
 function whatIfTable(rows, firstHead, label, isCurrent, n) {
   return `<div class="table-box"><table class="whatif"><thead><tr>
-      <th scope="col">${firstHead}</th><th scope="col" class="num">Typical income</th><th scope="col" class="num">Worst year</th>
+      <th scope="col">${firstHead}</th><th scope="col" class="num">Typically you could spend</th><th scope="col" class="num">Least in a year</th>
       <th scope="col" class="num">Ran out, or nearly</th><th scope="col" class="num">Income cut</th>
-      <th scope="col" class="num">Typically left</th><th scope="col" class="num">Biggest fall</th><th scope="col" class="num">Typical yearly change in income</th>
+      <th scope="col" class="num">Typically left</th><th scope="col" class="num">Biggest fall</th><th scope="col" class="num">Typical yearly change in spending</th>
     </tr></thead><tbody>`
     + rows.map(({ value, result: r }) => `<tr class="${isCurrent(value) ? 'current' : ''}"><td>${label(value)}${isCurrent(value) ? ' (this option)' : ''}</td>
         <td class="num">${gbp(r.typicalIncome)}</td><td class="num">${gbp(r.worstIncome)}</td>
@@ -467,7 +467,7 @@ function renderDetail() {
   const sel = sims.find((s) => s.startYear === selected);
 
   const incomeChart = lineChart({
-    title: 'Income each year in each past retirement',
+    title: 'What you could afford to spend each year in each past retirement',
     lines: sims.map((s) => ({ values: s.rows.map((x) => x.totalIncomeReal), highlight: s.startYear === selected, label: `Retired ${s.startYear}` })),
     refs: [
       { values: profile.wanted, colour: '#2f855a', dash: '7 5' },
@@ -507,8 +507,8 @@ function renderDetail() {
       </header>
 
       <div class="facts">
-        <div class="fact"><div class="k">Typical income a year</div><div class="v">${gbp(r.typicalIncome)}</div></div>
-        <div class="fact"><div class="k">Your worst year</div><div class="v">${gbp(r.worstIncome)}</div></div>
+        <div class="fact"><div class="k">Typically you could spend a year</div><div class="v">${gbp(r.typicalIncome)}</div></div>
+        <div class="fact"><div class="k">Least you could spend in a year</div><div class="v">${gbp(r.worstIncome)}</div></div>
         <div class="fact"><div class="k">Ran out, or nearly</div><div class="v">${r.ranOutOrNearly} of ${n}</div></div>
         <div class="fact"><div class="k">Income cut</div><div class="v">${r.cutCount} of ${n}</div></div>
         <div class="fact"><div class="k">Typically left after ${req.years} years</div><div class="v">${gbp(r.medianEnd)}</div></div>
@@ -523,9 +523,10 @@ function renderDetail() {
       </section>
 
       <section class="panel chart">
-        <h3>Income each year, in today's money</h3>
+        <h3>What you could afford to spend each year</h3>
+        <p class="hint">Money from your pot plus any State Pension or other income, before tax, in today's money. This is what you would have to live on, not what your investments earned: those returns are in the table below and in the pot chart.</p>
         ${incomeChart}
-        <div class="legend"><span><i class="sw" style="border-color:#0b5f7a"></i>Retired ${selected}</span><span><i class="sw" style="border-color:#9fb7c0"></i>Other start years</span><span><i class="sw dash" style="border-color:#2f855a"></i>Income you want</span><span><i class="sw dash" style="border-color:#9a3412"></i>Lowest you could live on</span></div>
+        <div class="legend"><span><i class="sw" style="border-color:#0b5f7a"></i>Retired ${selected}</span><span><i class="sw" style="border-color:#9fb7c0"></i>Other start years</span><span><i class="sw dash" style="border-color:#2f855a"></i>What you want to spend</span><span><i class="sw dash" style="border-color:#9a3412"></i>Lowest you could live on</span></div>
       </section>
 
       <section class="panel chart">
@@ -537,11 +538,11 @@ function renderDetail() {
       <section class="panel">
         <h3>Retired in ${selected}, year by year</h3>
         <div class="table-box"><table class="year-table"><thead><tr>
-          <th scope="col">Year</th><th scope="col">Calendar year</th><th scope="col" class="num">Income</th>
+          <th scope="col">Year</th><th scope="col">Calendar year</th><th scope="col" class="num">You could spend</th>
           <th scope="col" class="num">From cash</th><th scope="col" class="num">From investments</th><th scope="col" class="num">Other income</th>
           <th scope="col" class="num">Investment return</th><th scope="col" class="num">Inflation</th><th scope="col" class="num">Pot left</th><th scope="col">Notes</th>
         </tr></thead><tbody>${yearRows}</tbody></table></div>
-        <p class="hint">Money figures in today's money. Investment return is for the whole pot, after charges.</p>
+        <p class="hint">Money figures in today's money. You could spend = from cash + from investments + other income. Investment return is what the whole pot gained or lost that year, after charges.</p>
       </section>
 
       <section class="panel">
