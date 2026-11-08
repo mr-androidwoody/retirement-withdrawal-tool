@@ -53,13 +53,21 @@
         <div id="snapshot-status" class="status" hidden></div>
       </div>
 
-      <div class="grid-2">
+      <div class="grid-4">
         <div class="field">
           <label for="pot">Pot (&pound;)</label>
           <input id="pot" name="pot" inputmode="numeric" autocomplete="off">
         </div>
         <div class="field">
-          <label for="years">Retirement length</label>
+          <label for="age">Your age now</label>
+          <input id="age" name="age" inputmode="numeric" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="partner-age">Partner's age now <span class="opt">(optional)</span></label>
+          <input id="partner-age" name="partner-age" inputmode="numeric" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="years">Plan for how long</label>
           <select id="years" name="years"></select>
         </div>
       </div>
@@ -88,6 +96,7 @@
       <div class="links">
         <button type="button" class="link" id="toggle-change" aria-expanded="false" aria-controls="change-box">+ Income changes later</button>
         <button type="button" class="link" id="toggle-other" aria-expanded="false" aria-controls="other-box">+ Add State Pension or other income</button>
+        <button type="button" class="link" id="toggle-earned" aria-expanded="false" aria-controls="earned-box">+ Add earned income</button>
       </div>
 
       <div id="change-box" class="subbox" hidden>
@@ -97,8 +106,8 @@
         </div>
         <div class="grid-3">
           <div class="field">
-            <label for="change-year">From retirement year</label>
-            <input id="change-year" inputmode="numeric" autocomplete="off">
+            <label for="change-age">From age</label>
+            <input id="change-age" inputmode="numeric" autocomplete="off" placeholder="e.g. 75">
           </div>
           <div class="field">
             <label for="change-wanted">Income you want</label>
@@ -126,10 +135,11 @@
             <input id="other1-amount" inputmode="numeric" autocomplete="off">
           </div>
           <div class="field">
-            <label for="other1-year">Starts in retirement year</label>
-            <input id="other1-year" inputmode="numeric" autocomplete="off" value="1">
+            <label for="other1-age">Starts at age</label>
+            <input id="other1-age" inputmode="numeric" autocomplete="off" placeholder="e.g. 67">
           </div>
         </div>
+        <p class="hint pension-hint" id="other1-hint"></p>
         <div id="other2" class="grid-3 other-row" hidden>
           <div class="field">
             <label for="other2-label">What</label>
@@ -140,11 +150,50 @@
             <input id="other2-amount" inputmode="numeric" autocomplete="off">
           </div>
           <div class="field">
-            <label for="other2-year">Starts in retirement year</label>
-            <input id="other2-year" inputmode="numeric" autocomplete="off" value="1">
+            <label for="other2-age">Starts at their age</label>
+            <input id="other2-age" inputmode="numeric" autocomplete="off" placeholder="e.g. 67">
           </div>
         </div>
-        <button type="button" class="link" id="add-other2">+ Add a second person's income</button>
+        <p class="hint pension-hint" id="other2-hint" hidden></p>
+        <button type="button" class="link" id="add-other2">+ Add your partner's pension or income</button>
+        <p class="hint" id="pension-note"></p>
+      </div>
+
+      <div id="earned-box" class="subbox" hidden>
+        <div class="subbox-head">
+          <span>Earned income (employment or self-employment), before tax, in today's money</span>
+          <button type="button" class="link" id="remove-earned">Remove</button>
+        </div>
+        <div class="grid-3 other-row">
+          <div class="field">
+            <label for="earned1-label">What</label>
+            <input id="earned1-label" value="Earnings (you)" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="earned1-amount">&pound; a year</label>
+            <input id="earned1-amount" inputmode="numeric" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="earned1-stop">Stops at age</label>
+            <input id="earned1-stop" inputmode="numeric" autocomplete="off" placeholder="e.g. 62">
+          </div>
+        </div>
+        <div id="earned2" class="grid-3 other-row" hidden>
+          <div class="field">
+            <label for="earned2-label">What</label>
+            <input id="earned2-label" value="Earnings (partner)" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="earned2-amount">&pound; a year</label>
+            <input id="earned2-amount" inputmode="numeric" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="earned2-stop">Stops at their age</label>
+            <input id="earned2-stop" inputmode="numeric" autocomplete="off" placeholder="e.g. 62">
+          </div>
+        </div>
+        <button type="button" class="link" id="add-earned2">+ Add your partner's earnings</button>
+        <p class="hint">Earnings replace money taken from the pot while they last; after they stop, your planned spending carries on from the pot.</p>
       </div>
     </section>
 

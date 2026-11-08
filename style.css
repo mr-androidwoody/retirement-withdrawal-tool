@@ -60,6 +60,7 @@ form { display: flex; flex-direction: column; gap: 24px; }
 
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field label { font-size: 14px; font-weight: 600; }
+.opt { font-weight: 400; color: var(--muted); }
 .subbox .field label { font-weight: 500; color: var(--muted); font-size: 13px; }
 input, select, textarea { font: inherit; font-size: 16px; padding: 11px 12px; min-height: 44px; border: 1px solid var(--line-strong); border-radius: 8px; background: #fff; color: var(--ink); width: 100%; }
 textarea { font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace; resize: vertical; background: #fbfbfa; }
@@ -68,6 +69,7 @@ input[aria-invalid="true"] { border-color: var(--bad); }
 .fee { max-width: 240px; margin-top: 10px; }
 .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 
 .links { display: flex; flex-wrap: wrap; gap: 24px; }
 .link { font: inherit; font-size: 14px; font-weight: 500; color: var(--accent); background: none; border: none; padding: 8px 0; min-height: 44px; cursor: pointer; text-align: left; }
@@ -170,10 +172,13 @@ th.num { white-space: normal; }
   .results-table td.num:last-child { padding-bottom: 16px; }
   h1 { font-size: 30px; }
   .results-head h1 { font-size: 28px; }
-  .grid-2, .grid-3 { grid-template-columns: minmax(0, 1fr); }
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: minmax(0, 1fr); }
   .card { padding: 18px; }
 }
 
 /* Plan page heading: one line on laptop and desktop screens (38px needs about 910px),
    shrinking with the window; on phones it wraps into balanced lines. */
 #plan-title { font-size: clamp(24px, 3.6vw, 38px); text-wrap: balance; }
+
+.pension-hint { margin-top: -4px; }
+.pension-hint:empty { display: none; }

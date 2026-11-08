@@ -55,15 +55,23 @@ and in Node:
 
 - `dataset.js` validates the data and slices it into rolling retirements
 - `profile.js` turns the request into year-by-year wanted, minimum and other income
+  (pensions that start at an age, and earnings that stop at an age; earnings replace
+  withdrawals while they last rather than adding to spending)
 - `strategies.js` the four withdrawal strategies: constant real, fixed percentage,
   Guyton-Klinger guardrails, floor and ceiling
 - `simulate.js` runs one plan through one past retirement, a year at a time
 - `metrics.js` measures each run (lowest income, years below wanted, end value, biggest fall)
-- `snapshot.js` reads a pasted Portfolio Snapshot
+- `snapshot.js` reads a pasted Portfolio Snapshot. A snapshot is tested two ways: cash spent
+  first, and cash kept as a flexible reserve (1 to 3 years of withdrawals, aiming for 2, with the
+  rest invested over 5 years and top-ups paused in a downturn; settings in `config.json` under
+  `cashReserve`)
 - `search.js` builds the grid of about 440 plans, runs each against every past retirement,
   and picks the four rows: Recommended, Safest income, Highest typical income, Most left behind
 
-Settings, search ranges and presets are in `data/config.json`.
+Settings, search ranges and presets are in `data/config.json`, including `statePension` (the
+full new State Pension rate and age used to prefill pension rows; update it each April) and
+`displayInflation` (the rate used only to show what a pension is worth in pounds of the day
+when it starts; all modelling stays in today's money).
 
 ## Tests
 
