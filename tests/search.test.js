@@ -68,11 +68,16 @@ test('a pasted snapshot adds "your portfolio as it is now" with its own mix and 
   assert.equal(snap.ok, true);
   const request = { ...config.defaults, pot: snap.net, wanted: 70000, minimum: 55000 };
   const r = runSearch({ dataset, config, request, snapshot: snap });
-  assert.equal(r.plansTried, 440 + 22);
-  const plan = r.snapshotRow.result.plan;
-  assert.equal(plan.cashBuffer.amount, 457847);
-  assert.ok(Math.abs(plan.mix.equities - 0.8197) < 0.0001);
-  assert.equal(plan.fromSnapshot, true);
+  assert.equal(r.plansTried, 440 + 2 * 22);
+  assert.deepEqual(r.snapshotRows.map((x) => x.cashRule), ['spend-first', 'flexible']);
+  for (const row of r.snapshotRows) {
+    const plan = row.result.plan;
+    assert.equal(plan.cashBuffer.amount, 457847);
+    assert.ok(Math.abs(plan.mix.equities - 0.8197) < 0.0001);
+    assert.equal(plan.fromSnapshot, true);
+    assert.equal(plan.cashRule, row.cashRule);
+  }
+  assert.deepEqual(r.snapshotRows[1].result.plan.reserve, config.cashReserve);
 });
 
 test('what-if varies only the chosen dimension', () => {
