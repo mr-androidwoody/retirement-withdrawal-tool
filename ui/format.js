@@ -36,7 +36,9 @@ function bufferAmount(plan, request) {
 export function planName(plan) {
   const s = getStrategy(plan.strategy);
   let buffer;
-  if (plan.cashBuffer.amount !== undefined) buffer = 'your cash spent first';
+  if (plan.cashBuffer.amount !== undefined) {
+    buffer = plan.cashRule === 'flexible' ? 'your cash kept as a 1 to 3 year reserve' : 'your cash spent first';
+  }
   else if (plan.cashBuffer.years) buffer = `${plan.cashBuffer.years}-year cash buffer`;
   else buffer = 'no cash buffer';
   return `${s.label}, ${buffer}, ${mixText(plan)}`;
@@ -75,7 +77,11 @@ export function recipe(plan, request) {
   const { amount, planned } = bufferAmount(plan, request);
   let cash;
   if (amount <= 0) cash = 'none.';
-  else if (plan.cashBuffer.amount !== undefined) {
+  else if (plan.cashBuffer.amount !== undefined && plan.cashRule === 'flexible') {
+    const r = plan.reserve || {};
+    const yrs = planned > 0 ? amount / planned : 0;
+    cash = `${gbp(amount)} from your snapshot${yrs ? ` (about ${yrs.toFixed(1)} years of withdrawals)` : ''}, kept between ${r.floorYears ?? 1} and ${r.maxYears ?? 3} years of withdrawals, aiming for ${r.targetYears ?? 2}. Cash above ${r.maxYears ?? 3} years is invested over ${r.phaseInYears ?? 5} years. Top-ups from investments pause while they are more than ${pct(r.downturnDrop ?? 0.1)} below their high.`;
+  } else if (plan.cashBuffer.amount !== undefined) {
     const yrs = planned > 0 ? amount / planned : 0;
     cash = `${gbp(amount)} from your snapshot, spent first${yrs ? ` (about ${yrs.toFixed(1)} years of withdrawals)` : ''}.`;
   } else {

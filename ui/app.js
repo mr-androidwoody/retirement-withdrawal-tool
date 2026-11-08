@@ -27,6 +27,8 @@ const EVENT_TEXT = {
   'inflation-capped': 'Rise capped',
   floor: 'At the floor',
   ceiling: 'At the ceiling',
+  'invest-excess': 'Spare cash invested',
+  'reserve-topup': 'Cash reserve topped up',
 };
 
 // ---------------------------------------------------------------- loading
@@ -395,11 +397,14 @@ function renderResults() {
       + '</ul></section>';
   }
 
-  if (r.snapshotRow) {
-    const s = r.snapshotRow;
-    const badge = { text: 'Your portfolio as it is now', cls: 'strong' };
-    html += `<div class="table-box mine"><table class="results-table">${HEAD(n, req.years)}<tbody><tr>${optionCell(s.result, [badge], req)}${cells(s.result, n)}</tr>`;
-    if (!s.meetsNeeds) html += `<tr><td colspan="7" class="recipe flag">Drawn any of the four ways, your current portfolio did not meet these needs; this is its nearest miss.</td></tr>`;
+  if (r.snapshotRows && r.snapshotRows.length) {
+    const RULE_TEXT = { 'spend-first': 'Cash spent first', flexible: 'Cash kept as a reserve' };
+    html += `<div class="table-box mine"><table class="results-table">${HEAD(n, req.years)}<tbody>`;
+    for (const s of r.snapshotRows) {
+      const badges = [{ text: 'Your portfolio as it is now', cls: 'strong' }, { text: RULE_TEXT[s.cashRule] || s.cashRule, cls: 'plain' }];
+      html += `<tr>${optionCell(s.result, badges, req)}${cells(s.result, n)}</tr>`;
+      if (!s.meetsNeeds) html += `<tr><td colspan="7" class="recipe flag">With this cash rule and any of the four approaches, your current portfolio did not meet these needs; this is its nearest miss.</td></tr>`;
+    }
     html += '</tbody></table></div>';
   }
 
