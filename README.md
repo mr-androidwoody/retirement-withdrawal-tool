@@ -14,8 +14,11 @@ The page loads its data with `fetch`, so open it through a web server rather tha
 python3 -m http.server 8000
 ```
 
-then visit http://localhost:8000. On GitHub Pages it works as it is: Settings, Pages, deploy from
-the main branch, root folder.
+then visit http://localhost:8000.
+
+Live site: https://mr-androidwoody.github.io/retirement-withdrawal-tool/ (GitHub Pages, deployed from
+the main branch, root folder). `.nojekyll` tells Pages to serve the files exactly as they are. The
+tests run on every push (`.github/workflows/test.yml`).
 
 - `index.html`, `style.css`: the page
 - `ui/app.js`: the wizard, results and option detail
