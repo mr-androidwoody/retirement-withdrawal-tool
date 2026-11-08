@@ -898,11 +898,11 @@ function renderDetail() {
     : `Showing all ${total} past retirements, starting ${state.detail.sims[0].startYear} to ${state.detail.sims.at(-1).startYear}. Choose the worst or best starts for your mix to see how this option did in them.`;
   const fact = (k, v, ref, cls = 'neutral') => `<div class="fact ${cls}"><div class="k">${k}</div><div class="v">${v}</div><div class="ref">${cls !== 'neutral' ? ICON[cls] : ''}${ref}</div></div>`;
   const facts = [
-    fact('Typical spending a year', money(r.typicalIncome), `${signedMoney(r.typicalIncome - req.wanted)} vs ${money(req.wanted)} wanted`, r.typicalIncome >= req.wanted - 100 ? 'good' : 'warn'),
+    fact('Typical spending', money(r.typicalIncome), `a year, ${signedMoney(r.typicalIncome - req.wanted)} vs ${money(req.wanted)} wanted`, r.typicalIncome >= req.wanted - 100 ? 'good' : 'warn'),
     fact('Lowest year', money(r.worstIncome), `${signedMoney(r.worstIncome - req.minimum)} vs ${money(req.minimum)} minimum`, r.worstIncome >= req.minimum - 100 ? 'good' : 'bad'),
     fact('Ran out or nearly', `${r.ranOutOrNearly} of ${n}`, `${ro.word}, limit ${limit}`, ro.cls),
     fact('Income cut', `${r.cutCount} of ${n}`, r.cutCount ? 'past retirements with a year below what you want' : 'never below what you want', cut.cls),
-    fact(`Typically left after ${req.years} years`, bigMoney(r.medianEnd), "in today's money"),
+    fact('Typically left', bigMoney(r.medianEnd), `after ${req.years} years, in today's money`),
     fact('Biggest fall', pct(r.worstDrawdown), 'largest drop in your investments'),
   ].join('');
   const isBufferYears = plan.cashBuffer.years !== undefined;
