@@ -1,1 +1,767 @@
-
+{
+ "id": "jst-r6-global-gbp",
+ "version": "1.0.0",
+ "label": "Global equities (GBP), UK gilts, UK cash, UK CPI",
+ "currency": "GBP",
+ "source": {
+  "name": "Jorda-Schularick-Taylor Macrohistory Database, Release 6",
+  "file": "JSTdatasetR6.xlsx",
+  "url": "https://www.macrohistory.net/database/",
+  "citation": "Oscar Jorda, Moritz Schularick, and Alan M. Taylor. 2017. Macrofinancial History and the New Business Cycle Facts. NBER Macroeconomics Annual 2016, volume 31, edited by Martin Eichenbaum and Jonathan A. Parker. Chicago: University of Chicago Press.",
+  "licence": "Used under the JST licence for non-commercial use, with attribution."
+ },
+ "build": {
+  "script": "tools/build-datasets.py",
+  "sourceSha256": "c1bb91fe56ea50d4f27af5c0fc897d481e89ae38ce41eaecab62134c9354981d",
+  "builtOn": "2026-11-08"
+ },
+ "assets": {
+  "equities": {
+   "label": "Global equities",
+   "method": "GDP-weighted composite of JST countries, each converted to GBP at year-end exchange rates",
+   "fields": [
+    "eq_tr",
+    "xrusd",
+    "rgdpmad",
+    "pop"
+   ]
+  },
+  "bonds": {
+   "label": "UK gilts",
+   "method": "actual",
+   "fields": [
+    "bond_tr"
+   ]
+  },
+  "cash": {
+   "label": "UK bills",
+   "method": "actual",
+   "fields": [
+    "bill_rate"
+   ]
+  }
+ },
+ "inflation": {
+  "label": "UK CPI",
+  "method": "year-on-year change in cpi (annual-average index)",
+  "fields": [
+   "cpi"
+  ]
+ },
+ "extras": {
+  "ukEquities": "UK equity total return (eq_tr, GBR), for comparison only",
+  "equitiesLocalCurrency": "the same composite before conversion to GBP, for comparison only"
+ },
+ "years": [
+  {
+   "year": 1950,
+   "equities": 0.127793,
+   "bonds": 0.040642,
+   "cash": 0.0052,
+   "inflation": 0.039185,
+   "ukEquities": 0.109574,
+   "equitiesLocalCurrency": 0.152671,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1951,
+   "equities": 0.352654,
+   "bonds": -0.096837,
+   "cash": 0.0056,
+   "inflation": 0.090498,
+   "ukEquities": 0.082295,
+   "equitiesLocalCurrency": 0.29922,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1952,
+   "equities": 0.093786,
+   "bonds": -0.00685,
+   "cash": 0.022,
+   "inflation": 0.106501,
+   "ukEquities": -0.001412,
+   "equitiesLocalCurrency": 0.177395,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1953,
+   "equities": 0.11739,
+   "bonds": 0.13861,
+   "cash": 0.023,
+   "inflation": 0.03625,
+   "ukEquities": 0.244306,
+   "equitiesLocalCurrency": 0.123301,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1954,
+   "equities": 0.502261,
+   "bonds": 0.060638,
+   "cash": 0.0179,
+   "inflation": 0.022919,
+   "ukEquities": 0.486165,
+   "equitiesLocalCurrency": 0.494974,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1955,
+   "equities": 0.217907,
+   "bonds": -0.101183,
+   "cash": 0.0375,
+   "inflation": 0.050708,
+   "ukEquities": 0.108628,
+   "equitiesLocalCurrency": 0.227387,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1956,
+   "equities": 0.036613,
+   "bonds": -0.029814,
+   "cash": 0.0495,
+   "inflation": 0.051627,
+   "ukEquities": -0.091641,
+   "equitiesLocalCurrency": 0.069442,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1957,
+   "equities": -0.051989,
+   "bonds": -0.063057,
+   "cash": 0.0481,
+   "inflation": 0.03842,
+   "ukEquities": -0.009477,
+   "equitiesLocalCurrency": -0.013746,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1958,
+   "equities": 0.340171,
+   "bonds": 0.170271,
+   "cash": 0.0456,
+   "inflation": 0.028777,
+   "ukEquities": 0.477424,
+   "equitiesLocalCurrency": 0.314928,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1959,
+   "equities": 0.322399,
+   "bonds": 0.009832,
+   "cash": 0.0338,
+   "inflation": 0.005994,
+   "ukEquities": 0.548623,
+   "equitiesLocalCurrency": 0.323698,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1960,
+   "equities": 0.085295,
+   "bonds": -0.071032,
+   "cash": 0.0489,
+   "inflation": 0.007944,
+   "ukEquities": 0.018391,
+   "equitiesLocalCurrency": 0.080258,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1961,
+   "equities": 0.180091,
+   "bonds": -0.07944,
+   "cash": 0.0514,
+   "inflation": 0.032512,
+   "ukEquities": 0.018128,
+   "equitiesLocalCurrency": 0.174693,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1962,
+   "equities": -0.083809,
+   "bonds": 0.247768,
+   "cash": 0.0417,
+   "inflation": 0.041985,
+   "ukEquities": 0.00379,
+   "equitiesLocalCurrency": -0.080134,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1963,
+   "equities": 0.141909,
+   "bonds": 0.03634,
+   "cash": 0.0367,
+   "inflation": 0.021062,
+   "ukEquities": 0.198082,
+   "equitiesLocalCurrency": 0.134709,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1964,
+   "equities": 0.061695,
+   "bonds": -0.023652,
+   "cash": 0.0459,
+   "inflation": 0.032287,
+   "ukEquities": -0.0541,
+   "equitiesLocalCurrency": 0.059234,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1965,
+   "equities": 0.060316,
+   "bonds": 0.043927,
+   "cash": 0.0591,
+   "inflation": 0.042572,
+   "ukEquities": 0.111743,
+   "equitiesLocalCurrency": 0.06689,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1966,
+   "equities": -0.04044,
+   "bonds": 0.042149,
+   "cash": 0.0612,
+   "inflation": 0.04,
+   "ukEquities": -0.038407,
+   "equitiesLocalCurrency": -0.045427,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1967,
+   "equities": 0.353682,
+   "bonds": 0.023494,
+   "cash": 0.0581,
+   "inflation": 0.022436,
+   "ukEquities": 0.341902,
+   "equitiesLocalCurrency": 0.189883,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1968,
+   "equities": 0.204336,
+   "bonds": -0.023348,
+   "cash": 0.0703,
+   "inflation": 0.039969,
+   "ukEquities": 0.481952,
+   "equitiesLocalCurrency": 0.1906,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1969,
+   "equities": 0.040754,
+   "bonds": -0.002488,
+   "cash": 0.0763,
+   "inflation": 0.051997,
+   "ukEquities": -0.118731,
+   "equitiesLocalCurrency": 0.050756,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1970,
+   "equities": -0.016061,
+   "bonds": 0.034527,
+   "cash": 0.0702,
+   "inflation": 0.065186,
+   "ukEquities": -0.034857,
+   "equitiesLocalCurrency": -0.018515,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1971,
+   "equities": 0.107628,
+   "bonds": 0.26908,
+   "cash": 0.0558,
+   "inflation": 0.094149,
+   "ukEquities": 0.466016,
+   "equitiesLocalCurrency": 0.110827,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1972,
+   "equities": 0.391003,
+   "bonds": -0.041294,
+   "cash": 0.0552,
+   "inflation": 0.071911,
+   "ukEquities": 0.163745,
+   "equitiesLocalCurrency": 0.268385,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1973,
+   "equities": 0.024024,
+   "bonds": -0.087871,
+   "cash": 0.0938,
+   "inflation": 0.093463,
+   "ukEquities": -0.280009,
+   "equitiesLocalCurrency": -0.034151,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1974,
+   "equities": -0.218637,
+   "bonds": -0.15768,
+   "cash": 0.1138,
+   "inflation": 0.157315,
+   "ukEquities": -0.501952,
+   "equitiesLocalCurrency": -0.2212,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1975,
+   "equities": 0.511675,
+   "bonds": 0.361257,
+   "cash": 0.1018,
+   "inflation": 0.227005,
+   "ukEquities": 1.496069,
+   "equitiesLocalCurrency": 0.355359,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1976,
+   "equities": 0.283682,
+   "bonds": 0.138826,
+   "cash": 0.1115,
+   "inflation": 0.156573,
+   "ukEquities": 0.023265,
+   "equitiesLocalCurrency": 0.09729,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1977,
+   "equities": -0.051025,
+   "bonds": 0.455556,
+   "cash": 0.0766,
+   "inflation": 0.149425,
+   "ukEquities": 0.485602,
+   "equitiesLocalCurrency": -0.002717,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1978,
+   "equities": 0.162068,
+   "bonds": -0.025752,
+   "cash": 0.0851,
+   "inflation": 0.074722,
+   "ukEquities": 0.086659,
+   "equitiesLocalCurrency": 0.146273,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1979,
+   "equities": 0.017431,
+   "bonds": 0.041836,
+   "cash": 0.13,
+   "inflation": 0.113724,
+   "ukEquities": 0.114814,
+   "equitiesLocalCurrency": 0.122951,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1980,
+   "equities": 0.153569,
+   "bonds": 0.191252,
+   "cash": 0.1512,
+   "inflation": 0.151543,
+   "ukEquities": 0.348331,
+   "equitiesLocalCurrency": 0.24921,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1981,
+   "equities": 0.192456,
+   "bonds": 0.099868,
+   "cash": 0.1298,
+   "inflation": 0.118098,
+   "ukEquities": 0.136274,
+   "equitiesLocalCurrency": 0.051268,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1982,
+   "equities": 0.242068,
+   "bonds": 0.535222,
+   "cash": 0.1138,
+   "inflation": 0.08111,
+   "ukEquities": 0.28492,
+   "equitiesLocalCurrency": 0.124168,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1983,
+   "equities": 0.361561,
+   "bonds": 0.078283,
+   "cash": 0.0959,
+   "inflation": 0.04935,
+   "ukEquities": 0.287792,
+   "equitiesLocalCurrency": 0.312322,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1984,
+   "equities": 0.324421,
+   "bonds": 0.037561,
+   "cash": 0.093,
+   "inflation": 0.04258,
+   "ukEquities": 0.315741,
+   "equitiesLocalCurrency": 0.144416,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1985,
+   "equities": 0.248248,
+   "bonds": 0.199184,
+   "cash": 0.116,
+   "inflation": 0.049223,
+   "ukEquities": 0.201366,
+   "equitiesLocalCurrency": 0.379803,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1986,
+   "equities": 0.453793,
+   "bonds": 0.12539,
+   "cash": 0.1034,
+   "inflation": 0.033261,
+   "ukEquities": 0.272176,
+   "equitiesLocalCurrency": 0.32905,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1987,
+   "equities": -0.072021,
+   "bonds": 0.178991,
+   "cash": 0.0923,
+   "inflation": 0.032049,
+   "ukEquities": 0.086509,
+   "equitiesLocalCurrency": 0.032114,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1988,
+   "equities": 0.216113,
+   "bonds": 0.068684,
+   "cash": 0.098,
+   "inflation": 0.037592,
+   "ukEquities": 0.11484,
+   "equitiesLocalCurrency": 0.222606,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1989,
+   "equities": 0.403489,
+   "bonds": 0.0821,
+   "cash": 0.1328,
+   "inflation": 0.052376,
+   "ukEquities": 0.354682,
+   "equitiesLocalCurrency": 0.267591,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1990,
+   "equities": -0.201845,
+   "bonds": 0.082109,
+   "cash": 0.1409,
+   "inflation": 0.069727,
+   "ukEquities": -0.096108,
+   "equitiesLocalCurrency": -0.098786,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1991,
+   "equities": 0.155894,
+   "bonds": 0.184824,
+   "cash": 0.1082,
+   "inflation": 0.075326,
+   "ukEquities": 0.208054,
+   "equitiesLocalCurrency": 0.118731,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1992,
+   "equities": 0.209089,
+   "bonds": 0.200163,
+   "cash": 0.0894,
+   "inflation": 0.042615,
+   "ukEquities": 0.198887,
+   "equitiesLocalCurrency": 0.03046,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1993,
+   "equities": 0.241857,
+   "bonds": 0.227906,
+   "cash": 0.0521,
+   "inflation": 0.025065,
+   "ukEquities": 0.275481,
+   "equitiesLocalCurrency": 0.24609,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1994,
+   "equities": 0.001046,
+   "bonds": -0.10413,
+   "cash": 0.0515,
+   "inflation": 0.019785,
+   "ukEquities": -0.059496,
+   "equitiesLocalCurrency": -0.002869,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1995,
+   "equities": 0.211402,
+   "bonds": 0.175601,
+   "cash": 0.0633,
+   "inflation": 0.026565,
+   "ukEquities": 0.23021,
+   "equitiesLocalCurrency": 0.180176,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1996,
+   "equities": 0.086712,
+   "bonds": 0.077644,
+   "cash": 0.0578,
+   "inflation": 0.024003,
+   "ukEquities": 0.158099,
+   "equitiesLocalCurrency": 0.225391,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1997,
+   "equities": 0.22146,
+   "bonds": 0.167595,
+   "cash": 0.0648,
+   "inflation": 0.018246,
+   "ukEquities": 0.235671,
+   "equitiesLocalCurrency": 0.271617,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1998,
+   "equities": 0.222312,
+   "bonds": 0.211694,
+   "cash": 0.0682,
+   "inflation": 0.015574,
+   "ukEquities": 0.13674,
+   "equitiesLocalCurrency": 0.187702,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 1999,
+   "equities": 0.257541,
+   "bonds": -0.041475,
+   "cash": 0.0504,
+   "inflation": 0.013287,
+   "ukEquities": 0.23799,
+   "equitiesLocalCurrency": 0.258248,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 2000,
+   "equities": 0.010903,
+   "bonds": 0.097945,
+   "cash": 0.058,
+   "inflation": 0.007965,
+   "ukEquities": -0.059403,
+   "equitiesLocalCurrency": -0.017086,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 2001,
+   "equities": -0.158193,
+   "bonds": 0.029549,
+   "cash": 0.0476,
+   "inflation": 0.012335,
+   "ukEquities": -0.132198,
+   "equitiesLocalCurrency": -0.149695,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 2002,
+   "equities": -0.243987,
+   "bonds": 0.102087,
+   "cash": 0.0386,
+   "inflation": 0.012589,
+   "ukEquities": -0.222603,
+   "equitiesLocalCurrency": -0.22426,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 2003,
+   "equities": 0.182401,
+   "bonds": 0.021114,
+   "cash": 0.0356,
+   "inflation": 0.013616,
+   "ukEquities": 0.201757,
+   "equitiesLocalCurrency": 0.194404,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 2004,
+   "equities": 0.113087,
+   "bonds": 0.066381,
+   "cash": 0.0444,
+   "inflation": 0.013435,
+   "ukEquities": 0.12595,
+   "equitiesLocalCurrency": 0.161921,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 2005,
+   "equities": 0.208009,
+   "bonds": 0.085014,
+   "cash": 0.0455,
+   "inflation": 0.020569,
+   "ukEquities": 0.216436,
+   "equitiesLocalCurrency": 0.16136,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 2006,
+   "equities": 0.103061,
+   "bonds": -0.00502,
+   "cash": 0.0465,
+   "inflation": 0.023287,
+   "ukEquities": 0.164316,
+   "equitiesLocalCurrency": 0.199095,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 2007,
+   "equities": 0.092677,
+   "bonds": 0.062061,
+   "cash": 0.0553,
+   "inflation": 0.023228,
+   "ukEquities": 0.050815,
+   "equitiesLocalCurrency": 0.064802,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 2008,
+   "equities": -0.152449,
+   "bonds": 0.159729,
+   "cash": 0.0432,
+   "inflation": 0.036019,
+   "ukEquities": -0.297511,
+   "equitiesLocalCurrency": -0.381169,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 2009,
+   "equities": 0.138276,
+   "bonds": -0.015164,
+   "cash": 0.0053,
+   "inflation": 0.021653,
+   "ukEquities": 0.28952,
+   "equitiesLocalCurrency": 0.228084,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 2010,
+   "equities": 0.133289,
+   "bonds": 0.101185,
+   "cash": 0.005,
+   "inflation": 0.032982,
+   "ukEquities": 0.141579,
+   "equitiesLocalCurrency": 0.09723,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 2011,
+   "equities": -0.038627,
+   "bonds": 0.184079,
+   "cash": 0.0048,
+   "inflation": 0.044637,
+   "ukEquities": -0.034273,
+   "equitiesLocalCurrency": -0.047669,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 2012,
+   "equities": 0.12083,
+   "bonds": 0.038486,
+   "cash": 0.00313,
+   "inflation": 0.028282,
+   "ukEquities": 0.121456,
+   "equitiesLocalCurrency": 0.14598,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 2013,
+   "equities": 0.246955,
+   "bonds": -0.061271,
+   "cash": 0.00302,
+   "inflation": 0.025648,
+   "ukEquities": 0.205382,
+   "equitiesLocalCurrency": 0.327189,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 2014,
+   "equities": 0.099169,
+   "bonds": 0.155964,
+   "cash": 0.0038,
+   "inflation": 0.01461,
+   "ukEquities": 0.011954,
+   "equitiesLocalCurrency": 0.105981,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 2015,
+   "equities": 0.072342,
+   "bonds": 0.007676,
+   "cash": 0.0044,
+   "inflation": 0.000401,
+   "ukEquities": 0.010999,
+   "equitiesLocalCurrency": 0.058932,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 2016,
+   "equities": 0.234028,
+   "bonds": 0.071265,
+   "cash": 0.002024,
+   "inflation": 0.006597,
+   "ukEquities": 0.1541,
+   "equitiesLocalCurrency": 0.044756,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 2017,
+   "equities": 0.129876,
+   "bonds": 0.037439,
+   "cash": 0.004123,
+   "inflation": 0.027,
+   "ukEquities": 0.1407,
+   "equitiesLocalCurrency": 0.178678,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 2018,
+   "equities": 0.050699,
+   "bonds": 0.02233,
+   "cash": 0.006998,
+   "inflation": 0.025,
+   "ukEquities": -0.0955,
+   "equitiesLocalCurrency": 0.004219,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 2019,
+   "equities": 0.117635,
+   "bonds": 0.057202,
+   "cash": 0.007098,
+   "inflation": 0.018,
+   "ukEquities": 0.1838,
+   "equitiesLocalCurrency": 0.157198,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 2020,
+   "equities": 0.087086,
+   "bonds": 0.057524,
+   "cash": 0.000394,
+   "inflation": 0.009,
+   "ukEquities": -0.0944,
+   "equitiesLocalCurrency": 0.071173,
+   "equitiesCountries": 16
+  }
+ ]
+}
