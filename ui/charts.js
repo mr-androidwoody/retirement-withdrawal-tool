@@ -23,8 +23,9 @@ const shortMoney = (v) => {
  * lines: [{ values: number[], highlight?: boolean, label: string }]
  * refs:  [{ values: number[], colour, dash }]  reference lines (wanted, minimum)
  * title: accessible name for the chart
+ * startAge: your age in year 1; when given, the horizontal axis shows ages
  */
-export function lineChart({ lines, refs = [], title }) {
+export function lineChart({ lines, refs = [], title, startAge = null }) {
   const n = Math.max(...lines.map((l) => l.values.length));
   const all = [...lines.flatMap((l) => l.values), ...refs.flatMap((r) => r.values)].filter(Number.isFinite);
   const maxV = Math.max(1, ...all);
@@ -42,9 +43,11 @@ export function lineChart({ lines, refs = [], title }) {
   const xticks = [];
   const every = n > 30 ? 10 : 5;
   for (let i = 0; i < n; i += 1) {
-    const year = i + 1;
-    if (year === 1 || year % every === 0) {
-      xticks.push(`<text x="${x(i)}" y="${H - PAD.bottom + 18}" text-anchor="middle" font-size="12" fill="#4b5563">${year}</text>`);
+    const label = startAge ? startAge + i : i + 1;
+    if (i === 0 || i === n - 1 || label % every === 0) {
+      // Skip a tick that would crowd the first or last one.
+      if (i !== 0 && i !== n - 1 && (i < 2 || i > n - 3)) continue;
+      xticks.push(`<text x="${x(i)}" y="${H - PAD.bottom + 18}" text-anchor="middle" font-size="12" fill="#4b5563">${label}</text>`);
     }
   }
   const quiet = lines.filter((l) => !l.highlight)
@@ -55,7 +58,7 @@ export function lineChart({ lines, refs = [], title }) {
 
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${title}">`
     + grid.join('') + xticks.join('')
-    + `<text x="${(PAD.left + W - PAD.right) / 2}" y="${H - 6}" text-anchor="middle" font-size="12" fill="#4b5563">Year of retirement</text>`
+    + `<text x="${(PAD.left + W - PAD.right) / 2}" y="${H - 6}" text-anchor="middle" font-size="12" fill="#4b5563">${startAge ? 'Your age' : 'Year of retirement'}</text>`
     + quiet.join('') + refLines.join('') + loud.join('')
     + '</svg>';
 }
