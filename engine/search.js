@@ -38,12 +38,19 @@ export function buildGrid(config) {
   return plans.map((p, gridIndex) => ({ ...p, gridIndex }));
 }
 
-/** Plans for the pasted snapshot: its own mix and cash amount, with every strategy setting. */
-export function snapshotPlans(config, snapshot, firstIndex) {
+export const SNAPSHOT_RULES = ['spend-first', 'flexible'];
+
+/**
+ * Plans for the pasted snapshot: its own mix and cash amount, with every strategy setting,
+ * for one cash rule ('spend-first' or 'flexible').
+ */
+export function snapshotPlans(config, snapshot, firstIndex, cashRule = 'spend-first') {
   return strategySettings(config).map((setting, i) => ({
     ...setting,
     mix: { equities: snapshot.equitiesShare },
     cashBuffer: { amount: snapshot.cashBuffer },
+    cashRule,
+    ...(cashRule === 'flexible' ? { reserve: { ...config.cashReserve } } : {}),
     gridIndex: firstIndex + i,
     fromSnapshot: true,
   }));
@@ -144,12 +151,15 @@ export function runSearch({ dataset, config, request, snapshot = null }) {
       return { strategy: s.id, result: pick, reason: reasonNotShown(pick, request) };
     });
 
-  // Your portfolio as it is now.
-  let snapshotRow = null;
+  // Your portfolio as it is now: one row per cash rule.
+  const snapshotRows = [];
   if (snapshot) {
-    const own = snapshotPlans(config, snapshot, grid.length).map((p) => evaluatePlan(p, windows, request, thresholds));
-    const pool = own.filter((r) => r.status !== 'does-not-meet');
-    snapshotRow = { result: pool.length ? best(pool, 'recommended') : best(own, 'closest'), meetsNeeds: pool.length > 0 };
+    const per = strategySettings(config).length;
+    SNAPSHOT_RULES.forEach((rule, k) => {
+      const own = snapshotPlans(config, snapshot, grid.length + k * per, rule).map((p) => evaluatePlan(p, windows, request, thresholds));
+      const pool = own.filter((r) => r.status !== 'does-not-meet');
+      snapshotRows.push({ cashRule: rule, result: pool.length ? best(pool, 'recommended') : best(own, 'closest'), meetsNeeds: pool.length > 0 });
+    });
   }
 
   // Nothing eligible: the closest three, and what would have to change.
@@ -168,11 +178,12 @@ export function runSearch({ dataset, config, request, snapshot = null }) {
     datasetId: dataset.id,
     datasetVersion: dataset.version,
     windows: windows.map((w) => ({ startYear: w.startYear, endYear: w.endYear })),
-    plansTried: grid.length + (snapshot ? strategySettings(config).length : 0),
+    plansTried: grid.length + (snapshot ? SNAPSHOT_RULES.length * strategySettings(config).length : 0),
     eligibleCount: eligible.length,
     rows,
     others,
-    snapshotRow,
+    snapshotRows,
+    snapshotRow: snapshotRows[0] || null,
     closest,
     results,
   };

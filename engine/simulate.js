@@ -5,7 +5,9 @@ import { buildProfile } from './profile.js';
 import { summarisePath } from './metrics.js';
 
 /**
- * plan    { strategy, params, mix: { equities }, cashBuffer: { years } | { amount } }
+ * plan    { strategy, params, mix: { equities }, cashBuffer: { years } | { amount },
+ *           cashRule?: 'spend-first' (default) | 'flexible', reserve?: { floorYears, targetYears,
+ *           maxYears, phaseInYears, downturnDrop } }
  * window  { startYear, rows: [{ year, equities, bonds, cash, inflation }] }
  * request { pot, years, wanted, minimum, incomeChange, otherIncome, annualFee }
  * options { rows: true } to include the year rows; { thresholds } from config
@@ -13,6 +15,16 @@ import { summarisePath } from './metrics.js';
  * Order each year: income paid at the start (cash first, then investments), then the
  * money left grows for the year, then the fee is taken and the investments are
  * rebalanced to the mix. Real figures are in money of the retirement's first year.
+ *
+ * Cash rules:
+ *   spend-first  cash pays withdrawals until it is gone and is never topped up.
+ *   flexible     cash is kept as a reserve measured in years of next year's planned
+ *                withdrawal from the pot (wanted income minus other income). Cash above
+ *                maxYears at the start is invested in equal parts over phaseInYears; after
+ *                that, anything above maxYears is invested at the year end. Below floorYears
+ *                the reserve is rebuilt (to floorYears in a downturn, else to targetYears);
+ *                between floor and target it is topped up only when not in a downturn.
+ *                Downturn = investments more than downturnDrop below their highest value.
  */
 export function simulate(plan, window, request, options = {}) {
   const n = request.years;
@@ -28,6 +40,12 @@ export function simulate(plan, window, request, options = {}) {
   let cash = plan.cashBuffer?.amount ?? (plan.cashBuffer?.years || 0) * plannedFirst;
   cash = Math.min(Math.max(0, cash), request.pot);
   let invested = request.pot - cash;
+
+  const flexible = plan.cashRule === 'flexible';
+  const rule = { floorYears: 1, targetYears: 2, maxYears: 3, phaseInYears: 5, downturnDrop: 0.1, ...(plan.reserve || {}) };
+  const excessStart = flexible ? Math.max(0, cash - rule.maxYears * plannedFirst) : 0;
+  let investIndex = 1;
+  let investPeak = 1;
 
   let index = 1;
   let state = null;
@@ -56,6 +74,14 @@ export function simulate(plan, window, request, options = {}) {
     cash -= cashUsed;
     invested = Math.max(0, invested - (actual - cashUsed));
 
+    const events = [...decision.events];
+    if (flexible && t < rule.phaseInYears && excessStart > 0 && cash > 0) {
+      const move = Math.min(cash, excessStart / rule.phaseInYears);
+      cash -= move;
+      invested += move;
+      events.push('invest-excess');
+    }
+
     const afterWithdrawal = invested + cash;
     const investedReturn = eq * market.equities + (1 - eq) * market.bonds;
     invested *= (1 + investedReturn) * (1 - fee);
@@ -63,6 +89,34 @@ export function simulate(plan, window, request, options = {}) {
     const potEnd = invested + cash;
     const portfolioReturn = afterWithdrawal > 0 ? potEnd / afterWithdrawal - 1 : 0;
     const nextIndex = index * (1 + market.inflation);
+
+    if (flexible) {
+      investIndex *= 1 + investedReturn;
+      investPeak = Math.max(investPeak, investIndex);
+      const downturn = investIndex < (1 - rule.downturnDrop) * investPeak;
+      const nt = Math.min(t + 1, n - 1);
+      const yearNeed = Math.max(0, profile.wanted[nt] - profile.other[nt]) * nextIndex;
+      if (yearNeed > 0) {
+        const years = cash / yearNeed;
+        let to = null;
+        if (years < rule.floorYears) to = downturn ? rule.floorYears : rule.targetYears;
+        else if (years < rule.targetYears && !downturn) to = rule.targetYears;
+        if (to !== null && invested > 0) {
+          const move = Math.min(invested, to * yearNeed - cash);
+          if (move > 0) { invested -= move; cash += move; events.push('reserve-topup'); }
+        }
+        if (t + 1 >= rule.phaseInYears && cash > rule.maxYears * yearNeed) {
+          const move = cash - rule.maxYears * yearNeed;
+          cash -= move;
+          invested += move;
+          events.push('invest-excess');
+        }
+      } else if (t + 1 >= rule.phaseInYears && cash > 0) {
+        invested += cash;
+        cash = 0;
+        events.push('invest-excess');
+      }
+    }
     const incomeReal = (actual + other) / index;
 
     rows.push({
@@ -89,7 +143,7 @@ export function simulate(plan, window, request, options = {}) {
       endCash: cash,
       endTotalReal: potEnd / nextIndex,
       depleted: depletionYear !== null,
-      events: decision.events,
+      events,
     });
 
     state = decision.state;
