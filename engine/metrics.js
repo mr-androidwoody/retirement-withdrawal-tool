@@ -25,6 +25,21 @@ export function maxDrawdown(series) {
 }
 
 /**
+ * The largest fall with where it happened: { fall, peak, trough } where peak and trough are
+ * positions in the series (0 = start). fall is 0, with peak = trough = 0, if it never fell.
+ */
+export function worstFall(series) {
+  let peakAt = 0;
+  let best = { fall: 0, peak: 0, trough: 0 };
+  series.forEach((v, i) => {
+    if (v > series[peakAt]) peakAt = i;
+    const fall = series[peakAt] > 0 ? 1 - v / series[peakAt] : 0;
+    if (fall > best.fall) best = { fall, peak: peakAt, trough: i };
+  });
+  return best;
+}
+
+/**
  * Growth of one pound in the plan's investments, year end by year end, ignoring withdrawals
  * (the value line a statement would show). Starts at 1.
  */
