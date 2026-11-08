@@ -75,21 +75,25 @@ export const STRATEGY_INFO = {
     name: 'Constant real',
     aka: 'the "4% rule" approach',
     about: 'Take a set amount in the first year, then raise it with inflation every year, whatever the markets do.',
+    tradeOff: 'Steady, predictable income. The pot takes all the market risk, so a run of bad early years can empty it.',
   },
   'fixed-percentage': {
     name: 'Fixed percentage',
     aka: '',
     about: 'Take the same percentage of whatever the pot is worth each year, so income rises and falls with the markets.',
+    tradeOff: 'It can never run out, but income swings with the markets, including deep cuts after a fall.',
   },
   'guyton-klinger': {
     name: 'Guyton-Klinger guardrails',
     aka: 'GK',
     about: 'Start like constant real, but skip the inflation rise after a losing year, and cut or raise income by 10% when the withdrawal rate drifts 20% from where it started.',
+    tradeOff: 'Income stays mostly steady, with occasional 10% cuts or rises. That flexibility usually allows a higher starting amount than constant real.',
   },
   'floor-ceiling': {
     name: 'Floor and ceiling',
     aka: '',
     about: 'Take a percentage of the pot each year, but never less than a floor or more than a ceiling, both rising with inflation.',
+    tradeOff: 'Income follows the markets within set limits. The floor protects your spending, but it keeps drawing at that level through bad years.',
   },
 };
 

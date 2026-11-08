@@ -196,6 +196,15 @@ function initForm() {
     try { localStorage.removeItem(SAVE_KEY); } catch { /* nothing saved */ }
     window.location.reload();
   });
+  // The strategies overlay, opened from the line under the heading.
+  $('source-line').addEventListener('click', (e) => {
+    if (e.target.closest('[data-open-strategies]')) openStrategies();
+  });
+  $('strategies-close').addEventListener('click', () => $('strategies-dialog').close());
+  $('strategies-dialog').addEventListener('click', (e) => {
+    if (e.target === $('strategies-dialog')) $('strategies-dialog').close(); // a click on the backdrop
+  });
+
   // From here on, every change is saved.
   state.ready = true;
   renderRisk();
@@ -255,6 +264,31 @@ function showBox(which, open) {
 function currentAge() {
   const a = Number($('age').value);
   return Number.isInteger(a) && a > 0 ? a : null;
+}
+
+/** Fill and open the overlay that describes the four strategies and how each is tried. */
+function openStrategies() {
+  const rates = (xs) => {
+    const t = xs.map((x) => `${+(x * 100).toFixed(1)}%`);
+    return t.length > 1 ? `${t.slice(0, -1).join(', ')} and ${t.at(-1)}` : t[0];
+  };
+  const tried = (g) => {
+    let s = `Tried at starting rates of ${rates(g.rates)} of the pot, plus the rate that pays exactly the income you want.`;
+    if (g.strategy === 'floor-ceiling') s += ` Floors of ${g.floorPct.map((x) => `${Math.round(x * 100)}%`).join(' or ')} of the income you want, ceiling ${Math.round(g.ceilingPct[0] * 100)}%.`;
+    return s;
+  };
+  const g = state.config.grid;
+  $('strategies-body').innerHTML = g.strategies.map((row) => {
+    const s = STRATEGY_INFO[row.strategy];
+    return `<section class="strategy">
+        <h3>${escapeHtml(s.name)}${s.aka ? ` <span class="aka">(${escapeHtml(s.aka)})</span>` : ''}</h3>
+        <p>${escapeHtml(s.about)}</p>
+        <p class="trade"><strong>Trade-off:</strong> ${escapeHtml(s.tradeOff)}</p>
+        <p class="tried">${escapeHtml(tried(row))}</p>
+      </section>`;
+  }).join('')
+    + `<p class="hint">Each strategy is also tried with ${g.mixes.length} share and bond mixes (${Math.round(g.mixes[0] * 100)}% to ${Math.round(g.mixes.at(-1) * 100)}% shares), ${g.cashBufferYears.length} cash buffers and your own mix, and every version is run through every past retirement. The results show the few that meet your needs.</p>`;
+  $('strategies-dialog').showModal();
 }
 
 function applyValues(v) {
@@ -446,7 +480,7 @@ function refresh() {
     $('risk').dataset.years = String(years);
   }
 
-  $('source-line').textContent = `Tested against ${n} real retirements starting ${first} to ${last} · global shares in £, UK gilts and cash, UK inflation`;
+  $('source-line').innerHTML = `Tests <button type="button" class="link inline" data-open-strategies>${Object.keys(STRATEGY_INFO).length} withdrawal strategies</button> against ${n} real retirements, starting ${first} to ${last}`;
 
   const g = state.config.grid;
   const mixes = `${Math.round(g.mixes[0] * 100)}% to ${Math.round(g.mixes.at(-1) * 100)}% shares`;
