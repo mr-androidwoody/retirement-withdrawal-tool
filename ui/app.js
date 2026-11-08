@@ -4,7 +4,7 @@ import { validateDataset, makeWindows } from '../engine/dataset.js';
 import { runSearch, whatIf, buildGrid, strategySettings, CASH_RULES, currentFromMix } from '../engine/search.js';
 import { simulate } from '../engine/simulate.js';
 import { buildProfile } from '../engine/profile.js';
-import { summarisePlan } from '../engine/metrics.js';
+import { summarisePlan, investmentIndex, worstFall } from '../engine/metrics.js';
 import { allowedFailures, rankWindows, pickPeriods, subsetSummary } from '../engine/periods.js';
 import { gbp, pct, escapeHtml, parseAmount, formatAmount, planName, recipe, holdingsText, money, bigMoney, signedMoney, signedPct } from './format.js';
 import { lineChart, wireCharts } from './charts.js';
@@ -741,17 +741,27 @@ function renderResults() {
 
 // ---------------------------------------------------------------- detail
 
+/**
+ * The start year a detail view opens on: the lowest income in any year; when incomes tie
+ * (within £1, as with a fixed income that never ran out), the one that came closest to running
+ * out, judged by the least left at the end.
+ */
+function defaultYear(sims) {
+  const lowest = Math.min(...sims.map((s) => s.minIncomeReal));
+  const tied = sims.filter((s) => s.minIncomeReal <= lowest + 1);
+  return [...tied].sort((a, b) => a.endReal - b.endReal || a.startYear - b.startYear)[0].startYear;
+}
+
 function openDetail(item) {
   const req = state.request;
   const windows = windowsFor(req.years);
   const sims = windows.map((w) => simulate(item.result.plan, w, req, { rows: true, thresholds: state.config.thresholds }));
-  const worst = [...sims].sort((a, b) => a.minIncomeReal - b.minIncomeReal)[0];
   const plan = item.result.plan;
   const whatIfs = {
     cash: whatIf({ dataset: state.dataset, config: state.config, request: req, plan, dimension: 'cashBuffer', values: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }),
     mix: whatIf({ dataset: state.dataset, config: state.config, request: req, plan, dimension: 'mix', values: [0.6, 0.7, 0.8, 0.9, 1.0] }),
   };
-  state.detail = { item, sims, selected: worst.startYear, whatIfs, periods: 'all' };
+  state.detail = { item, sims, selected: defaultYear(sims), whatIfs, periods: 'all' };
   renderDetail();
   show('detail');
 }
@@ -774,7 +784,7 @@ function renderDetail() {
   const keep = periods === 'all' ? null : new Set(periods === 'worst' ? state.worstYears : state.bestYears);
   const sims = keep ? state.detail.sims.filter((s) => keep.has(s.startYear)) : state.detail.sims;
   if (!sims.some((s) => s.startYear === state.detail.selected)) {
-    state.detail.selected = [...sims].sort((a, b) => a.minIncomeReal - b.minIncomeReal)[0].startYear;
+    state.detail.selected = defaultYear(sims);
   }
   const selected = state.detail.selected;
   const r = keep ? { ...item.result, ...summarisePlan(sims, req) } : item.result;
@@ -845,9 +855,41 @@ function renderDetail() {
   const cut = countStatus(r.cutCount, 'cut', limit);
   const selRank = rankOf.get(selected);
   const mixName = state.mix ? mixLabelText(state.mix) : '';
-  const rankLine = selRank && mixName
-    ? `Retired ${selected}: rank ${selRank.rank} of ${total} for your ${mixName} mix, which returned ${signedPct(selRank.realReturn, 1)} a year after inflation over its first ${state.config.risk.rankYears} years. Rank 1 is the worst start.`
-    : '';
+  const ageAt = (t) => (req.age ? req.age + t : t + 1);
+  const atAge = (t) => (req.age ? `at age ${ageAt(t)}` : `in year ${t + 1}`);
+  const selCuts = sel.rows.filter((x) => x.belowWanted).length;
+  const [selCls, selWord] = sel.depleted ? ['bad', `Ran out ${atAge(sel.depletionYear - 1)}`]
+    : sel.nearlyDepleted ? ['bad', 'Nearly ran out']
+      : selCuts ? ['warn', 'Lasted, with cuts'] : ['good', 'Lasted'];
+  const lowT = sel.rows.reduce((m, x, t) => (x.totalIncomeReal < sel.rows[m].totalIncomeReal ? t : m), 0);
+  const lowGap = sel.rows[lowT].totalIncomeReal - profile.minimum[lowT];
+  const potT = sel.rows.reduce((m, x, t) => (x.endTotalReal < sel.rows[m].endTotalReal ? t : m), 0);
+  const fall = worstFall(investmentIndex(sel.rows));
+  const fallWhen = fall.fall > 0
+    ? (sel.rows[fall.peak].calendarYear === sel.rows[fall.trough - 1].calendarYear
+      ? `in ${sel.rows[fall.peak].calendarYear}`
+      : `${sel.rows[fall.peak].calendarYear} to ${sel.rows[fall.trough - 1].calendarYear}`)
+    : 'never fell';
+  const incomes = sel.rows.map((x) => x.totalIncomeReal);
+  const firstInc = incomes[0];
+  const lastInc = incomes.at(-1);
+  const spendSub = Math.max(...incomes) - Math.min(...incomes) < 100 ? 'the same every year'
+    : `${money(firstInc)} at first, ${money(lastInc)} by the end`;
+  const selFig = (k, v, sub, subCls = '') => `<div class="sel-fig"><div class="k">${k}</div><div class="v">${v}</div><div class="sub ${subCls}">${sub}</div></div>`;
+  const selBlock = `<div class="sel-box">
+      <div class="sel-head">
+        <h4>Retired in ${selected} <span class="st-chip ${selCls}">${ICON[selCls]}${escapeHtml(selWord)}</span></h4>
+        ${selRank && mixName ? `<p>Rank ${selRank.rank} of ${total} for your ${escapeHtml(mixName)} mix: ${signedPct(selRank.realReturn, 1)} a year after inflation over its first ${state.config.risk.rankYears} years. Rank 1 is the worst start.</p>` : ''}
+      </div>
+      <div class="sel-figs">
+        ${selFig('Typical spending', money(sel.medianIncomeReal), spendSub)}
+        ${selFig('Lowest year', money(sel.rows[lowT].totalIncomeReal), `${signedMoney(lowGap)} vs minimum, ${atAge(lowT)}`, lowGap < -100 ? 'bad' : 'good')}
+        ${selFig('Years cut', String(selCuts), selCuts ? 'below what you want' : 'never below what you want', selCuts ? 'warn' : '')}
+        ${selFig('Lowest pot', bigMoney(sel.rows[potT].endTotalReal), atAge(potT))}
+        ${selFig(`Left ${req.age ? `at ${ageAt(sel.rows.length - 1)}` : 'at the end'}`, bigMoney(sel.endReal), "today's money")}
+        ${selFig('Biggest fall', pct(fall.fall), fallWhen)}
+      </div>
+    </div>`;
   const size = state.config.risk.subsetSize;
   const periodChoices = [['all', `All ${total}`], ['worst', `Worst ${size}`], ['best', `Best ${size}`]]
     .map(([id, label]) => `<button type="button" role="radio" data-periods="${id}" aria-checked="${periods === id}">${label}</button>`).join('');
@@ -883,9 +925,9 @@ function renderDetail() {
 
       <section class="panel">
         <h3>${keep ? `${subsetName}, worst first` : 'Each past retirement'}</h3>
-        <p class="hint">Choose a start year to highlight it in the charts and see it year by year. It opens on the retirement with the lowest income. The small number is each start's rank for your mix, 1 being the worst.</p>
+        <p class="hint">Choose a start year to highlight it in the charts and see it year by year. It opens on the retirement with the lowest income or, if every retirement paid the same, the one that left the least at the end. The small number is each start's rank for your mix, 1 being the worst.</p>
         <div class="strip" id="strip">${strip}</div>
-        ${rankLine ? `<p class="rank-line">${escapeHtml(rankLine)}</p>` : ''}
+        ${selBlock}
         <div class="legend"><span class="st good">${ICON.good}Lasted, never below what you want</span><span class="st warn">${ICON.warn}Lasted, some years below what you want</span><span class="st bad">${ICON.bad}Ran out, or under a year's withdrawal left</span></div>
       </section>
 
