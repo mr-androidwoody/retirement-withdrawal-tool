@@ -61,6 +61,7 @@ export function simulate(plan, window, request, options = {}) {
     invested *= (1 + investedReturn) * (1 - fee);
     cash *= (1 + market.cash) * (1 - fee);
     const potEnd = invested + cash;
+    const portfolioReturn = afterWithdrawal > 0 ? potEnd / afterWithdrawal - 1 : 0;
     const nextIndex = index * (1 + market.inflation);
     const incomeReal = (actual + other) / index;
 
@@ -73,6 +74,7 @@ export function simulate(plan, window, request, options = {}) {
       returnEquities: market.equities,
       returnBonds: market.bonds,
       returnCash: market.cash,
+      portfolioReturn,
       inflation: market.inflation,
       guaranteedIncome: other,
       targetWithdrawal: target,
@@ -91,7 +93,7 @@ export function simulate(plan, window, request, options = {}) {
     });
 
     state = decision.state;
-    prevReturn = afterWithdrawal > 0 ? potEnd / afterWithdrawal - 1 : 0;
+    prevReturn = portfolioReturn;
     prevInflation = market.inflation;
     index = nextIndex;
   }
