@@ -38,21 +38,37 @@ export function buildGrid(config) {
   return plans.map((p, gridIndex) => ({ ...p, gridIndex }));
 }
 
-export const SNAPSHOT_RULES = ['spend-first', 'flexible'];
+export const CASH_RULES = ['spend-first', 'flexible'];
 
 /**
- * Plans for the pasted snapshot: its own mix and cash amount, with every strategy setting,
+ * The user's current mix as a plan shape. mix = { equities, bonds, cash } as fractions of the
+ * pot (they should add to 1). Cash becomes a cash amount; equities and bonds become the mix of
+ * the invested part.
+ */
+export function currentFromMix(pot, mix) {
+  const invested = mix.equities + mix.bonds;
+  return {
+    pot,
+    mix,
+    cashBuffer: pot * mix.cash,
+    equitiesShare: invested > 0 ? mix.equities / invested : 0,
+  };
+}
+
+/**
+ * Plans for the current mix: its own split and cash amount, with every strategy setting,
  * for one cash rule ('spend-first' or 'flexible').
  */
-export function snapshotPlans(config, snapshot, firstIndex, cashRule = 'spend-first') {
+export function currentPlans(config, current, firstIndex, cashRule = 'spend-first') {
   return strategySettings(config).map((setting, i) => ({
     ...setting,
-    mix: { equities: snapshot.equitiesShare },
-    cashBuffer: { amount: snapshot.cashBuffer },
+    mix: { equities: current.equitiesShare },
+    cashBuffer: { amount: current.cashBuffer },
     cashRule,
     ...(cashRule === 'flexible' ? { reserve: { ...config.cashReserve } } : {}),
     gridIndex: firstIndex + i,
-    fromSnapshot: true,
+    fromCurrent: true,
+    currentMix: current.mix,
   }));
 }
 
@@ -112,9 +128,9 @@ export function reasonNotShown(r, request) {
 
 /**
  * The whole search. Returns everything the results page needs.
- * input: { dataset, config, request, snapshot? }
+ * input: { dataset, config, request, current? }  (current: from currentFromMix)
  */
-export function runSearch({ dataset, config, request, snapshot = null }) {
+export function runSearch({ dataset, config, request, current = null }) {
   const windows = makeWindows(dataset, request.years, config.firstStartYear);
   if (windows.length === 0) throw new Error('No past retirements of that length in the data.');
   const thresholds = config.thresholds;
@@ -151,14 +167,14 @@ export function runSearch({ dataset, config, request, snapshot = null }) {
       return { strategy: s.id, result: pick, reason: reasonNotShown(pick, request) };
     });
 
-  // Your portfolio as it is now: one row per cash rule.
-  const snapshotRows = [];
-  if (snapshot) {
+  // Your mix as it is now: one row per cash rule.
+  const currentRows = [];
+  if (current) {
     const per = strategySettings(config).length;
-    SNAPSHOT_RULES.forEach((rule, k) => {
-      const own = snapshotPlans(config, snapshot, grid.length + k * per, rule).map((p) => evaluatePlan(p, windows, request, thresholds));
+    CASH_RULES.forEach((rule, k) => {
+      const own = currentPlans(config, current, grid.length + k * per, rule).map((p) => evaluatePlan(p, windows, request, thresholds));
       const pool = own.filter((r) => r.status !== 'does-not-meet');
-      snapshotRows.push({ cashRule: rule, result: pool.length ? best(pool, 'recommended') : best(own, 'closest'), meetsNeeds: pool.length > 0 });
+      currentRows.push({ cashRule: rule, result: pool.length ? best(pool, 'recommended') : best(own, 'closest'), meetsNeeds: pool.length > 0 });
     });
   }
 
@@ -178,12 +194,11 @@ export function runSearch({ dataset, config, request, snapshot = null }) {
     datasetId: dataset.id,
     datasetVersion: dataset.version,
     windows: windows.map((w) => ({ startYear: w.startYear, endYear: w.endYear })),
-    plansTried: grid.length + (snapshot ? SNAPSHOT_RULES.length * strategySettings(config).length : 0),
+    plansTried: grid.length + (current ? CASH_RULES.length * strategySettings(config).length : 0),
     eligibleCount: eligible.length,
     rows,
     others,
-    snapshotRows,
-    snapshotRow: snapshotRows[0] || null,
+    currentRows,
     closest,
     results,
   };
