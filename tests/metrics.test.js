@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { median, stdev, maxDrawdown, summarisePath, summarisePlan } from '../engine/metrics.js';
+import { median, stdev, maxDrawdown, worstFall, summarisePath, summarisePlan } from '../engine/metrics.js';
 import { close } from './helpers.js';
 
 test('median of odd and even lists', () => {
@@ -57,4 +57,14 @@ test('a plan summary counts failures, shortfalls and takes worst year over survi
   assert.equal(s.worstIncomeAll, 0);
   assert.equal(s.medianEnd, 1000);
   assert.equal(s.startingRate, 0.04);
+});
+
+test('the worst fall says where it started and ended, and matches maxDrawdown', () => {
+  const s = [1, 1.2, 0.9, 1.1, 0.6, 1.5, 1.4];
+  const w = worstFall(s);
+  assert.equal(w.peak, 1);
+  assert.equal(w.trough, 4);
+  close(w.fall, 0.5);
+  close(w.fall, maxDrawdown(s));
+  assert.deepEqual(worstFall([1, 1.1, 1.2]), { fall: 0, peak: 0, trough: 0 });
 });
