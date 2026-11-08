@@ -111,20 +111,11 @@ function initForm() {
   const lengths = config.retirementLengths.filter((y) => windowsFor(y).length > 0);
   $('years').innerHTML = lengths.map((y) => `<option value="${y}">${y} years</option>`).join('');
 
-  // Presets.
-  $('presets').innerHTML = config.presets.map((p) =>
-    `<button type="button" class="chip" aria-pressed="false" data-preset="${p.id}">${escapeHtml(p.label)}</button>`).join('');
-  $('presets').addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-preset]');
-    if (btn) applyPreset(btn.dataset.preset);
-  });
-
   // Risk choices.
   $('risk').addEventListener('click', (e) => {
     const btn = e.target.closest('[data-risk]');
     if (!btn) return;
     state.maxFailures = Number(btn.dataset.risk);
-    clearPreset();
     renderRisk();
     refresh();
   });
@@ -171,7 +162,6 @@ function initForm() {
 
   // Any edit refreshes the goal; money fields get thousands separators on blur.
   $('plan-form').addEventListener('input', (e) => {
-    if (!['mix-eq', 'mix-bd', 'mix-cash'].includes(e.target.id)) clearPreset();
     refresh();
   });
   $('plan-form').addEventListener('change', refresh);
@@ -192,7 +182,7 @@ function initForm() {
   applyValues(config.defaults);
   if (!restoreInputs()) {
     const typical = config.presets.find((p) => p.id === 'typical');
-    if (typical) applyPreset('typical');
+    if (typical) applyValues({ incomeChange: null, ...typical.values });
   }
   $('clear-saved').addEventListener('click', () => {
     try { localStorage.removeItem(SAVE_KEY); } catch { /* nothing saved */ }
@@ -251,7 +241,6 @@ function showBox(which, open) {
   $(`toggle-${which}`).hidden = open;
   $(`toggle-${which}`).setAttribute('aria-expanded', String(open));
   if (open) $({ change: 'change-age', other: 'other1-amount', earned: 'earned1-amount' }[which]).focus();
-  clearPreset();
   refresh();
 }
 
@@ -278,19 +267,6 @@ function applyValues(v) {
     $('change-box').hidden = true;
     $('toggle-change').hidden = false;
   }
-}
-
-function applyPreset(id) {
-  const p = state.config.presets.find((x) => x.id === id);
-  if (!p) return;
-  applyValues({ incomeChange: null, ...p.values });
-  for (const b of $('presets').querySelectorAll('[data-preset]')) b.setAttribute('aria-pressed', String(b.dataset.preset === id));
-  renderRisk();
-  refresh();
-}
-
-function clearPreset() {
-  for (const b of $('presets').querySelectorAll('[aria-pressed="true"]')) b.setAttribute('aria-pressed', 'false');
 }
 
 function selectMix(label) {
@@ -487,7 +463,6 @@ function refresh() {
   // Goal in words.
   const { request } = readRequest();
   const count = planCount(request);
-  for (const el of document.querySelectorAll('[data-bind="plan-count"]')) el.textContent = count.toLocaleString('en-GB');
   for (const el of document.querySelectorAll('[data-bind="plan-count-number"]')) el.textContent = count.toLocaleString('en-GB');
   const has = (x) => Number.isFinite(x) && x > 0;
   const span = request.age ? `${years} years, from age ${request.age} to ${request.age + years - 1},` : `${years} years`;
