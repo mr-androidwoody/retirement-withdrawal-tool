@@ -305,7 +305,11 @@ function readRequest() {
     for (const k of [1, 2]) {
       if (k === 2 && $('other2').hidden) continue;
       const amount = parseAmount($(`other${k}-amount`).value);
-      if (!Number.isFinite(amount)) continue;
+      if (!Number.isFinite(amount) || amount === 0) {
+        mark(`other${k}-amount`, false);
+        mark(`other${k}-age`, false);
+        continue;
+      }
       // Person 2's income starts at their own age, so it needs their age now.
       const ownAge = k === 2 ? partnerAge : age;
       const ownAgeOk = Number.isInteger(ownAge) && ownAge >= 18 && ownAge <= 110;
@@ -331,7 +335,12 @@ function readRequest() {
     for (const k of [1, 2]) {
       if (k === 2 && $('earned2').hidden) continue;
       const amount = parseAmount($(`earned${k}-amount`).value);
-      if (!Number.isFinite(amount)) continue;
+      // A blank or zero amount means no earnings for this person: skip the row entirely.
+      if (!Number.isFinite(amount) || amount === 0) {
+        mark(`earned${k}-amount`, false);
+        mark(`earned${k}-stop`, false);
+        continue;
+      }
       const ownAge = k === 2 ? partnerAge : age;
       const ownAgeOk = Number.isInteger(ownAge) && ownAge >= 18 && ownAge <= 110;
       const stopAge = Number($(`earned${k}-stop`).value);
