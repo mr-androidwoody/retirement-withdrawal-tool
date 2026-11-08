@@ -269,3 +269,20 @@ th.num { white-space: normal; }
 .section-title { font-size: 20px; margin-top: 8px; }
 .diff { color: var(--muted); font-style: italic; }
 .link.inline { min-height: 0; padding: 0; font-size: inherit; }
+
+/* ---------- recommendation and strategy names ---------- */
+.rec-box { background: var(--card); border: 2px solid var(--accent); border-radius: var(--radius); padding: 20px 24px; display: flex; flex-direction: column; gap: 10px; }
+.rec-label { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.rec-box h2 { margin: 0; font-size: 26px; font-family: var(--display); }
+.rec-box h2 .aka { font-size: 18px; font-weight: 500; color: var(--muted); }
+.rec-about { margin: 0; font-size: 15px; color: #374151; }
+.rec-box .diff { margin: 0; font-size: 13px; font-style: italic; color: #374151; }
+.rec-figs { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 4px; }
+.rec-figs > div { display: grid; grid-row: span 3; grid-template-rows: subgrid; row-gap: 2px; background: #f5f6f4; border-radius: 8px; padding: 10px 12px; }
+.rec-figs .k { font-size: 12px; color: var(--muted); }
+.rec-figs .v { font: 600 20px var(--display); font-variant-numeric: tabular-nums; }
+.rec-figs .s { font-size: 12px; color: var(--muted); }
+.rec-figs .s.st svg { width: 13px; height: 13px; }
+.rec-box > .link { align-self: flex-start; }
+.strategy-tag { font-size: 13px; color: var(--muted); }
+.strategy-tag strong { color: var(--accent-dark); font-weight: 600; }
