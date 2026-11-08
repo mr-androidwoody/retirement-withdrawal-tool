@@ -1,7 +1,7 @@
 # Retirement Withdrawal Tool
 
 How much can I take from my pot, and will it last? A guidance tool that tests ways of drawing a
-retirement pot against 22 actual past retirements (30-year retirements starting 1970 to 1991),
+retirement pot against every past retirement in the data (42 thirty-year retirements, starting 1950 to 1991),
 and shows the few that meet the income you want and the least you could live on.
 
 Static site for GitHub Pages: plain HTML, CSS and JavaScript modules, no build step.
@@ -58,7 +58,12 @@ The spreadsheet itself is not kept in the repo.
 `engine/` is pure JavaScript with no DOM or network access, so the same code runs in the browser
 and in Node:
 
-- `dataset.js` validates the data and slices it into rolling retirements
+- `dataset.js` validates the data and slices it into rolling retirements (every start from
+  `firstStartYear` in `config.json`, 1950: 42 retirements for 30 years, 37 for 35, 47 for 25)
+- `periods.js` turns the risk choice ("about 1 in 20" may run out) into a count for the number of
+  retirements tested, ranks every start by the real return of your current mix over its first
+  10 years (rank 1 is the worst; the same ranking applies to every option), and gives a plan's
+  figures for the worst or best 10 starts. Settings under `risk` in `config.json`.
 - `profile.js` turns the request into year-by-year wanted, minimum and other income
   (pensions that start at an age, and earnings that stop at an age; earnings replace
   withdrawals while they last rather than adding to spending)
