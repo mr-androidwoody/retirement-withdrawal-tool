@@ -69,6 +69,37 @@ function bufferAmount(plan, request) {
   return { amount, planned };
 }
 
+/** What each strategy is called, any other name it goes by, and what it does in one sentence. */
+export const STRATEGY_INFO = {
+  'constant-real': {
+    name: 'Constant real',
+    aka: 'the "4% rule" approach',
+    about: 'Take a set amount in the first year, then raise it with inflation every year, whatever the markets do.',
+  },
+  'fixed-percentage': {
+    name: 'Fixed percentage',
+    aka: '',
+    about: 'Take the same percentage of whatever the pot is worth each year, so income rises and falls with the markets.',
+  },
+  'guyton-klinger': {
+    name: 'Guyton-Klinger guardrails',
+    aka: 'GK',
+    about: 'Start like constant real, but skip the inflation rise after a losing year, and cut or raise income by 10% when the withdrawal rate drifts 20% from where it started.',
+  },
+  'floor-ceiling': {
+    name: 'Floor and ceiling',
+    aka: '',
+    about: 'Take a percentage of the pot each year, but never less than a floor or more than a ceiling, both rising with inflation.',
+  },
+};
+
+/** The strategy tag shown on each option: "Guyton-Klinger guardrails (GK)". */
+export function strategyTag(plan) {
+  const s = STRATEGY_INFO[plan.strategy];
+  if (!s) return getStrategy(plan.strategy).label;
+  return s.aka ? `${s.name} (${s.aka})` : s.name;
+}
+
 /** Short name: "Floor and ceiling, 5-year cash buffer, 80/20 shares and bonds". */
 export function planName(plan) {
   const s = getStrategy(plan.strategy);

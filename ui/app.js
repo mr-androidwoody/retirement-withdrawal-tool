@@ -6,7 +6,7 @@ import { simulate } from '../engine/simulate.js';
 import { buildProfile } from '../engine/profile.js';
 import { summarisePlan, investmentIndex, worstFall } from '../engine/metrics.js';
 import { allowedFailures, rankWindows, pickPeriods, subsetSummary } from '../engine/periods.js';
-import { gbp, pct, escapeHtml, parseAmount, formatAmount, planName, recipe, holdingsText, money, bigMoney, signedMoney, signedPct } from './format.js';
+import { gbp, pct, escapeHtml, parseAmount, formatAmount, planName, recipe, holdingsText, money, bigMoney, signedMoney, signedPct, STRATEGY_INFO, strategyTag } from './format.js';
 import { lineChart, wireCharts } from './charts.js';
 
 const $ = (id) => document.getElementById(id);
@@ -643,6 +643,7 @@ function optionRows(r, badges, req, n, best, flag) {
   return `<tbody class="opt">
     <tr class="opt-main"><td><div class="option">
       <div class="badges">${badges.map((b) => `<span class="badge ${b.cls || ''}">${escapeHtml(b.text)}</span>`).join('')}</div>
+      <div class="strategy-tag">Strategy: <strong>${escapeHtml(strategyTag(r.plan))}</strong></div>
       <div class="plan-name">${escapeHtml(planName(r.plan))}</div>
     </div></td>${cells(r, n, req, best)}</tr>
     <tr class="opt-recipe"><td colspan="${COLS.length + 1}">
@@ -684,6 +685,39 @@ function renderResults() {
       <p class="hint">You asked for ${gbp(req.wanted)} a year, never below ${gbp(req.minimum)}, with ${req.maxFailures === 0 ? 'none' : `up to ${req.maxFailures}`} of ${n} past retirements (starting ${r.windows[0].startYear} to ${r.windows.at(-1).startYear}) allowed to run out. ${r.plansTried.toLocaleString('en-GB')} plans were tested${r.keepMix ? `, all with your ${mixName} mix` : ''}.</p>
       ${state.worstYears.length ? `<p class="hint">The worst ${state.worstYears.length} starts for your ${mixName} mix, judged by its return after inflation over the first ${state.config.risk.rankYears} years: ${[...state.worstYears].sort((x, y) => x - y).join(', ')}.</p>` : ''}
     </header>`;
+
+  // The recommendation in one box, before the tables.
+  const recRow = r.rows.find((x) => x.labels.includes('Recommended'));
+  if (recRow) {
+    const p = recRow.result;
+    const info = STRATEGY_INFO[p.plan.strategy] || { name: planName(p.plan), aka: '', about: '' };
+    const recipeLines = recipe(p.plan, req);
+    const idx = state.openable.push({ result: p, labels: recRow.labels }) - 1;
+    const ws = worstShortfalls(p);
+    const ro = countStatus(p.ranOutOrNearly, 'ranout', req.maxFailures);
+    const wsS = countStatus(ws, 'worst', 0);
+    const diff = !p.plan.fromCurrent && state.mix
+      ? `<p class="diff">Different mix from yours: ${escapeHtml(holdingsText(p.plan))} (yours: ${mixName}).</p>` : '';
+    html += `<section class="rec-box" aria-labelledby="rec-title">
+        <div class="rec-label">Recommended${r.keepMix ? ` for your ${mixName} mix` : ''}</div>
+        <h2 id="rec-title">${escapeHtml(info.name)}${info.aka ? ` <span class="aka">(${escapeHtml(info.aka)})</span>` : ''}</h2>
+        <p class="rec-about">${escapeHtml(info.about)}</p>
+        <div class="recipe-grid">
+          <p><strong>Income</strong>${escapeHtml(recipeLines.income)}</p>
+          <p><strong>Cash</strong>${escapeHtml(recipeLines.cash)}</p>
+          <p><strong>The rest</strong>${escapeHtml(recipeLines.rest)}</p>
+        </div>
+        ${diff}
+        <div class="rec-figs">
+          <div><span class="k">Typical spending</span><span class="v">${money(p.typicalIncome)}</span><span class="s">a year, ${signedMoney(p.typicalIncome - req.wanted)} vs wanted</span></div>
+          <div><span class="k">Lowest year</span><span class="v">${money(p.worstIncome)}</span><span class="s">${signedMoney(p.worstIncome - req.minimum)} vs minimum</span></div>
+          <div><span class="k">Ran out or nearly</span><span class="v">${p.ranOutOrNearly} of ${n}</span><span class="s st ${ro.cls}">${ICON[ro.cls]}${ro.word}</span></div>
+          ${Number.isFinite(ws) ? `<div><span class="k">Worst ${state.worstYears.length} starts</span><span class="v">${ws} of ${state.worstYears.length}</span><span class="s st ${wsS.cls}">${ICON[wsS.cls]}${ws ? 'fell short' : 'held up in all'}</span></div>` : ''}
+          <div><span class="k">Typically left</span><span class="v">${bigMoney(p.medianEnd)}</span><span class="s">after ${req.years} years</span></div>
+        </div>
+        <button type="button" class="link" data-open="${idx}">See this option in detail ›</button>
+      </section>`;
+  }
 
   // 1. Your mix as it is now (first, so it is the reference point).
   if (r.currentRows && r.currentRows.length) {
@@ -910,6 +944,7 @@ function renderDetail() {
     <div class="detail">
       <header class="results-head">
         <div class="badges">${item.labels.map((t) => `<span class="badge ${t === 'Recommended' ? 'strong' : ''}">${escapeHtml(t)}</span>`).join('')}</div>
+        <div class="strategy-tag">Strategy: <strong>${escapeHtml(strategyTag(plan))}</strong>. ${escapeHtml(STRATEGY_INFO[plan.strategy]?.about || '')}</div>
         <h1>${escapeHtml(planName(plan))}</h1>
         <p class="recipe"><strong>Income:</strong> ${escapeHtml(rec.income)}</p>
         <p class="recipe"><strong>Cash:</strong> ${escapeHtml(rec.cash)}</p>
