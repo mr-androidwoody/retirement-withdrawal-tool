@@ -1,8 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { buildGrid, strategySettings, runSearch, whatIf, statusOf } from '../engine/search.js';
-import { parseSnapshot } from '../engine/snapshot.js';
+import { buildGrid, strategySettings, runSearch, whatIf, statusOf, currentFromMix } from '../engine/search.js';
 
 const dataset = JSON.parse(readFileSync(new URL('../data/jst-r6-global-gbp.json', import.meta.url)));
 const config = JSON.parse(readFileSync(new URL('../data/config.json', import.meta.url)));
@@ -55,29 +54,27 @@ test('asking for too much gives no options and three distinct closest plans', ()
   assert.equal(new Set(keys).size, 3);
 });
 
-test('a pasted snapshot adds "your portfolio as it is now" with its own mix and cash', () => {
-  const P = '£';
-  const snap = parseSnapshot([
-    `Portfolio Snapshot - 08 Nov 2026`,
-    `Net Portfolio Value: ${P}1,843,050`,
-    `Total Portfolio (gross): ${P}1,873,468`,
-    `Equity: ${P}1,135,462 (60.6% of portfolio)`,
-    `  Bonds: ${P}249,741 (13.3% of portfolio)`,
-    `  Cash and money market: ${P}488,265`,
-  ].join('\n'));
-  assert.equal(snap.ok, true);
-  const request = { ...config.defaults, pot: snap.net, wanted: 70000, minimum: 55000 };
-  const r = runSearch({ dataset, config, request, snapshot: snap });
+test('the current mix adds "your mix as it is now" rows, one per cash rule', () => {
+  const current = currentFromMix(1000000, { equities: 0.6, bonds: 0.3, cash: 0.1 });
+  assert.equal(current.cashBuffer, 100000);
+  assert.ok(Math.abs(current.equitiesShare - 2 / 3) < 1e-12);
+  const request = { ...config.defaults, pot: 1000000, wanted: 40000, minimum: 32000 };
+  const r = runSearch({ dataset, config, request, current });
   assert.equal(r.plansTried, 440 + 2 * 22);
-  assert.deepEqual(r.snapshotRows.map((x) => x.cashRule), ['spend-first', 'flexible']);
-  for (const row of r.snapshotRows) {
+  assert.deepEqual(r.currentRows.map((x) => x.cashRule), ['spend-first', 'flexible']);
+  for (const row of r.currentRows) {
     const plan = row.result.plan;
-    assert.equal(plan.cashBuffer.amount, 457847);
-    assert.ok(Math.abs(plan.mix.equities - 0.8197) < 0.0001);
-    assert.equal(plan.fromSnapshot, true);
+    assert.equal(plan.cashBuffer.amount, 100000);
+    assert.ok(Math.abs(plan.mix.equities - 2 / 3) < 1e-12);
+    assert.equal(plan.fromCurrent, true);
+    assert.deepEqual(plan.currentMix, { equities: 0.6, bonds: 0.3, cash: 0.1 });
     assert.equal(plan.cashRule, row.cashRule);
   }
-  assert.deepEqual(r.snapshotRows[1].result.plan.reserve, config.cashReserve);
+  assert.deepEqual(r.currentRows[1].result.plan.reserve, config.cashReserve);
+});
+
+test('an all-cash mix does not break the invested share', () => {
+  assert.equal(currentFromMix(100, { equities: 0, bonds: 0, cash: 1 }).equitiesShare, 0);
 });
 
 test('what-if varies only the chosen dimension', () => {

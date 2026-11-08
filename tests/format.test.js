@@ -21,12 +21,19 @@ test('plan names and recipes read in plain English', () => {
   assert.equal(r.rest, '80% shares, 20% bonds.');
 });
 
-test('all shares and a snapshot cash amount are described', () => {
-  const plan = { strategy: 'constant-real', params: { rate: 0.04 }, mix: { equities: 1 }, cashBuffer: { amount: 45000 }, fromSnapshot: true };
-  assert.equal(planName(plan), 'Constant real, your cash spent first, all shares');
+test('a current-mix plan is named by its full split and its cash is described', () => {
+  const plan = { strategy: 'constant-real', params: { rate: 0.04 }, mix: { equities: 2 / 3 }, cashBuffer: { amount: 45000 },
+    fromCurrent: true, currentMix: { equities: 0.6, bonds: 0.3, cash: 0.1 } };
+  assert.equal(planName(plan), 'Constant real, your cash spent first, your 60/30/10 mix');
   const r = recipe(plan, req);
-  assert.match(r.cash, /£45,000 from your snapshot, spent first \(about 2.0 years/);
-  assert.equal(r.rest, 'all shares, as in your snapshot.');
+  assert.match(r.cash, /\u00a345,000 \(9% of the pot\), spent first \(about 2.0 years/);
+  assert.equal(r.rest, '67% shares, 33% bonds of the invested part, as in your current mix.');
+});
+
+test('all shares is described in words', () => {
+  const plan = { strategy: 'constant-real', params: { rate: 0.04 }, mix: { equities: 1 }, cashBuffer: { years: 0 } };
+  assert.equal(planName(plan), 'Constant real, no cash buffer, all shares');
+  assert.equal(recipe(plan, req).rest, 'all shares.');
 });
 
 test('text is escaped before it goes into the page', () => {
