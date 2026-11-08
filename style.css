@@ -28,7 +28,7 @@
 body { margin: 0; background: var(--ground); color: var(--ink); font: 15px/1.5 var(--sans); }
 .page { max-width: 1180px; margin: 0 auto; padding: 40px 20px 64px; }
 .view { display: flex; flex-direction: column; gap: 24px; }
-#view-plan { max-width: 1000px; margin: 0 auto; }
+/* The form, results and option detail all share the page width (1180px, set on .page). */
 [hidden] { display: none !important; }
 a { color: var(--accent); }
 a:hover { color: var(--accent-dark); }
