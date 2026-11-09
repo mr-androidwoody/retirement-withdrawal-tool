@@ -46,12 +46,14 @@ test('every strategy appears either as an option or in the comparison', () => {
   assert.equal(shown.size, 4);
 });
 
-test('asking for too much gives no options and three distinct closest plans', () => {
+test('asking for too much gives no options and one nearest miss per approach, closest first', () => {
   const r = runSearch({ dataset, config, request: preset('too-much') });
   assert.equal(r.rows.length, 0);
-  assert.equal(r.closest.length, 3);
-  const keys = r.closest.map((c) => `${c.plan.strategy}:${JSON.stringify(c.plan.params)}`);
-  assert.equal(new Set(keys).size, 3);
+  assert.equal(r.closest.length, 4);
+  assert.equal(new Set(r.closest.map((c) => c.plan.strategy)).size, 4);
+  for (let i = 1; i < r.closest.length; i += 1) assert.ok(r.closest[i - 1].failingMinimum <= r.closest[i].failingMinimum);
+  // The nearest misses replace the "other approaches" list, so nothing shows twice.
+  assert.equal(r.others.length, 0);
 });
 
 test('the current mix adds "your mix as it is now" rows, one per cash rule', () => {
