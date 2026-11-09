@@ -101,6 +101,14 @@ const SAVED_FIELDS = ['pot', 'age', 'partner-age', 'years', 'wanted', 'minimum',
   'earned1-label', 'earned1-amount', 'earned1-stop', 'earned2-label', 'earned2-amount', 'earned2-stop',
   'fee', 'mix-eq', 'mix-bd', 'mix-cash'];
 const SAVED_BOXES = ['change-box', 'other-box', 'other2', 'earned-box', 'earned2'];
+// Money boxes: shown with thousands separators (60,000) on load and when you leave the box.
+const MONEY_FIELDS = ['pot', 'wanted', 'minimum', 'change-wanted', 'change-minimum',
+  'other1-amount', 'other2-amount', 'earned1-amount', 'earned2-amount'];
+
+function formatMoney(id) {
+  const v = parseAmount($(id).value);
+  if (Number.isFinite(v)) $(id).value = formatAmount(v);
+}
 
 function saveInputs() {
   if (!state.ready) return;
@@ -225,12 +233,7 @@ function initForm() {
   });
   $('plan-form').addEventListener('change', refresh);
   $('keep-mix').addEventListener('change', refresh);
-  for (const id of ['pot', 'wanted', 'minimum', 'change-wanted', 'change-minimum', 'other1-amount', 'other2-amount']) {
-    $(id).addEventListener('blur', () => {
-      const v = parseAmount($(id).value);
-      if (Number.isFinite(v)) $(id).value = formatAmount(v);
-    });
-  }
+  for (const id of MONEY_FIELDS) $(id).addEventListener('blur', () => formatMoney(id));
   $('plan-form').addEventListener('submit', onFind);
 
   $('footnote').innerHTML = 'All figures are in today’s money. Historical data: Jordà-Schularick-Taylor Macrohistory Database, Release 6 '
@@ -243,6 +246,8 @@ function initForm() {
     const typical = config.presets.find((p) => p.id === 'typical');
     if (typical) applyValues({ incomeChange: null, ...typical.values });
   }
+  // Saved figures come back as typed; show them with separators.
+  for (const id of MONEY_FIELDS) formatMoney(id);
   $('clear-saved').addEventListener('click', () => {
     try { localStorage.removeItem(SAVE_KEY); } catch { /* nothing saved */ }
     window.location.reload();
