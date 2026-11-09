@@ -90,6 +90,8 @@ input[aria-invalid="true"] { border-color: var(--bad); }
 .segmented button[aria-checked="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
 .segmented button small { display: block; font-size: 12px; opacity: .8; margin-top: 1px; }
 .periods-bar { display: flex; flex-direction: column; gap: 8px; }
+/* Says the tiles in an option detail cover the chosen set of starts, not the selected year. */
+.detail .facts-head { font-size: 16px; margin: 0 0 -12px; }
 .tag { display: inline-block; vertical-align: 2px; margin-left: 8px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-dark); }
 .sel-box { border: 1px solid var(--line-strong); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
 .sel-head { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 4px 16px; }
