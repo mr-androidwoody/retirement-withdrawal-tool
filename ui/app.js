@@ -1,6 +1,6 @@
 // The page: wizard, results and option detail. All modelling happens in engine/.
 
-import { validateDataset, makeWindows } from '../engine/dataset.js';
+import { validateDataset, makeWindows, lengthError } from '../engine/dataset.js';
 import { runSearch, whatIf, buildGrid, strategySettings, CASH_RULES, currentFromMix } from '../engine/search.js';
 import { simulate } from '../engine/simulate.js';
 import { buildProfile } from '../engine/profile.js';
@@ -18,6 +18,8 @@ const state = {
   ranking: null,
   worstYears: [],
   bestYears: [],
+  periods: 'all',
+  views: new WeakMap(),
   result: null,
   request: null,
   openable: [],
@@ -51,6 +53,23 @@ async function load() {
 
 function windowsFor(years) {
   return makeWindows(state.dataset, years, state.config.firstStartYear);
+}
+
+/** The length typed in, as a number (NaN if not a number), and whether it is in range. */
+function typedYears() {
+  const text = $('years').value.trim();
+  const years = text === '' ? NaN : Number(text);
+  return { years, ok: lengthError(years, state.config.retirementLength) === null };
+}
+
+/**
+ * The length to count past retirements with: the one typed in when it is valid, otherwise
+ * the last valid one (so the page does not jump about while a number is half typed).
+ */
+function workingYears() {
+  const { years, ok } = typedYears();
+  if (ok) state.lastYears = years;
+  return state.lastYears ?? state.config.defaults.years;
 }
 
 // ---------------------------------------------------------------- saved inputs
@@ -87,7 +106,7 @@ function restoreInputs() {
   const data = loadSaved();
   if (!data) return false;
   for (const id of SAVED_FIELDS) if (typeof data.fields?.[id] === 'string' && $(id)) $(id).value = data.fields[id];
-  if (![...$('years').options].some((o) => o.value === $('years').value)) $('years').value = String(state.config.defaults.years);
+  if (!typedYears().ok) $('years').value = String(state.config.defaults.years);
   const open = data.open || {};
   for (const which of ['change', 'other', 'earned']) {
     const isOpen = Boolean(open[`${which}-box`]);
@@ -115,9 +134,15 @@ function restoreInputs() {
 function initForm() {
   const { config } = state;
 
-  // Retirement lengths that the data can test.
-  const lengths = config.retirementLengths.filter((y) => windowsFor(y).length > 0);
-  $('years').innerHTML = lengths.map((y) => `<option value="${y}">${y} years</option>`).join('');
+  // Retirement length: typed in, with quick picks for common lengths.
+  $('year-picks').innerHTML = config.retirementLength.presets.map((y) =>
+    `<button type="button" class="chip" data-years="${y}" aria-pressed="false">${y} years</button>`).join('');
+  $('year-picks').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-years]');
+    if (!btn) return;
+    $('years').value = btn.dataset.years;
+    refresh();
+  });
 
   // Risk choices.
   $('risk').addEventListener('click', (e) => {
@@ -344,7 +369,7 @@ function allowedFor(years) {
 }
 
 function renderRisk() {
-  const years = Number($('years').value);
+  const years = workingYears();
   const n = windowsFor(years).length;
   $('risk-hint').textContent = `Of the ${n} past retirements, how many may run out of money?`;
   $('risk').innerHTML = state.config.risk.choices.map((c) => {
@@ -356,7 +381,10 @@ function renderRisk() {
 /** Read the form into a request; returns { request, errors }. */
 function readRequest() {
   const errors = [];
-  const years = Number($('years').value);
+  const typed = typedYears();
+  const years = typed.ok ? typed.years : workingYears();
+  $('years').setAttribute('aria-invalid', String(!typed.ok));
+  if (!typed.ok) errors.push(lengthError(typed.years, state.config.retirementLength));
   const mixRead = readMix();
   if (mixRead.error) errors.push(mixRead.error);
   const pot = parseAmount($('pot').value);
@@ -470,7 +498,8 @@ const mixLabelText = (m) => `${Math.round(m.equities * 100)}/${Math.round(m.bond
 
 function refresh() {
   if (!state.dataset) return;
-  const years = Number($('years').value);
+  const typed = typedYears();
+  const years = workingYears();
   const windows = windowsFor(years);
   const first = windows[0]?.startYear;
   const last = windows.at(-1)?.startYear;
@@ -501,10 +530,11 @@ function refresh() {
       + 'The tool works in today\u2019s money and assumes pensions rise with inflation; the triple lock (the highest of inflation, earnings growth or 2.5%) may add more, which is not counted.';
   }
   const age = currentAge();
-  for (const opt of $('years').options) {
-    const y = Number(opt.value);
-    opt.textContent = age ? `${y} years (to age ${age + y - 1})` : `${y} years`;
-  }
+  for (const b of $('year-picks').querySelectorAll('[data-years]')) b.setAttribute('aria-pressed', String(typed.ok && Number(b.dataset.years) === typed.years));
+  const { min, max } = state.config.retirementLength;
+  $('years-hint').textContent = typed.ok
+    ? `${age ? `To age ${age + years - 1}. ` : ''}${n} past retirements tested, starting ${first} to ${last}. Any length from ${min} to ${max} years; the longer the plan, the fewer past retirements there are to test.`
+    : `Enter a whole number of years from ${min} to ${max}.`;
   $('settings-summary').textContent = `Global shares (£) and UK gilts · starts ${first} to ${last} · all four approaches · ${mixes} · ${buffers}${$('keep-mix').checked ? ' (keeping your mix)' : ' · plus your current mix'} · charges ${Number.isFinite(fee) ? fee : '?'}% a year`;
 
   // Goal in words.
@@ -512,7 +542,8 @@ function refresh() {
   const count = planCount(request);
   for (const el of document.querySelectorAll('[data-bind="plan-count-number"]')) el.textContent = count.toLocaleString('en-GB');
   const has = (x) => Number.isFinite(x) && x > 0;
-  const span = request.age ? `${years} years, from age ${request.age} to ${request.age + years - 1},` : `${years} years`;
+  let span = request.age ? `${years} years, from age ${request.age} to ${request.age + years - 1},` : `${years} years`;
+  if (!typed.ok) span = '[how many years]';
   let text = `Find ways to draw <strong>${has(request.wanted) ? gbp(request.wanted) : '[income you want]'}</strong> a year for ${span} from <strong>${has(request.pot) ? gbp(request.pot) : '[your pot]'}</strong>. `
     + `Income should never fall below <strong>${Number.isFinite(request.minimum) ? gbp(request.minimum) : '[your minimum]'}</strong>. `;
   if (request.incomeChange) {
@@ -567,6 +598,7 @@ function onFind(e) {
       state.ranking = rankWindows(windowsFor(request.years), mix, rk.rankYears);
       state.worstYears = pickPeriods(state.ranking, 'worst', rk.subsetSize);
       state.bestYears = pickPeriods(state.ranking, 'best', rk.subsetSize);
+      state.views = new WeakMap();
       state.result = runSearch({ dataset: state.dataset, config: state.config, request,
         current: currentFromMix(request.pot, mix), keepMix: $('keep-mix').checked });
       renderResults();
@@ -599,9 +631,8 @@ const ICON = {
 
 /** Status of a count of past retirements: ran out (against your limit) or income cut. */
 function countStatus(count, kind, limit) {
-  if (count === 0) return { cls: 'good', word: { ranout: 'none ran out', cut: 'no cuts', worst: 'held up in all of them' }[kind] };
+  if (count === 0) return { cls: 'good', word: { ranout: 'none ran out', cut: 'no cuts' }[kind] };
   if (kind === 'cut') return { cls: 'warn', word: 'some years below what you want' };
-  if (kind === 'worst') return { cls: 'bad', word: 'ran out or fell below your minimum' };
   return count <= limit ? { cls: 'warn', word: 'within your limit' } : { cls: 'bad', word: 'over your limit' };
 }
 
@@ -668,18 +699,36 @@ const COLS = [
   { key: 'worstIncome', head: 'Lowest year', unit: 'a year', better: 'high', cmp: (v) => Math.round(v / 100) },
   { key: 'ranOutOrNearly', head: 'Ran out or nearly', unit: (n) => `of ${n}`, better: 'low', cmp: (v) => v },
   { key: 'cutCount', head: 'Income cut', unit: (n) => `of ${n}`, better: 'low', cmp: (v) => v },
-  { key: 'worstSet', head: () => `Worst ${state.worstYears.length} starts`, unit: 'fell short', better: 'low', cmp: (v) => v, get: worstShortfalls },
   { key: 'medianEnd', head: 'Typically left', unit: (n, years) => `after ${years} years`, better: 'high', cmp: (v) => Math.round(v / 1e5) },
   { key: 'worstDrawdown', head: 'Biggest fall', unit: 'in investments', better: 'low', cmp: (v) => Math.round(v * 100) },
 ];
 
-/** How many of the worst starts this plan ran out in or fell below the minimum (cached). */
-function worstShortfalls(r) {
-  if (r.worstSet === undefined) {
-    const s = state.worstYears.length ? subsetSummary(r, state.worstYears, state.request) : null;
-    r.worstSet = s ? s.failingMinimum : NaN;
-  }
-  return r.worstSet;
+// ---------- All, worst or best starts: the same options, with figures for that set ----------
+
+/** Start years for a choice of periods, or null for all of them. */
+const periodYears = (which) => (which === 'worst' ? state.worstYears : which === 'best' ? state.bestYears : null);
+
+/**
+ * A plan result with its figures worked out over only the chosen starts (cached per search).
+ * The plan, its paths and its place in the results are unchanged; `base` is the original.
+ */
+function inView(r, which = state.periods) {
+  const years = periodYears(which);
+  if (!years || !r.paths) return r;
+  let cache = state.views.get(r);
+  if (!cache) { cache = {}; state.views.set(r, cache); }
+  if (!cache[which]) cache[which] = { ...r, ...subsetSummary(r, years, state.request), base: r };
+  return cache[which];
+}
+
+/** The request with the run-out limit for a number of past retirements. */
+const requestFor = (req, n, all) => (n === all ? req : { ...req, maxFailures: allowedFailures(req.riskShare ?? 0, n) });
+
+/** The All / Worst / Best choice, shared by the results page and the option detail. */
+function periodChoices(which, total) {
+  const size = state.config.risk.subsetSize;
+  return [['all', `All ${total}`], ['worst', `Worst ${size}`], ['best', `Best ${size}`]]
+    .map(([id, label]) => `<button type="button" role="radio" data-periods="${id}" aria-checked="${which === id}">${label}</button>`).join('');
 }
 
 const val = (c, r) => (c.get ? c.get(r) : r[c.key]);
@@ -705,7 +754,6 @@ function figure(c, r, n, req) {
     case 'worstIncome': return `${money(v)}<span class="gap">${worstGap(r, req, { amounts: false })}</span>`;
     case 'ranOutOrNearly': return statusMark(v, 'ranout', req.maxFailures);
     case 'cutCount': return statusMark(v, 'cut', req.maxFailures);
-    case 'worstSet': return Number.isFinite(v) ? statusMark(v, 'worst', 0) : 'n/a';
     case 'medianEnd': return bigMoney(v);
     default: return pct(v);
   }
@@ -722,7 +770,7 @@ function headRow(n, years, first = 'Option') {
 }
 
 function optionRows(r, badges, req, n, best, flag) {
-  const idx = state.openable.push({ result: r, labels: badges.map((b) => b.text) }) - 1;
+  const idx = state.openable.push({ result: r.base || r, labels: badges.map((b) => b.text) }) - 1;
   const rec = recipe(r.plan, req);
   const diff = !r.plan.fromCurrent && state.mix
     ? `<p class="diff">Different mix from yours: ${escapeHtml(holdingsText(r.plan))} (yours: ${mixLabelText(state.mix)})</p>` : '';
@@ -755,8 +803,11 @@ function optionsTable(items, n, req, mine = false) {
 
 function renderResults() {
   const r = state.result;
-  const req = state.request;
-  const n = r.windows.length;
+  const all = r.windows.length;
+  const which = state.periods;
+  const n = periodYears(which)?.length ?? all;
+  // Figures, status words and limits below are for the chosen starts; the options are not.
+  const req = requestFor(state.request, n, all);
   state.openable = [];
   const k = r.rows.length;
   const mixName = state.mix ? mixLabelText(state.mix) : '';
@@ -768,37 +819,43 @@ function renderResults() {
   let html = `<button type="button" class="link back" data-nav="plan">‹ Change your inputs</button>
     <header class="results-head">
       <h1>${heading}</h1>
-      <p class="hint">You asked for ${gbp(req.wanted)} a year, never below ${gbp(req.minimum)}${req.incomeChange ? `, then ${gbp(req.incomeChange.wanted)}, never below ${gbp(req.incomeChange.minimum)}, ${req.age ? `from age ${req.age + req.incomeChange.fromYear - 1}` : `from year ${req.incomeChange.fromYear}`}` : ''}, with ${req.maxFailures === 0 ? 'none' : `up to ${req.maxFailures}`} of ${n} past retirements (starting ${r.windows[0].startYear} to ${r.windows.at(-1).startYear}) allowed to run out. ${r.plansTried.toLocaleString('en-GB')} plans were tested${r.keepMix ? `, all with your ${mixName} mix` : ''}.</p>
-      ${state.worstYears.length ? `<p class="hint">The worst ${state.worstYears.length} starts for your ${mixName} mix, judged by its return after inflation over the first ${state.config.risk.rankYears} years: ${[...state.worstYears].sort((x, y) => x - y).join(', ')}.</p>` : ''}
+      <p class="hint">You asked for ${gbp(req.wanted)} a year, never below ${gbp(req.minimum)}${req.incomeChange ? `, then ${gbp(req.incomeChange.wanted)}, never below ${gbp(req.incomeChange.minimum)}, ${req.age ? `from age ${req.age + req.incomeChange.fromYear - 1}` : `from year ${req.incomeChange.fromYear}`}` : ''}, with ${state.request.maxFailures === 0 ? 'none' : `up to ${state.request.maxFailures}`} of ${all} past retirements (starting ${r.windows[0].startYear} to ${r.windows.at(-1).startYear}) allowed to run out. ${r.plansTried.toLocaleString('en-GB')} plans were tested${r.keepMix ? `, all with your ${mixName} mix` : ''}.</p>
     </header>`;
+
+  const rankYears = state.config.risk.rankYears;
+  const chosen = periodYears(which);
+  const periodHint = chosen
+    ? `Figures below cover only the ${n} ${which} starts for your ${mixName} mix, judged by its return after inflation over the first ${rankYears} years: ${[...chosen].sort((x, y) => x - y).join(', ')}. The options and the recommendation stay the same; they were chosen across all ${all}.`
+    : `Figures below cover all ${all} past retirements. Choose the worst or best starts for your mix to see how each option did in them.`;
+  html += `<div class="periods-bar">
+      <div class="segmented periods" role="radiogroup" aria-label="Which past retirements the figures cover">${periodChoices(which, all)}</div>
+      <p class="hint">${escapeHtml(periodHint)}</p>
+    </div>`;
 
   // The recommendation in one box, before the tables.
   const recRow = r.rows.find((x) => x.labels.includes('Recommended'));
   if (recRow) {
-    const p = recRow.result;
+    const p = inView(recRow.result);
     const info = STRATEGY_INFO[p.plan.strategy] || { name: planName(p.plan), aka: '', about: '' };
     const recipeLines = recipe(p.plan, req);
-    const idx = state.openable.push({ result: p, labels: recRow.labels }) - 1;
-    const ws = worstShortfalls(p);
+    const idx = state.openable.push({ result: recRow.result, labels: recRow.labels }) - 1;
     const ro = countStatus(p.ranOutOrNearly, 'ranout', req.maxFailures);
-    const wsS = countStatus(ws, 'worst', 0);
     const diff = !p.plan.fromCurrent && state.mix
       ? `<p class="diff">Different mix from yours: ${escapeHtml(holdingsText(p.plan))} (yours: ${mixName}).</p>` : '';
     html += `<section class="rec-box" aria-labelledby="rec-title">
         <div class="rec-label">Recommended${r.keepMix ? ` for your ${mixName} mix` : ''}</div>
         <h2 id="rec-title">${escapeHtml(info.name)}${info.aka ? ` <span class="aka">(${escapeHtml(info.aka)})</span>` : ''}</h2>
         <p class="rec-about">${escapeHtml(info.about)}</p>
-        <div class="recipe-grid aligned${Number.isFinite(ws) ? '' : ' four'}" style="--cols:${Number.isFinite(ws) ? 5 : 4}">
+        <div class="recipe-grid aligned four" style="--cols:4">
           <p><strong>Income</strong>${escapeHtml(recipeLines.income)}</p>
           <p><strong>Cash</strong>${escapeHtml(recipeLines.cash)}</p>
           <p><strong>The rest</strong>${escapeHtml(recipeLines.rest)}</p>
         </div>
         ${diff}
-        <div class="rec-figs" style="--cols:${Number.isFinite(ws) ? 5 : 4}">
+        <div class="rec-figs" style="--cols:4">
           <div><span class="k">Typical spending</span><span class="v">${typicalValue(p, req)}</span><span class="s">a year, ${typicalGap(p, req, { amounts: false })}</span></div>
           <div><span class="k">Lowest year</span><span class="v">${money(p.worstIncome)}</span><span class="s">${worstGap(p, req, { amounts: false })}</span></div>
           <div><span class="k">Ran out or nearly</span><span class="v">${p.ranOutOrNearly} of ${n}</span><span class="s st ${ro.cls}">${ICON[ro.cls]}${ro.word}</span></div>
-          ${Number.isFinite(ws) ? `<div><span class="k">Worst ${state.worstYears.length} starts</span><span class="v">${ws} of ${state.worstYears.length}</span><span class="s st ${wsS.cls}">${ICON[wsS.cls]}${ws ? 'fell short' : 'held up in all'}</span></div>` : ''}
           <div><span class="k">Typically left</span><span class="v">${bigMoney(p.medianEnd)}</span><span class="s">after ${req.years} years</span></div>
         </div>
         <button type="button" class="link" data-open="${idx}">See this option in detail ›</button>
@@ -811,7 +868,7 @@ function renderResults() {
     html += `<h2 class="section-title">Your ${mixName} mix as it is now</h2>
       <p class="hint">Your current split, drawn whichever of the four ways suited it best, with your cash handled two ways.</p>
       ${optionsTable(r.currentRows.map((c) => ({
-        result: c.result,
+        result: inView(c.result),
         badges: [{ text: 'Your mix as it is now', cls: 'strong' }, { text: RULE_TEXT[c.cashRule] || c.cashRule, cls: 'plain' }],
         flag: c.meetsNeeds ? '' : 'With this cash rule and any of the four approaches, your current mix did not meet these needs; this is its nearest miss.',
       })), n, req, true)}`;
@@ -825,14 +882,14 @@ function renderResults() {
   }
   if (k) {
     html += optionsTable(r.rows.map((row, i) => ({
-      result: row.result,
+      result: inView(row.result),
       badges: row.labels.map((t) => ({ text: t, cls: t === 'Recommended' ? 'strong' : '' })),
       flag: i === 0 && row.result.status === 'meets-minimum' ? `No plan paid ${req.incomeChange ? 'what you want' : `the full ${money(req.wanted)}`} in every past retirement; these options stay above your minimum.` : '',
     })), n, req);
   } else {
     html += `<section class="closest"><h2>Closest options</h2>
       <p class="hint">Try a lower income, a lower minimum, or allowing more past retirements to run out. The nearest misses were:</p><ul>`
-      + r.closest.map((c) => `<li><strong>${escapeHtml(planName(c.plan))}</strong>: ran out or fell below your minimum in ${c.failingMinimum} of ${n}; typical spending ${typicalText(c)}. <button type="button" class="link" data-open="${state.openable.push({ result: c, labels: ['Closest'] }) - 1}">See detail</button></li>`).join('')
+      + r.closest.map((c) => `<li><strong>${escapeHtml(planName(c.plan))}</strong>: ran out or fell below your minimum in ${inView(c).failingMinimum} of ${n}; typical spending ${typicalText(inView(c))}. <button type="button" class="link" data-open="${state.openable.push({ result: c, labels: ['Closest'] }) - 1}">See detail</button></li>`).join('')
       + '</ul></section>';
   }
 
@@ -842,17 +899,25 @@ function renderResults() {
       + r.others.map((o) => {
         const idx = state.openable.push({ result: o.result, labels: ['Comparison'] }) - 1;
         return `<div class="mini"><h3>${escapeHtml(planName(o.result.plan))}</h3>
-          <div class="hint">Typical ${typicalText(o.result)} · lowest year ${money(o.result.worstIncome)} · ran out ${o.result.failures} of ${n}</div>
+          <div class="hint">Typical ${typicalText(inView(o.result))} · lowest year ${money(inView(o.result).worstIncome)} · ran out ${inView(o.result).failures} of ${n}</div>
           <div class="why">Not shown because it ${escapeHtml(o.reason)}.</div>
           <div><button type="button" class="link" data-open="${idx}">See detail ›</button></div></div>`;
       }).join('') + '</div></section>';
   }
 
-  html += `<p class="hint">All money in today's pounds, before tax; spending rounded to the nearest \u00a3100. Typical spending: what you would have to live on each year (from the pot plus other income) in a typical past retirement; if what you want changes at an age, shown for each stage against what you want then. Lowest year: the lowest year in any past retirement that did not run out, against the minimum for that year. Ran out or nearly: ran out, or less than one year's withdrawal left at the end. Income cut: past retirements with any year below what you want to spend. Worst ${state.worstYears.length} starts: of the past retirements whose first ${state.config.risk.rankYears} years were worst for your mix after inflation, how many ran out or fell below your minimum. Biggest fall: the largest drop in your investments from a high point, from year-end values. Bold marks the best figure in each column.</p>`;
+  html += `<p class="hint">All money in today's pounds, before tax; spending rounded to the nearest \u00a3100. Typical spending: what you would have to live on each year (from the pot plus other income) in a typical past retirement; if what you want changes at an age, shown for each stage against what you want then. Lowest year: the lowest year in any past retirement that did not run out, against the minimum for that year. Ran out or nearly: ran out, or less than one year's withdrawal left at the end. Income cut: past retirements with any year below what you want to spend. Biggest fall: the largest drop in your investments from a high point, from year-end values. Bold marks the best figure in each column. Every figure covers the starts chosen at the top.</p>`;
 
   const view = $('view-results');
   view.innerHTML = html;
   view.onclick = (e) => {
+    const pick = e.target.closest('[data-periods]');
+    if (pick) {
+      state.periods = pick.dataset.periods;
+      renderResults();
+      const again = view.querySelector(`[data-periods="${pick.dataset.periods}"]`);
+      if (again) again.focus({ preventScroll: true });
+      return;
+    }
     const open = e.target.closest('[data-open]');
     if (open) { openDetail(state.openable[Number(open.dataset.open)]); return; }
     if (e.target.closest('[data-nav="plan"]')) show('plan');
@@ -898,7 +963,7 @@ function openDetail(item) {
     cash: whatIf({ dataset: state.dataset, config: state.config, request: req, plan, dimension: 'cashBuffer', values: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }),
     mix: whatIf({ dataset: state.dataset, config: state.config, request: req, plan, dimension: 'mix', values: [0.6, 0.7, 0.8, 0.9, 1.0] }),
   };
-  state.detail = { item, sims, selected: defaultYear(sims), whatIfs, periods: 'all' };
+  state.detail = { item, sims, selected: defaultYear(sims), whatIfs, periods: state.periods };
   renderDetail();
   show('detail');
 }
@@ -1040,11 +1105,11 @@ function renderDetail() {
         ${selFig('Biggest fall', pct(fall.fall), fallWhen)}
       </div>
     </div>`;
-  const size = state.config.risk.subsetSize;
-  const periodChoices = [['all', `All ${total}`], ['worst', `Worst ${size}`], ['best', `Best ${size}`]]
-    .map(([id, label]) => `<button type="button" role="radio" data-periods="${id}" aria-checked="${periods === id}">${label}</button>`).join('');
+  // The what-if tables follow the same choice of starts.
+  const whatIfRows = (rows) => rows.map((x) => ({ ...x, result: inView(x.result, periods) }));
+  const viewReq = requestFor(req, n, total);
   const periodHint = keep
-    ? `Showing the ${n} ${periods} starts for your ${mixName} mix, judged by its return after inflation over the first ${state.config.risk.rankYears} years. The figures, charts and boxes below cover only these; the what-if tables still use all ${total}.`
+    ? `Showing the ${n} ${periods} starts for your ${mixName} mix, judged by its return after inflation over the first ${state.config.risk.rankYears} years. Everything below covers only these, including the what-if tables.`
     : `Showing all ${total} past retirements, starting ${state.detail.sims[0].startYear} to ${state.detail.sims.at(-1).startYear}. Choose the worst or best starts for your mix to see how this option did in them.`;
   const fact = (k, v, ref, cls = 'neutral') => `<div class="fact ${cls}"><div class="k">${k}</div><div class="v">${v}</div><div class="ref">${cls !== 'neutral' ? ICON[cls] : ''}<span>${ref}</span></div></div>`;
   const facts = [
@@ -1068,7 +1133,7 @@ function renderDetail() {
       </header>
 
       <div class="periods-bar">
-        <div class="segmented periods" role="radiogroup" aria-label="Which past retirements to show">${periodChoices}</div>
+        <div class="segmented periods" role="radiogroup" aria-label="Which past retirements to show">${periodChoices(periods, total)}</div>
         <p class="hint">${escapeHtml(periodHint)}</p>
       </div>
 
@@ -1107,12 +1172,12 @@ function renderDetail() {
 
       <section class="panel">
         <h3>What if the cash buffer were different?</h3>
-        ${whatIfTable(whatIfs.cash, 'Cash buffer', (v) => (v === 0 ? 'None' : `${v} year${v > 1 ? 's' : ''}`), (v) => isBufferYears && v === plan.cashBuffer.years, total, req)}
+        ${whatIfTable(whatIfRows(whatIfs.cash), 'Cash buffer', (v) => (v === 0 ? 'None' : `${v} year${v > 1 ? 's' : ''}`), (v) => isBufferYears && v === plan.cashBuffer.years, n, viewReq)}
       </section>
 
       <section class="panel">
         <h3>What if the shares and bonds mix were different?</h3>
-        ${whatIfTable(whatIfs.mix, 'Shares / bonds', (v) => `${Math.round(v * 100)} / ${100 - Math.round(v * 100)}`, (v) => Math.abs(v - plan.mix.equities) < 1e-9, total, req)}
+        ${whatIfTable(whatIfRows(whatIfs.mix), 'Shares / bonds', (v) => `${Math.round(v * 100)} / ${100 - Math.round(v * 100)}`, (v) => Math.abs(v - plan.mix.equities) < 1e-9, n, viewReq)}
       </section>
     </div>`;
 
@@ -1123,6 +1188,7 @@ function renderDetail() {
     const pick = e.target.closest('[data-periods]');
     if (pick) {
       state.detail.periods = pick.dataset.periods;
+      state.periods = pick.dataset.periods;
       renderDetail();
       const again = view.querySelector(`[data-periods="${pick.dataset.periods}"]`);
       if (again) again.focus();
@@ -1136,7 +1202,7 @@ function renderDetail() {
       if (again) again.focus();
       return;
     }
-    if (e.target.closest('[data-nav="results"]')) show('results');
+    if (e.target.closest('[data-nav="results"]')) { renderResults(); show('results'); }
   };
 }
 
