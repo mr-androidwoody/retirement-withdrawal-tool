@@ -130,8 +130,6 @@ export const ORDER = {
   closest: (a, b) => a.failingMinimum - b.failingMinimum || more(a.typicalIncome, b.typicalIncome) || byIndex(a, b),
 };
 
-// Same strategy and settings, ignoring mix and cash buffer.
-const settingKey = (r) => `${r.plan.strategy}:${JSON.stringify(r.plan.params)}`;
 
 export const ROWS = [
   { id: 'recommended', label: 'Recommended' },
@@ -187,9 +185,10 @@ export function runSearch({ dataset, config, request: input, current = null, kee
     }
   }
 
-  // Best plan of each strategy not already shown.
+  // Best plan of each strategy not already shown. When nothing meets the needs, these are
+  // the nearest misses instead (see `closest` below).
   const shown = new Set(rows.map((x) => x.result.plan.strategy));
-  const others = Object.values(STRATEGIES)
+  let others = Object.values(STRATEGIES)
     .filter((s) => !shown.has(s.id))
     .map((s) => {
       const family = results.filter((r) => r.plan.strategy === s.id);
@@ -208,16 +207,13 @@ export function runSearch({ dataset, config, request: input, current = null, kee
     });
   }
 
-  // Nothing eligible: the closest three, and what would have to change.
-  const closest = [];
+  // Nothing eligible: the nearest miss of each approach, closest first. One per approach, so
+  // the list never repeats a plan (variants of one approach often come out the same when a
+  // floor holds the income), and the "other approaches" list is not needed as well.
+  let closest = [];
   if (!eligible.length) {
-    const seen = new Set();
-    for (const r of [...results].sort(ORDER.closest)) {
-      if (seen.has(settingKey(r))) continue;
-      seen.add(settingKey(r));
-      closest.push(r);
-      if (closest.length === 3) break;
-    }
+    closest = others.map((o) => o.result).sort(ORDER.closest);
+    others = [];
   }
 
   return {
