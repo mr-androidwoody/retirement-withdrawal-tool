@@ -46,6 +46,7 @@ h1 { font: 600 40px/1.15 var(--display); }
 .chip { font: inherit; font-size: 14px; padding: 10px 16px; min-height: 44px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--card); color: var(--ink); cursor: pointer; }
 .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
 .hint { font-size: 14px; color: var(--muted); }
+.hint.fine { font-size: 12px; }
 
 form { display: flex; flex-direction: column; gap: 24px; }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; display: flex; flex-direction: column; gap: 20px; }
