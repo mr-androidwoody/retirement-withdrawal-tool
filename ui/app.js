@@ -15,6 +15,7 @@ const state = {
   dataset: null,
   mixLabel: null,
   riskShare: 0.05,
+  priority: 'spend',
   ranking: null,
   worstYears: [],
   bestYears: [],
@@ -103,7 +104,7 @@ const SAVED_BOXES = ['change-box', 'other-box', 'other2', 'earned-box', 'earned2
 
 function saveInputs() {
   if (!state.ready) return;
-  const data = { version: 1, fields: {}, open: {}, mix: state.mixLabel, riskShare: state.riskShare, keepMix: $('keep-mix').checked };
+  const data = { version: 1, fields: {}, open: {}, mix: state.mixLabel, riskShare: state.riskShare, priority: state.priority, keepMix: $('keep-mix').checked };
   for (const id of SAVED_FIELDS) data.fields[id] = $(id).value;
   for (const id of SAVED_BOXES) data.open[id] = !$(id).hidden;
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch { /* storage unavailable: nothing to do */ }
@@ -140,6 +141,7 @@ function restoreInputs() {
   else if (Number.isInteger(data.maxFailures)) state.riskShare = data.maxFailures === 0 ? 0 : (data.maxFailures === 1 ? 0.05 : 0.1);
   if (!state.config.risk.choices.some((c) => c.share === state.riskShare)) state.riskShare = state.config.defaults.riskShare;
   $('keep-mix').checked = Boolean(data.keepMix);
+  state.priority = data.priority === 'pass-on' ? 'pass-on' : 'spend';
   const labels = [...(state.config.currentMixes || []).map((m) => m.label), 'Custom'];
   selectMix(labels.includes(data.mix) ? data.mix : (state.config.defaultMix || 'Custom'));
   return true;
@@ -166,6 +168,14 @@ function initForm() {
     if (!btn) return;
     state.riskShare = Number(btn.dataset.risk);
     renderRisk();
+    refresh();
+  });
+
+  // What matters more if there is room to spare: spend more, or pass on more.
+  $('priority').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-priority]');
+    if (!btn) return;
+    state.priority = btn.dataset.priority;
     refresh();
   });
 
@@ -500,7 +510,7 @@ function readRequest() {
 
   return {
     mix: mixRead.error ? null : mixRead,
-    request: { pot, years, age: ageOk ? age : null, wanted, minimum, incomeChange, otherIncome, riskShare: state.riskShare, maxFailures: allowedFor(years), annualFee: fee },
+    request: { pot, years, age: ageOk ? age : null, wanted, minimum, incomeChange, otherIncome, riskShare: state.riskShare, maxFailures: allowedFor(years), annualFee: fee, priority: state.priority },
     errors,
   };
 }
@@ -586,6 +596,8 @@ function refresh() {
     }
     text += `${escapeHtml(o.label)} of ${gbp(o.amount)} a year ${when}${future}. `;
   }
+  if (state.priority === 'pass-on') text += 'If there is room to spare, recommend the plan that pays what you want and typically leaves the most behind. ';
+  for (const b of $('priority').querySelectorAll('[data-priority]')) b.setAttribute('aria-checked', String(b.dataset.priority === state.priority));
   $('goal-text').innerHTML = text.trim();
   // Re-reading the form should not leave stale error marks on untouched fields.
   if ($('form-errors').hidden) for (const el of document.querySelectorAll('[aria-invalid="true"]')) el.removeAttribute('aria-invalid');
@@ -862,7 +874,7 @@ function renderResults() {
     const diff = !p.plan.fromCurrent && state.mix
       ? `<p class="diff">Different mix from yours: ${escapeHtml(holdingsText(p.plan))} (yours: ${mixName}).</p>` : '';
     html += `<section class="rec-box" aria-labelledby="rec-title">
-        <div class="rec-label">Recommended${r.keepMix ? ` for your ${mixName} mix` : ''}</div>
+        <div class="rec-label">Recommended${r.keepMix ? ` for your ${mixName} mix` : ''}${state.request.priority === 'pass-on' ? ' to pass on more' : ''}</div>
         <h2 id="rec-title">${escapeHtml(info.name)}${info.aka ? ` <span class="aka">(${escapeHtml(info.aka)})</span>` : ''}</h2>
         <p class="rec-about">${escapeHtml(info.about)}</p>
         <div class="recipe-grid aligned four" style="--cols:4">
