@@ -906,8 +906,8 @@ function renderResults() {
       flag: i === 0 && row.result.status === 'meets-minimum' ? `No plan paid ${req.incomeChange ? 'what you want' : `the full ${money(req.wanted)}`} in every past retirement; these options stay above your minimum.` : '',
     })), n, req);
   } else {
-    html += `<section class="closest"><h2>Closest options</h2>
-      <p class="hint">Try a lower income, a lower minimum, or allowing more past retirements to run out. The nearest misses were:</p><ul>`
+    html += `<section class="closest"><h2>Nearest misses</h2>
+      <p class="hint">The best try of each of the four approaches, closest first. Try a lower income, a lower minimum, or allowing more past retirements to run out.</p><ul>`
       + r.closest.map((c) => `<li><strong>${escapeHtml(planName(c.plan))}</strong>: ran out or fell below your minimum in ${inView(c).failingMinimum} of ${n}; typical spending ${typicalText(inView(c))}. <button type="button" class="link" data-open="${state.openable.push({ result: c, labels: ['Closest'] }) - 1}">See detail</button></li>`).join('')
       + '</ul></section>';
   }
