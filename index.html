@@ -47,7 +47,10 @@
         </div>
         <div class="field">
           <label for="years">Plan for how long <span class="opt">(years)</span></label>
-          <input id="years" name="years" inputmode="numeric" autocomplete="off" aria-describedby="years-hint">
+          <div class="with-suffix">
+            <input id="years" name="years" inputmode="numeric" autocomplete="off" aria-describedby="years-age years-hint">
+            <span class="suffix" id="years-age"></span>
+          </div>
         </div>
       </div>
       <div class="field length-picks">

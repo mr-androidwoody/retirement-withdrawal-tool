@@ -67,6 +67,9 @@ input, select, textarea { font: inherit; font-size: 16px; padding: 11px 12px; mi
 textarea { font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace; resize: vertical; background: #fbfbfa; }
 input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 3px solid #7cc4dc; outline-offset: 1px; }
 input[aria-invalid="true"] { border-color: var(--bad); }
+/* Grey text that follows what is typed in a box, e.g. the age a retirement length runs to. */
+.with-suffix { position: relative; }
+.with-suffix .suffix { position: absolute; top: 50%; transform: translateY(-50%); left: 13px; font-size: 16px; color: var(--muted); pointer-events: none; white-space: nowrap; }
 .fee { max-width: 240px; margin-top: 10px; }
 .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
