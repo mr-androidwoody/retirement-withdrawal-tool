@@ -955,7 +955,7 @@ function worstCase(sims) {
   const tied = sims.filter((s) => s.minIncomeReal <= lowest + 1);
   const year = [...tied].sort((a, b) => a.endReal - b.endReal || a.startYear - b.startYear)[0].startYear;
   let reason = 'Lowest income in any year';
-  if (tied.length === sims.length && sims.length > 1) reason = 'Every start had the same lowest year, and this one left the least at the end';
+  if (tied.length === sims.length && sims.length > 1) reason = `Every start had the same lowest year (${money(lowest)}), so this is the one that left the least at the end`;
   else if (tied.length > 1) reason = 'Joint lowest income in any year, and left the least at the end';
   return { year, reason };
 }
@@ -968,7 +968,7 @@ function bestCase(sims) {
   const tied = sims.filter((s) => s.minIncomeReal >= highest - 1);
   const year = [...tied].sort((a, b) => b.endReal - a.endReal || a.startYear - b.startYear)[0].startYear;
   let reason = 'Its lowest year was the highest of any start';
-  if (tied.length === sims.length && sims.length > 1) reason = 'Every start had the same lowest year, and this one left the most at the end';
+  if (tied.length === sims.length && sims.length > 1) reason = `Every start had the same lowest year (${money(highest)}), so this is the one that left the most at the end`;
   else if (tied.length > 1) reason = 'Joint highest lowest year, and left the most at the end';
   return { year, reason };
 }
@@ -1092,8 +1092,13 @@ function renderDetail() {
   const [selCls, selWord] = sel.depleted ? ['bad', `Ran out ${atAge(sel.depletionYear - 1)}`]
     : sel.nearlyDepleted ? ['bad', 'Nearly ran out']
       : selCuts ? ['warn', 'Lasted, with cuts'] : ['good', 'Lasted'];
-  const lowT = sel.rows.reduce((m, x, t) => (x.totalIncomeReal < sel.rows[m].totalIncomeReal ? t : m), 0);
-  const lowGap = sel.rows[lowT].totalIncomeReal - profile.minimum[lowT];
+  // The lowest year by the engine's rule (years within \u00a31 tie; then nearest its minimum,
+  // then earliest), so it matches the "Lowest year" figure above.
+  const lowT = sel.lowestAt;
+  const lowMin = sel.lowestMinimum ?? profile.minimum[lowT];
+  const lowGap = sel.rows[lowT].totalIncomeReal - lowMin;
+  // Typical spending for this start, one figure per stage when what you want steps down.
+  const selTypical = { typicalIncome: sel.medianIncomeReal, typicalByStage: (sel.stages || []).map((st) => ({ ...st, typical: st.median })) };
   const potT = sel.rows.reduce((m, x, t) => (x.endTotalReal < sel.rows[m].endTotalReal ? t : m), 0);
   const fall = worstFall(investmentIndex(sel.rows));
   const fallWhen = fall.fall > 0
@@ -1116,8 +1121,8 @@ function renderDetail() {
         ${selRank && mixName ? `<p>Rank ${selRank.rank} of ${total} for your ${escapeHtml(mixName)} mix: ${signedPct(selRank.realReturn, 1)} a year after inflation over its first ${state.config.risk.rankYears} years. Rank 1 is the worst start.</p>` : ''}
       </div>
       <div class="sel-figs">
-        ${selFig('Typical spending', money(sel.medianIncomeReal), spendSub)}
-        ${selFig('Lowest year', money(sel.rows[lowT].totalIncomeReal), `${signedMoney(lowGap)} vs minimum, ${atAge(lowT)}`, lowGap < -100 ? 'bad' : 'good')}
+        ${selFig('Typical spending', typicalValue(selTypical, req), stagesOf(selTypical) ? typicalGap(selTypical, req, { amounts: false }) : spendSub)}
+        ${selFig('Lowest year', money(sel.rows[lowT].totalIncomeReal), `${signedMoney(lowGap)} vs ${money(lowMin)} minimum, ${atAge(lowT)}`, lowGap < -100 ? 'bad' : 'good')}
         ${selFig('Years cut', String(selCuts), selCuts ? 'below what you want' : 'never below what you want', selCuts ? 'warn' : '')}
         ${selFig('Lowest pot', bigMoney(sel.rows[potT].endTotalReal), atAge(potT))}
         ${selFig(`Left ${req.age ? `at ${ageAt(sel.rows.length - 1)}` : 'at the end'}`, bigMoney(sel.endReal), "today's money")}
