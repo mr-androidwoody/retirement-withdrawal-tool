@@ -55,6 +55,22 @@ function windowsFor(years) {
   return makeWindows(state.dataset, years, state.config.firstStartYear);
 }
 
+/**
+ * Show the age a retirement length runs to straight after the number in the box, e.g.
+ * "35 (at age 92)". The gap is measured from the box's own font, so it follows the typing.
+ */
+function showLengthAge(lastAge) {
+  const box = $('years');
+  const out = $('years-age');
+  out.textContent = lastAge ? `(at age ${lastAge})` : '';
+  if (!lastAge) return;
+  const css = getComputedStyle(box);
+  showLengthAge.ctx ??= document.createElement('canvas').getContext('2d');
+  showLengthAge.ctx.font = `${css.fontWeight} ${css.fontSize} ${css.fontFamily}`;
+  const width = showLengthAge.ctx.measureText(box.value).width;
+  out.style.left = `${parseFloat(css.paddingLeft) + parseFloat(css.borderLeftWidth) + width + 6}px`;
+}
+
 /** The length typed in, as a number (NaN if not a number), and whether it is in range. */
 function typedYears() {
   const text = $('years').value.trim();
@@ -234,6 +250,8 @@ function initForm() {
   state.ready = true;
   renderRisk();
   refresh();
+  // The age after the length is placed by measuring text, so measure again once fonts load.
+  document.fonts?.ready.then(() => refresh());
 }
 
 /** Fill a pension row with today's full State Pension and age, if the user has not typed one. */
@@ -532,8 +550,9 @@ function refresh() {
   const age = currentAge();
   for (const b of $('year-picks').querySelectorAll('[data-years]')) b.setAttribute('aria-pressed', String(typed.ok && Number(b.dataset.years) === typed.years));
   const { min, max } = state.config.retirementLength;
+  showLengthAge(typed.ok && age ? age + years - 1 : null);
   $('years-hint').textContent = typed.ok
-    ? `${age ? `To age ${age + years - 1}. ` : ''}${n} past retirements tested, starting ${first} to ${last}. Any length from ${min} to ${max} years; the longer the plan, the fewer past retirements there are to test.`
+    ? `${n} past retirements tested, starting ${first} to ${last}. Any length from ${min} to ${max} years; the longer the plan, the fewer past retirements there are to test.`
     : `Enter a whole number of years from ${min} to ${max}.`;
   $('settings-summary').textContent = `Global shares (£) and UK gilts · starts ${first} to ${last} · all four approaches · ${mixes} · ${buffers}${$('keep-mix').checked ? ' (keeping your mix)' : ' · plus your current mix'} · charges ${Number.isFinite(fee) ? fee : '?'}% a year`;
 
