@@ -37,3 +37,15 @@ export function makeWindows(ds, length, firstStartYear) {
   }
   return windows;
 }
+
+/**
+ * Check a retirement length against the allowed range ({ min, max } from config.json).
+ * Returns null when it is fine, or a plain message saying what to enter.
+ */
+export function lengthError(years, range) {
+  const { min, max } = range;
+  if (!Number.isInteger(years) || years < min || years > max) {
+    return `Plan for a whole number of years from ${min} to ${max}.`;
+  }
+  return null;
+}
