@@ -79,6 +79,8 @@ and in Node:
 - `metrics.js` measures each run (lowest income, years below wanted, end value, biggest fall)
 - `search.js` builds the grid of plans (a few hundred; the page shows the exact number), runs each against every past retirement,
   and picks the four rows: Recommended, Safest income, Highest typical income, Most left behind.
+  What Recommended means follows "If there is room to spare" on the form: Spend more (highest
+  typical spending) or Pass on more (pays what you want and typically leaves the most).
   It also tests your current mix (pot split into shares / bonds / cash, from a predefined list in
   `config.json` under `currentMixes`, or a custom split) two ways: cash spent first, and cash
   kept as a flexible reserve (1 to 3 years of withdrawals, aiming for 2, with the rest invested

@@ -33,7 +33,14 @@ the grid mixes and cash buffers, plus the user's own mix two ways (cash spent fi
 a flexible reserve). A few hundred plans; the page shows the exact count (484 for the defaults).
 "Keep my mix" limits the search to the user's mix.
 
-Recommended = meets needs, never below wanted where possible, then highest typical spending.
+Recommended depends on "If there is room to spare" in step 2 (`priority` in the request,
+`recommendFrom` in `engine/search.js`):
+- Spend more (default, `spend`): meets needs, never below wanted where possible, then highest
+  typical spending.
+- Pass on more (`pass-on`): meets needs and pays what you asked for (never cut below wanted, else
+  typical spending reaches wanted), then most typically left behind. Same rule as the "Most left
+  behind" row, so that row merges with Recommended.
+Your-mix rows and the comparison cards follow the same choice.
 
 ### Risk and periods
 
@@ -89,7 +96,7 @@ Tax, and a yearly results view. Keep it a simple guidance tool, not overcomplica
 
 ## Working on it
 
-- Tests: `node --test` (Node 18+), 99 passing. They also run on GitHub Actions on every push
+- Tests: `node --test` (Node 18+), 101 passing. They also run on GitHub Actions on every push
   (`.github/workflows/test.yml`). Add tests for engine changes.
 - If results change on purpose: review `tools/results-report.md` (`node tools/print-results.mjs`),
   then `node tools/print-results.mjs --update-golden`.
