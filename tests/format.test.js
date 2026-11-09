@@ -54,3 +54,17 @@ test('report figures are rounded and use a true minus sign', () => {
   assert.equal(signedPct(-0.0001), '0.0%');
   assert.equal(signedPct(0.154), '15.4%');
 });
+
+test('constant real: earnings pay part of the income rather than adding to it', () => {
+  const plan = { strategy: 'constant-real', params: { rate: 0.05 }, mix: { equities: 1 }, cashBuffer: { years: 0 } };
+  const pot = 1843051;
+  const earnings = { label: 'Earnings', amount: 15000, fromYear: 1, toYear: 5, kind: 'earned' };
+  const pension = { label: 'Pension', amount: 10000, fromYear: 1 };
+  const withEarnings = recipe(plan, { ...req, pot, otherIncome: [earnings] }).income;
+  assert.match(withEarnings, /^\u00a392,153 a year \(5% of the pot\)/);
+  assert.match(withEarnings, /Your earnings pay part of this while they last/);
+  // A pension in force from the start does add to the total.
+  const both = recipe(plan, { ...req, pot, otherIncome: [earnings, pension] }).income;
+  assert.match(both, /^\u00a3102,153 a year including your other income/);
+  assert.doesNotMatch(recipe(plan, { ...req, pot }).income, /earnings/);
+});
