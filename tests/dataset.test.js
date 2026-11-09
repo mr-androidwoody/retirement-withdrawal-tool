@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { validateDataset, makeWindows } from '../engine/dataset.js';
+import { validateDataset, makeWindows, lengthError } from '../engine/dataset.js';
 
 const ds = JSON.parse(readFileSync(new URL('../data/jst-r6-global-gbp.json', import.meta.url)));
 const config = JSON.parse(readFileSync(new URL('../data/config.json', import.meta.url)));
@@ -46,4 +46,29 @@ test('UK figures in the dataset match the spreadsheet spot checks', () => {
   assert.equal(y[1974].ukEquities, -0.501952);
   assert.equal(y[1982].bonds, 0.535222);
   assert.equal(y[1980].cash, 0.1512);
+});
+
+test('the length range runs 20 to 45 years, and every preset is inside it', () => {
+  const r = config.retirementLength;
+  assert.equal(r.min, 20);
+  assert.equal(r.max, 45);
+  for (const y of r.presets) assert.equal(lengthError(y, r), null);
+  for (const p of config.presets) assert.equal(lengthError(p.values.years, r), null);
+  assert.equal(lengthError(config.defaults.years, r), null);
+});
+
+test('the shortest and longest lengths give 52 and 27 past retirements', () => {
+  const short = makeWindows(ds, 20, config.firstStartYear);
+  const long = makeWindows(ds, 45, config.firstStartYear);
+  assert.equal(short.length, 52);
+  assert.equal(short.at(-1).startYear, 2001);
+  assert.equal(long.length, 27);
+  assert.equal(long.at(-1).startYear, 1976);
+});
+
+test('a length outside the range, or not a whole number, is refused with a plain message', () => {
+  const r = config.retirementLength;
+  for (const bad of [19, 46, 0, 30.5, NaN]) assert.match(lengthError(bad, r), /from 20 to 45/);
+  assert.equal(lengthError(20, r), null);
+  assert.equal(lengthError(45, r), null);
 });
