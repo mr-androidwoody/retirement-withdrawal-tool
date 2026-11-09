@@ -58,12 +58,18 @@ The spreadsheet itself is not kept in the repo.
 `engine/` is pure JavaScript with no DOM or network access, so the same code runs in the browser
 and in Node:
 
-- `dataset.js` validates the data and slices it into rolling retirements (every start from
+- `dataset.js` validates the data, slices it into rolling retirements (every start from
   `firstStartYear` in `config.json`, 1950: 42 retirements for 30 years, 37 for 35, 47 for 25)
+  and checks the retirement length against `retirementLength` in `config.json` (any whole
+  number of years from 20 to 45, with quick picks for 25, 30, 35 and 40; 52 retirements at
+  20 years, 27 at 45)
 - `periods.js` turns the risk choice ("about 1 in 20" may run out) into a count for the number of
   retirements tested, ranks every start by the real return of your current mix over its first
   10 years (rank 1 is the worst; the same ranking applies to every option), and gives a plan's
-  figures for the worst or best 10 starts. Settings under `risk` in `config.json`.
+  figures for the worst or best 10 starts. The results page and the option detail share an
+  All / Worst 10 / Best 10 choice: the options and the recommendation are always chosen across
+  all starts, and the choice only changes which starts the figures cover. Settings under
+  `risk` in `config.json`.
 - `profile.js` turns the request into year-by-year wanted, minimum and other income
   (pensions that start at an age, and earnings that stop at an age; earnings replace
   withdrawals while they last rather than adding to spending)
@@ -71,7 +77,7 @@ and in Node:
   Guyton-Klinger guardrails, floor and ceiling
 - `simulate.js` runs one plan through one past retirement, a year at a time
 - `metrics.js` measures each run (lowest income, years below wanted, end value, biggest fall)
-- `search.js` builds the grid of about 440 plans, runs each against every past retirement,
+- `search.js` builds the grid of plans (a few hundred; the page shows the exact number), runs each against every past retirement,
   and picks the four rows: Recommended, Safest income, Highest typical income, Most left behind.
   It also tests your current mix (pot split into shares / bonds / cash, from a predefined list in
   `config.json` under `currentMixes`, or a custom split) two ways: cash spent first, and cash

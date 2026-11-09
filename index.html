@@ -46,9 +46,13 @@
           <input id="partner-age" name="partner-age" inputmode="numeric" autocomplete="off">
         </div>
         <div class="field">
-          <label for="years">Plan for how long</label>
-          <select id="years" name="years"></select>
+          <label for="years">Plan for how long <span class="opt">(years)</span></label>
+          <input id="years" name="years" inputmode="numeric" autocomplete="off" aria-describedby="years-hint">
         </div>
+      </div>
+      <div class="field length-picks">
+        <div class="chips" id="year-picks" aria-label="Common lengths"></div>
+        <p class="hint" id="years-hint"></p>
       </div>
 
       <div class="field">
