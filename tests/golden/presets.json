@@ -689,10 +689,32 @@
   "windows": 42,
   "eligible": 0,
   "rows": [],
-  "others": [
+  "others": [],
+  "closest": [
    {
-    "strategy": "constant-real",
-    "reason": "ran out in 21 of 42 past retirements",
+    "plan": {
+     "strategy": "floor-ceiling",
+     "params": {
+      "rate": 0.04,
+      "floorPct": 0.9,
+      "ceilingPct": 1.5
+     },
+     "mix": {
+      "equities": 1
+     },
+     "cashBuffer": {
+      "years": 0
+     }
+    },
+    "status": "does-not-meet",
+    "typicalIncome": 32000,
+    "worstIncome": 32000,
+    "ranOutOrNearly": 17,
+    "cutCount": 42,
+    "medianEnd": 278775,
+    "worstDrawdown": 0.367
+   },
+   {
     "plan": {
      "strategy": "constant-real",
      "params": {
@@ -715,32 +737,6 @@
     "worstDrawdown": 0.278
    },
    {
-    "strategy": "fixed-percentage",
-    "reason": "fell below your minimum in 37 of 42",
-    "plan": {
-     "strategy": "fixed-percentage",
-     "params": {
-      "rate": 0.07,
-      "pinned": true
-     },
-     "mix": {
-      "equities": 0.9
-     },
-     "cashBuffer": {
-      "years": 0
-     }
-    },
-    "status": "does-not-meet",
-    "typicalIncome": 29755,
-    "worstIncome": 10001,
-    "ranOutOrNearly": 0,
-    "cutCount": 40,
-    "medianEnd": 367605,
-    "worstDrawdown": 0.323
-   },
-   {
-    "strategy": "guyton-klinger",
-    "reason": "fell below your minimum in 33 of 42",
     "plan": {
      "strategy": "guyton-klinger",
      "params": {
@@ -768,100 +764,26 @@
     "worstDrawdown": 0.323
    },
    {
-    "strategy": "floor-ceiling",
-    "reason": "ran out in 17 of 42 past retirements",
     "plan": {
-     "strategy": "floor-ceiling",
+     "strategy": "fixed-percentage",
      "params": {
-      "rate": 0.04,
-      "floorPct": 0.9,
-      "ceilingPct": 1.5
+      "rate": 0.07,
+      "pinned": true
      },
      "mix": {
-      "equities": 1
+      "equities": 0.9
      },
      "cashBuffer": {
       "years": 0
      }
     },
     "status": "does-not-meet",
-    "typicalIncome": 32000,
-    "worstIncome": 32000,
-    "ranOutOrNearly": 17,
-    "cutCount": 42,
-    "medianEnd": 278775,
-    "worstDrawdown": 0.367
-   }
-  ],
-  "closest": [
-   {
-    "plan": {
-     "strategy": "floor-ceiling",
-     "params": {
-      "rate": 0.04,
-      "floorPct": 0.9,
-      "ceilingPct": 1.5
-     },
-     "mix": {
-      "equities": 1
-     },
-     "cashBuffer": {
-      "years": 0
-     }
-    },
-    "status": "does-not-meet",
-    "typicalIncome": 32000,
-    "worstIncome": 32000,
-    "ranOutOrNearly": 17,
-    "cutCount": 42,
-    "medianEnd": 278775,
-    "worstDrawdown": 0.367
-   },
-   {
-    "plan": {
-     "strategy": "floor-ceiling",
-     "params": {
-      "rate": 0.045,
-      "floorPct": 0.9,
-      "ceilingPct": 1.5
-     },
-     "mix": {
-      "equities": 1
-     },
-     "cashBuffer": {
-      "years": 0
-     }
-    },
-    "status": "does-not-meet",
-    "typicalIncome": 32000,
-    "worstIncome": 32000,
-    "ranOutOrNearly": 17,
-    "cutCount": 42,
-    "medianEnd": 278775,
-    "worstDrawdown": 0.367
-   },
-   {
-    "plan": {
-     "strategy": "floor-ceiling",
-     "params": {
-      "rate": 0.05,
-      "floorPct": 0.9,
-      "ceilingPct": 1.5
-     },
-     "mix": {
-      "equities": 1
-     },
-     "cashBuffer": {
-      "years": 0
-     }
-    },
-    "status": "does-not-meet",
-    "typicalIncome": 32000,
-    "worstIncome": 32000,
-    "ranOutOrNearly": 17,
-    "cutCount": 42,
-    "medianEnd": 272434,
-    "worstDrawdown": 0.367
+    "typicalIncome": 29755,
+    "worstIncome": 10001,
+    "ranOutOrNearly": 0,
+    "cutCount": 40,
+    "medianEnd": 367605,
+    "worstDrawdown": 0.323
    }
   ]
  },
