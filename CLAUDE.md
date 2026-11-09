@@ -52,7 +52,9 @@ Recommended = meets needs, never below wanted where possible, then highest typic
 
 Heading and request summary, the All / Worst 10 / Best 10 choice, a recommendation box (strategy
 name, what it does, the Income / Cash / The rest recipe, key figures), then "Your mix as it is
-now", then the other options, closest misses and how the other approaches compare.
+now", then the other options and how the other approaches compare. When no plan meets the
+needs, a single "Nearest misses" list replaces both: the best try of each approach, closest
+first.
 
 ### Saved inputs
 
@@ -102,3 +104,5 @@ Tax, and a yearly results view. Keep it a simple guidance tool, not overcomplica
 - Extending the data to 2021 to 2025 using MSCI World (GBP). Woody would need to supply the data;
   splicing it onto the GDP-weighted JST series needs care. Mostly helps shorter plans.
 - A "to age X" entry for the retirement length.
+- On the "nothing meets your needs" page, say what would work (e.g. the highest income any plan
+  meets). Needs extra searches.
