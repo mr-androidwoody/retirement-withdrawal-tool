@@ -96,3 +96,12 @@ test('tied lowest years go to the one closest to its minimum', () => {
   assert.equal(path.lowestAt, 1);
   assert.equal(path.lowestMinimum, 70);
 });
+
+test('a lowest year tied to the penny goes to the first such year', () => {
+  // Every year from the step-down pays the same, give or take pennies of rounding.
+  const row = (income) => ({ totalIncomeReal: income, wantedReal: 45, minimumReal: 40, endTotalReal: 1, portfolioReturn: 0 });
+  const path = summarisePath([row(69100), row(69100.004), row(69099.996), row(69100.001)], { startPot: 1, depletionYear: null, firstWithdrawalReal: 0 });
+  assert.equal(path.lowestAt, 0);
+  const later = { ...path, lowestAt: 2, minIncomeReal: path.minIncomeReal - 0.01 };
+  assert.equal(summarisePlan([later, path], { pot: 1 }).worstIncomeAt, 0);
+});

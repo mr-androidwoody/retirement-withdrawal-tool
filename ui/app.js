@@ -628,7 +628,7 @@ function stageLabel(st, i, n, req) {
 function typicalValue(r, req) {
   const st = stagesOf(r);
   if (!st) return money(r.typicalIncome);
-  return st.map((x, i) => `<span class="stage">${money(x.typical)} <small>${stageLabel(x, i, st.length, req)}</small></span>`).join('');
+  return `<span class="stages">${st.map((x, i) => `<span>${money(x.typical)}</span><small>${stageLabel(x, i, st.length, req)}</small>`).join('')}</span>`;
 }
 
 /** Typical spending against what you want, each stage against its own amount. */
@@ -636,7 +636,7 @@ function typicalGap(r, req, { amounts = true } = {}) {
   const st = stagesOf(r);
   if (!st) return `${signedMoney(r.typicalIncome - req.wanted)} vs ${amounts ? `${money(req.wanted)} ` : ''}wanted`;
   return amounts
-    ? `${st.map((x) => `<span class="nw">${signedMoney(x.typical - x.wanted)}</span> vs ${money(x.wanted)}`).join(', then ')} wanted`
+    ? st.map((x, i) => `<span class="stage-gap"><span class="nw">${signedMoney(x.typical - x.wanted)}</span> <span class="nw">vs ${money(x.wanted)}</span>${i === st.length - 1 ? ' wanted' : ''}</span>`).join('')
     : `${st.map((x) => `<span class="nw">${signedMoney(x.typical - x.wanted)}</span>`).join(', then ')} vs wanted`;
 }
 
@@ -658,7 +658,7 @@ const worstMinimum = (r, req) => r.worstIncomeMinimum ?? req.minimum;
 function worstGap(r, req, { amounts = true } = {}) {
   const min = worstMinimum(r, req);
   const when = stagesOf(r) && r.worstIncomeAt !== null
-    ? `, ${req.age ? `at age ${req.age + r.worstIncomeAt}` : `in year ${r.worstIncomeAt + 1}`}` : '';
+    ? `, <span class="nw">${req.age ? `at age ${req.age + r.worstIncomeAt}` : `in year ${r.worstIncomeAt + 1}`}</span>` : '';
   return `${signedMoney(r.worstIncome - min)} vs ${amounts ? `${money(min)} ` : ''}minimum${when}`;
 }
 
@@ -1046,9 +1046,9 @@ function renderDetail() {
   const periodHint = keep
     ? `Showing the ${n} ${periods} starts for your ${mixName} mix, judged by its return after inflation over the first ${state.config.risk.rankYears} years. The figures, charts and boxes below cover only these; the what-if tables still use all ${total}.`
     : `Showing all ${total} past retirements, starting ${state.detail.sims[0].startYear} to ${state.detail.sims.at(-1).startYear}. Choose the worst or best starts for your mix to see how this option did in them.`;
-  const fact = (k, v, ref, cls = 'neutral') => `<div class="fact ${cls}"><div class="k">${k}</div><div class="v">${v}</div><div class="ref">${cls !== 'neutral' ? ICON[cls] : ''}${ref}</div></div>`;
+  const fact = (k, v, ref, cls = 'neutral') => `<div class="fact ${cls}"><div class="k">${k}</div><div class="v">${v}</div><div class="ref">${cls !== 'neutral' ? ICON[cls] : ''}<span>${ref}</span></div></div>`;
   const facts = [
-    fact('Typical spending', typicalValue(r, req), `a year, ${typicalGap(r, req)}`, typicalMeetsWanted(r, req) ? 'good' : 'warn'),
+    fact('Typical spending', typicalValue(r, req), stagesOf(r) ? typicalGap(r, req) : `a year, ${typicalGap(r, req)}`, typicalMeetsWanted(r, req) ? 'good' : 'warn'),
     fact('Lowest year', money(r.worstIncome), worstGap(r, req), r.worstIncome >= worstMinimum(r, req) - 100 ? 'good' : 'bad'),
     fact('Ran out or nearly', `${r.ranOutOrNearly} of ${n}`, `${ro.word}, limit ${limit}`, ro.cls),
     fact('Income cut', `${r.cutCount} of ${n}`, r.cutCount ? 'past retirements with a year below what you want' : 'never below what you want', cut.cls),

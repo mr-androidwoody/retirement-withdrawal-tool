@@ -66,7 +66,7 @@ export function stagesOf(rows) {
 
 /**
  * The lowest year of income, and where: { income, at, minimum }. When several years tie
- * (within £1), the one closest to the minimum for its year.
+ * (within £1), the one closest to the minimum for its year (by more than £1), else the first.
  */
 export function lowestYear(rows) {
   if (!rows.length) return { income: 0, at: 0, minimum: 0 };
@@ -74,7 +74,7 @@ export function lowestYear(rows) {
   let at = -1;
   rows.forEach((r, t) => {
     if (r.totalIncomeReal > lowest + 1) return;
-    if (at < 0 || r.totalIncomeReal - (r.minimumReal ?? 0) < rows[at].totalIncomeReal - (rows[at].minimumReal ?? 0)) at = t;
+    if (at < 0 || r.totalIncomeReal - (r.minimumReal ?? 0) < rows[at].totalIncomeReal - (rows[at].minimumReal ?? 0) - 1) at = t;
   });
   return { income: rows[at].totalIncomeReal, at, minimum: rows[at].minimumReal };
 }
@@ -125,12 +125,14 @@ export function summarisePlan(paths, request) {
   const survivors = paths.filter((p) => !p.depleted);
   const ends = paths.map((p) => p.endReal);
   // The worst year over survivors, and the minimum that applied in that year (ties: the
-  // one closest to its minimum), so a step-down is compared with the right minimum.
+  // one closest to its minimum by more than £1, else the earliest), so a step-down is
+  // compared with the right minimum.
+  const lowest = survivors.length ? Math.min(...survivors.map((p) => p.minIncomeReal)) : 0;
+  const gapOf = (p) => p.minIncomeReal - (p.lowestMinimum ?? 0);
   let worstPath = null;
-  for (const p of survivors) {
-    if (!worstPath || p.minIncomeReal < worstPath.minIncomeReal - 1
-      || (p.minIncomeReal <= worstPath.minIncomeReal + 1
-        && p.minIncomeReal - (p.lowestMinimum ?? 0) < worstPath.minIncomeReal - (worstPath.lowestMinimum ?? 0))) worstPath = p;
+  for (const p of survivors.filter((x) => x.minIncomeReal <= lowest + 1)) {
+    if (!worstPath || gapOf(p) < gapOf(worstPath) - 1
+      || (gapOf(p) <= gapOf(worstPath) + 1 && p.lowestAt < worstPath.lowestAt)) worstPath = p;
   }
   // Typical spending in each stage: the median across past retirements of each one's
   // median in that stage. Every path has the same stages (they come from the request).
