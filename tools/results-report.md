@@ -83,18 +83,12 @@ Other approaches:
 
 Pot £500,000, 30 years, wanted £35,000, minimum £32,000, up to 0 of 42 may run out. 540 plans tried, 0 meet the needs.
 
-No plan meets these needs. Closest:
+No plan meets these needs. Nearest misses, one per approach:
 
 - Floor and ceiling 4%, floor 90%, no cash buffer, 100/0 shares and bonds: falls below the minimum or runs out in 17 of 42; typical income £32,000
-- Floor and ceiling 4.5%, floor 90%, no cash buffer, 100/0 shares and bonds: falls below the minimum or runs out in 17 of 42; typical income £32,000
-- Floor and ceiling 5%, floor 90%, no cash buffer, 100/0 shares and bonds: falls below the minimum or runs out in 17 of 42; typical income £32,000
-
-Other approaches:
-
-- Constant real 7%, 2-year cash buffer, 80/20 shares and bonds: typical £35,000, worst year £35,000; not shown because it ran out in 21 of 42 past retirements
-- Fixed percentage 7%, no cash buffer, 90/10 shares and bonds: typical £29,755, worst year £10,001; not shown because it fell below your minimum in 37 of 42
-- Guyton-Klinger guardrails 7%, no cash buffer, 90/10 shares and bonds: typical £34,457, worst year £9,814; not shown because it fell below your minimum in 33 of 42
-- Floor and ceiling 4%, floor 90%, no cash buffer, 100/0 shares and bonds: typical £32,000, worst year £32,000; not shown because it ran out in 17 of 42 past retirements
+- Constant real 7%, 2-year cash buffer, 80/20 shares and bonds: falls below the minimum or runs out in 21 of 42; typical income £35,000
+- Guyton-Klinger guardrails 7%, no cash buffer, 90/10 shares and bonds: falls below the minimum or runs out in 33 of 42; typical income £34,457
+- Fixed percentage 7%, no cash buffer, 90/10 shares and bonds: falls below the minimum or runs out in 37 of 42; typical income £29,755
 
 ## Income changes later
 

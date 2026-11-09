@@ -80,7 +80,7 @@ function report(runs) {
       }
       lines.push('');
     } else {
-      lines.push('No plan meets these needs. Closest:', '');
+      lines.push('No plan meets these needs. Nearest misses, one per approach:', '');
       for (const r of result.closest) {
         lines.push(`- ${planName(r.plan)}: falls below the minimum or runs out in ${r.failingMinimum} of ${n}; typical income ${gbp(r.typicalIncome)}`);
       }
