@@ -131,8 +131,13 @@ export function recipe(plan, request) {
   let income;
   switch (plan.strategy) {
     case 'constant-real': {
-      const total = p.rate * request.pot + other1;
-      income = `${gbp(total)} a year${other1 ? ' including your other income' : ''} (${rate(p.rate)} of the pot), rising with inflation every year.`;
+      // Same rule as the engine: earnings replace part of the withdrawal while they last, so
+      // only lasting income (pensions and the like) adds to the year-1 total.
+      const earned1 = profile.earned[0] || 0;
+      const lasting1 = other1 - earned1;
+      const total = p.rate * request.pot + lasting1;
+      income = `${gbp(total)} a year${lasting1 ? ' including your other income' : ''} (${rate(p.rate)} of the pot), rising with inflation every year.`;
+      if (earned1) income += ' Your earnings pay part of this while they last, so less is taken from the pot.';
       if (request.incomeChange) {
         const at = request.age ? `age ${request.age + request.incomeChange.fromYear - 1}` : `year ${request.incomeChange.fromYear}`;
         income += ` Changes in step with your income from ${at}.`;
