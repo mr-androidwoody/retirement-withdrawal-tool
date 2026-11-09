@@ -1,0 +1,104 @@
+# Handover for Claude
+
+Read this first, then README.md. The code is the source of truth: if this file and the code
+disagree, trust the code and say so.
+
+## What it is
+
+A simple UK retirement withdrawal guidance tool: "How much can I take from my pot, and will it
+last?" Static site on GitHub Pages (mr-androidwoody/retirement-withdrawal-tool), vanilla JS ES
+modules, no build step, no packages.
+
+- `engine/`: pure JavaScript, no DOM or network, runs in the browser and in Node.
+- `ui/`, `index.html`, `style.css`: the page.
+- `data/config.json`: all settings, search ranges and presets.
+
+### Data
+
+JST Macrohistory R6, built into `data/jst-r6-global-gbp.json` by `tools/build-datasets.py`:
+global equities in GBP (GDP-weighted, 16 countries), UK gilts, UK bills, UK CPI, 1950 to 2020.
+Every start year from 1950 is used.
+
+### Retirement length
+
+Any whole number of years from 20 to 45 (`retirementLength` in config.json), typed in, with
+quick picks for 25, 30, 35 and 40. Past retirements tested: 52 at 20 years, 47 at 25, 42 at 30,
+37 at 35, 32 at 40, 27 at 45. Checked by `lengthError` in `engine/dataset.js`.
+
+### Search
+
+Four strategies: Constant real, Fixed percentage, Guyton-Klinger guardrails, Floor and ceiling.
+Each is tried at several rates plus a "pinned" rate that pays exactly the income wanted, across
+the grid mixes and cash buffers, plus the user's own mix two ways (cash spent first, or kept as
+a flexible reserve). A few hundred plans; the page shows the exact count (484 for the defaults).
+"Keep my mix" limits the search to the user's mix.
+
+Recommended = meets needs, never below wanted where possible, then highest typical spending.
+
+### Risk and periods
+
+- Risk is a share ("None", "About 1 in 20", "About 1 in 10") turned into a count for the number
+  of retirements tested (`engine/periods.js`).
+- Start years are ranked once by the user's mix's real return over the first 10 years
+  (rank 1 = worst).
+- All / Worst 10 / Best 10 choice on both the results page and the option detail. The options
+  and the recommendation are always chosen across all starts; the choice only changes which
+  starts the figures, status words and run-out limit cover (including the what-if tables).
+  The choice carries between the results page and the detail.
+- Option detail: worst-case and best-case tags on the start-year boxes, and a "Retired in X"
+  strip for the selected year.
+
+### Results page
+
+Heading and request summary, the All / Worst 10 / Best 10 choice, a recommendation box (strategy
+name, what it does, the Income / Cash / The rest recipe, key figures), then "Your mix as it is
+now", then the other options, closest misses and how the other approaches compare.
+
+### Saved inputs
+
+In localStorage, key `retirement-withdrawal-tool.inputs.v1`. Bump the version if the saved
+format changes.
+
+### Out of scope (Woody's choice)
+
+Tax, and a yearly results view. Keep it a simple guidance tool, not overcomplicated.
+
+## Conventions (always)
+
+- Never use em dashes, in replies or code. Use hyphens, colons, commas or parentheses.
+- In code, write pound and dash characters as \u escapes (£, −).
+- No disclaimer wording like "Estimate only" or "Not advice" in the UI. Plain notes on what a
+  figure includes or leaves out are fine.
+- Ask clarifying questions before giving detailed answers. Propose first, build when Woody
+  says so.
+- Keep explanations short and plain.
+- Pages share a 1180px width. Colour is used only for status (good / warning / bad), always with
+  an icon and words.
+
+## How Woody ships changes
+
+- Woody uploads files to GitHub himself. Do not push, even with write access.
+- Give him a zip of only the new or changed files, with their folder paths. List any files to
+  delete separately (a zip cannot delete). Remind him to press Ctrl+Shift+R after uploading.
+- GitHub's web upload skips names starting with a dot (`.github/`, `.nojekyll`). Those have to
+  be created or renamed in the GitHub editor, where typing a slash in the filename makes a
+  folder.
+- After he uploads, pull and check the files match.
+
+## Working on it
+
+- Tests: `node --test` (Node 18+), 99 passing. They also run on GitHub Actions on every push
+  (`.github/workflows/test.yml`). Add tests for engine changes.
+- If results change on purpose: review `tools/results-report.md` (`node tools/print-results.mjs`),
+  then `node tools/print-results.mjs --update-golden`.
+- Check UI changes in a real browser (`python3 -m http.server`, plus Playwright with Chrome) at
+  desktop and phone widths, and look for horizontal overflow.
+
+## Ideas raised but not built
+
+- Themed periods (e.g. 1970s inflation, post-war boom) or a custom start-year range, as a lens
+  rather than driving the search. Note: for a 60/30/10 mix the worst 10 starts are 1965 to 1974,
+  so Worst 10 already covers the 1970s.
+- Extending the data to 2021 to 2025 using MSCI World (GBP). Woody would need to supply the data;
+  splicing it onto the GDP-weighted JST series needs care. Mostly helps shorter plans.
+- A "to age X" entry for the retirement length.
