@@ -68,3 +68,31 @@ test('the worst fall says where it started and ended, and matches maxDrawdown', 
   close(w.fall, maxDrawdown(s));
   assert.deepEqual(worstFall([1, 1.1, 1.2]), { fall: 0, peak: 0, trough: 0 });
 });
+
+test('a step-down in what you want is measured stage by stage', () => {
+  // Three years wanting 100 (minimum 80), then three wanting 75 (minimum 60); the plan pays
+  // 150 then 112.5, so the median over all six years would be the lower stage only.
+  const row = (income, wanted, minimum) => ({ totalIncomeReal: income, wantedReal: wanted, minimumReal: minimum,
+    belowWanted: false, belowMinimum: false, endTotalReal: 1000, portfolioReturn: 0 });
+  const rows = [row(150, 100, 80), row(150, 100, 80), row(150, 100, 80), row(112.5, 75, 60), row(112.5, 75, 60), row(112.5, 75, 60), row(112.5, 75, 60)];
+  const path = summarisePath(rows, { startPot: 1000, depletionYear: null, firstWithdrawalReal: 150 });
+  assert.equal(path.medianIncomeReal, 112.5);
+  assert.deepEqual(path.stages.map((s) => [s.from, s.to, s.wanted, s.minimum, s.median]), [[0, 2, 100, 80, 150], [3, 6, 75, 60, 112.5]]);
+  assert.equal(path.lowestAt, 3);
+  assert.equal(path.lowestMinimum, 60);
+
+  const plan = summarisePlan([path, { ...path, depleted: true, minIncomeReal: 0, lowestMinimum: 80 }], { pot: 1000 });
+  assert.deepEqual(plan.typicalByStage.map((s) => [s.wanted, s.typical]), [[100, 150], [75, 112.5]]);
+  // The worst year is compared with the minimum in force then (60), not the first one (80),
+  // and a retirement that ran out does not count.
+  assert.equal(plan.worstIncome, 112.5);
+  assert.equal(plan.worstIncomeAt, 3);
+  assert.equal(plan.worstIncomeMinimum, 60);
+});
+
+test('tied lowest years go to the one closest to its minimum', () => {
+  const row = (income, minimum) => ({ totalIncomeReal: income, wantedReal: 100, minimumReal: minimum, endTotalReal: 1, portfolioReturn: 0 });
+  const path = summarisePath([row(90, 50), row(90, 70), row(95, 70)], { startPot: 1, depletionYear: null, firstWithdrawalReal: 0 });
+  assert.equal(path.lowestAt, 1);
+  assert.equal(path.lowestMinimum, 70);
+});

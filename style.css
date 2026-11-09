@@ -324,3 +324,8 @@ th.num { white-space: normal; }
   .recipe-grid.aligned.four p:nth-child(2) { grid-column: span 1; }
   .recipe-grid.aligned p:nth-child(3) { grid-column: span 1; }
 }
+
+/* Typical spending with a step-down at an age: one line per stage. */
+.stage { display: block; white-space: nowrap; }
+.stage small { font-family: Inter, system-ui, sans-serif; font-size: 12px; font-weight: 400; color: var(--muted); }
+.nw { white-space: nowrap; }

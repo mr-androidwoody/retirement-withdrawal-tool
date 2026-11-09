@@ -173,10 +173,10 @@ export function runSearch({ dataset, config, request: input, current = null, kee
   const rows = [];
   if (eligible.length) {
     // Most left behind must not win by simply paying less: it chooses from plans that never
-    // cut income below the income wanted, else from plans whose typical income reaches it,
-    // else from all eligible plans.
+    // cut income below the income wanted, else from plans whose typical income reaches it
+    // in every stage (each stage against its own wanted income), else from all eligible plans.
     const neverCut = eligible.filter((r) => r.status === 'meets-both');
-    const paysEnough = eligible.filter((r) => r.typicalIncome >= request.wanted - 1);
+    const paysEnough = eligible.filter((r) => r.typicalByStage.every((st) => st.typical >= st.wanted - 1));
     const leftPool = neverCut.length ? neverCut : (paysEnough.length ? paysEnough : eligible);
     for (const row of ROWS) {
       const pool = row.id === 'mostLeft' ? leftPool : eligible;

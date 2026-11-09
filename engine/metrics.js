@@ -50,6 +50,36 @@ export function investmentIndex(rows) {
 }
 
 /**
+ * Stretches of years with the same wanted and minimum income, so a step-down the user entered
+ * (say, less from age 75) is measured against its own targets: [{ from, to, wanted, minimum }],
+ * with from and to as row positions (to inclusive).
+ */
+export function stagesOf(rows) {
+  const stages = [];
+  rows.forEach((r, t) => {
+    const last = stages[stages.length - 1];
+    if (last && last.wanted === r.wantedReal && last.minimum === r.minimumReal) last.to = t;
+    else stages.push({ from: t, to: t, wanted: r.wantedReal, minimum: r.minimumReal });
+  });
+  return stages;
+}
+
+/**
+ * The lowest year of income, and where: { income, at, minimum }. When several years tie
+ * (within £1), the one closest to the minimum for its year.
+ */
+export function lowestYear(rows) {
+  if (!rows.length) return { income: 0, at: 0, minimum: 0 };
+  const lowest = Math.min(...rows.map((r) => r.totalIncomeReal));
+  let at = -1;
+  rows.forEach((r, t) => {
+    if (r.totalIncomeReal > lowest + 1) return;
+    if (at < 0 || r.totalIncomeReal - (r.minimumReal ?? 0) < rows[at].totalIncomeReal - (rows[at].minimumReal ?? 0)) at = t;
+  });
+  return { income: rows[at].totalIncomeReal, at, minimum: rows[at].minimumReal };
+}
+
+/**
  * rows: the year rows from simulate().
  * Nearly ran out = less than `nearlyRanOutYears` of the planned first-year withdrawal left
  * at the end, in real terms, without having run out.
@@ -65,12 +95,17 @@ export function summarisePath(rows, { startPot, depletionYear, firstWithdrawalRe
   }
   const endReal = rows.length ? rows[rows.length - 1].endTotalReal : startPot;
   const depleted = depletionYear !== null;
+  const low = lowestYear(rows);
+  const stages = stagesOf(rows).map((st) => ({ ...st, median: median(incomes.slice(st.from, st.to + 1)) }));
   return {
     depleted,
     depletionYear,
     nearlyDepleted: !depleted && firstWithdrawalReal > 0 && endReal < nearlyRanOutYears * firstWithdrawalReal,
     minIncomeReal: Math.min(...incomes),
     medianIncomeReal: median(incomes),
+    lowestAt: low.at,
+    lowestMinimum: low.minimum,
+    stages,
     yearsBelowWanted: rows.filter((r) => r.belowWanted).length,
     yearsBelowMinimum: rows.filter((r) => r.belowMinimum).length,
     incomeVolatility: stdev(changes),
@@ -89,6 +124,20 @@ export function summarisePath(rows, { startPot, depletionYear, firstWithdrawalRe
 export function summarisePlan(paths, request) {
   const survivors = paths.filter((p) => !p.depleted);
   const ends = paths.map((p) => p.endReal);
+  // The worst year over survivors, and the minimum that applied in that year (ties: the
+  // one closest to its minimum), so a step-down is compared with the right minimum.
+  let worstPath = null;
+  for (const p of survivors) {
+    if (!worstPath || p.minIncomeReal < worstPath.minIncomeReal - 1
+      || (p.minIncomeReal <= worstPath.minIncomeReal + 1
+        && p.minIncomeReal - (p.lowestMinimum ?? 0) < worstPath.minIncomeReal - (worstPath.lowestMinimum ?? 0))) worstPath = p;
+  }
+  // Typical spending in each stage: the median across past retirements of each one's
+  // median in that stage. Every path has the same stages (they come from the request).
+  const typicalByStage = (paths[0].stages || []).map((st, i) => ({
+    from: st.from, to: st.to, wanted: st.wanted, minimum: st.minimum,
+    typical: median(paths.map((p) => p.stages[i].median)),
+  }));
   return {
     windows: paths.length,
     failures: paths.filter((p) => p.depleted).length,
@@ -99,7 +148,10 @@ export function summarisePlan(paths, request) {
     failingMinimum: paths.filter((p) => p.depleted || p.yearsBelowMinimum > 0).length,
     fallingShort: paths.filter((p) => p.depleted || p.yearsBelowWanted > 0).length,
     typicalIncome: median(paths.map((p) => p.medianIncomeReal)),
+    typicalByStage,
     worstIncome: survivors.length ? Math.min(...survivors.map((p) => p.minIncomeReal)) : null,
+    worstIncomeAt: worstPath ? worstPath.lowestAt : null,
+    worstIncomeMinimum: worstPath ? worstPath.lowestMinimum : null,
     worstIncomeAll: Math.min(...paths.map((p) => p.minIncomeReal)),
     medianEnd: median(ends),
     meanEnd: ends.reduce((a, b) => a + b, 0) / ends.length,

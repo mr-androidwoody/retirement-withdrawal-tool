@@ -610,6 +610,58 @@ function statusMark(count, kind, limit) {
   return `<span class="st ${s.cls}">${ICON[s.cls]}<span class="st-n">${count}</span><span class="sr">, ${s.word}</span></span>`;
 }
 
+// ---------- typical spending and lowest year, measured against the right targets ----------
+
+/** The stages of spending (a step-down at an age makes two), or null when there is only one. */
+const stagesOf = (r) => (r.typicalByStage && r.typicalByStage.length > 1 ? r.typicalByStage : null);
+
+/** "to 74", "from 75" (or "years 1 to 17", "from year 18" without an age). */
+function stageLabel(st, i, n, req) {
+  const at = (t) => (req.age ? req.age + t : t + 1);
+  const yrs = req.age ? '' : 'years ';
+  if (i === 0) return `${req.age ? 'to' : 'years 1 to'} ${at(st.to)}`;
+  if (i === n - 1) return `from ${req.age ? '' : 'year '}${at(st.from)}`;
+  return `${yrs}${at(st.from)} to ${at(st.to)}`;
+}
+
+/** Typical spending as figure HTML: one amount, or one line per stage. */
+function typicalValue(r, req) {
+  const st = stagesOf(r);
+  if (!st) return money(r.typicalIncome);
+  return st.map((x, i) => `<span class="stage">${money(x.typical)} <small>${stageLabel(x, i, st.length, req)}</small></span>`).join('');
+}
+
+/** Typical spending against what you want, each stage against its own amount. */
+function typicalGap(r, req, { amounts = true } = {}) {
+  const st = stagesOf(r);
+  if (!st) return `${signedMoney(r.typicalIncome - req.wanted)} vs ${amounts ? `${money(req.wanted)} ` : ''}wanted`;
+  return amounts
+    ? `${st.map((x) => `<span class="nw">${signedMoney(x.typical - x.wanted)}</span> vs ${money(x.wanted)}`).join(', then ')} wanted`
+    : `${st.map((x) => `<span class="nw">${signedMoney(x.typical - x.wanted)}</span>`).join(', then ')} vs wanted`;
+}
+
+const typicalMeetsWanted = (r, req) => {
+  const st = stagesOf(r);
+  return st ? st.every((x) => x.typical >= x.wanted - 100) : r.typicalIncome >= req.wanted - 100;
+};
+
+/** Typical spending in a sentence: "£82,900", or "£92,200 then £69,100". */
+const typicalText = (r) => {
+  const st = stagesOf(r);
+  return st ? st.map((x) => money(x.typical)).join(' then ') : money(r.typicalIncome);
+};
+
+/** The minimum that applied in the lowest year (it can step down too). */
+const worstMinimum = (r, req) => r.worstIncomeMinimum ?? req.minimum;
+
+/** Lowest year against the minimum for that year; says when if the minimum changes. */
+function worstGap(r, req, { amounts = true } = {}) {
+  const min = worstMinimum(r, req);
+  const when = stagesOf(r) && r.worstIncomeAt !== null
+    ? `, ${req.age ? `at age ${req.age + r.worstIncomeAt}` : `in year ${r.worstIncomeAt + 1}`}` : '';
+  return `${signedMoney(r.worstIncome - min)} vs ${amounts ? `${money(min)} ` : ''}minimum${when}`;
+}
+
 // Column specs shared by the results tables and the what-if tables.
 const COLS = [
   { key: 'typicalIncome', head: 'Typical spending', unit: 'a year', better: 'high', cmp: (v) => Math.round(v / 100) },
@@ -649,8 +701,8 @@ const isBest = (best, c, r) => best[c.key] !== null && c.cmp(val(c, r)) === best
 function figure(c, r, n, req) {
   const v = val(c, r);
   switch (c.key) {
-    case 'typicalIncome': return `${money(v)}<span class="gap">${signedMoney(v - req.wanted)} vs wanted</span>`;
-    case 'worstIncome': return `${money(v)}<span class="gap">${signedMoney(v - req.minimum)} vs minimum</span>`;
+    case 'typicalIncome': return `${typicalValue(r, req)}<span class="gap">${typicalGap(r, req, { amounts: false })}</span>`;
+    case 'worstIncome': return `${money(v)}<span class="gap">${worstGap(r, req, { amounts: false })}</span>`;
     case 'ranOutOrNearly': return statusMark(v, 'ranout', req.maxFailures);
     case 'cutCount': return statusMark(v, 'cut', req.maxFailures);
     case 'worstSet': return Number.isFinite(v) ? statusMark(v, 'worst', 0) : 'n/a';
@@ -716,7 +768,7 @@ function renderResults() {
   let html = `<button type="button" class="link back" data-nav="plan">‹ Change your inputs</button>
     <header class="results-head">
       <h1>${heading}</h1>
-      <p class="hint">You asked for ${gbp(req.wanted)} a year, never below ${gbp(req.minimum)}, with ${req.maxFailures === 0 ? 'none' : `up to ${req.maxFailures}`} of ${n} past retirements (starting ${r.windows[0].startYear} to ${r.windows.at(-1).startYear}) allowed to run out. ${r.plansTried.toLocaleString('en-GB')} plans were tested${r.keepMix ? `, all with your ${mixName} mix` : ''}.</p>
+      <p class="hint">You asked for ${gbp(req.wanted)} a year, never below ${gbp(req.minimum)}${req.incomeChange ? `, then ${gbp(req.incomeChange.wanted)}, never below ${gbp(req.incomeChange.minimum)}, ${req.age ? `from age ${req.age + req.incomeChange.fromYear - 1}` : `from year ${req.incomeChange.fromYear}`}` : ''}, with ${req.maxFailures === 0 ? 'none' : `up to ${req.maxFailures}`} of ${n} past retirements (starting ${r.windows[0].startYear} to ${r.windows.at(-1).startYear}) allowed to run out. ${r.plansTried.toLocaleString('en-GB')} plans were tested${r.keepMix ? `, all with your ${mixName} mix` : ''}.</p>
       ${state.worstYears.length ? `<p class="hint">The worst ${state.worstYears.length} starts for your ${mixName} mix, judged by its return after inflation over the first ${state.config.risk.rankYears} years: ${[...state.worstYears].sort((x, y) => x - y).join(', ')}.</p>` : ''}
     </header>`;
 
@@ -743,8 +795,8 @@ function renderResults() {
         </div>
         ${diff}
         <div class="rec-figs" style="--cols:${Number.isFinite(ws) ? 5 : 4}">
-          <div><span class="k">Typical spending</span><span class="v">${money(p.typicalIncome)}</span><span class="s">a year, ${signedMoney(p.typicalIncome - req.wanted)} vs wanted</span></div>
-          <div><span class="k">Lowest year</span><span class="v">${money(p.worstIncome)}</span><span class="s">${signedMoney(p.worstIncome - req.minimum)} vs minimum</span></div>
+          <div><span class="k">Typical spending</span><span class="v">${typicalValue(p, req)}</span><span class="s">a year, ${typicalGap(p, req, { amounts: false })}</span></div>
+          <div><span class="k">Lowest year</span><span class="v">${money(p.worstIncome)}</span><span class="s">${worstGap(p, req, { amounts: false })}</span></div>
           <div><span class="k">Ran out or nearly</span><span class="v">${p.ranOutOrNearly} of ${n}</span><span class="s st ${ro.cls}">${ICON[ro.cls]}${ro.word}</span></div>
           ${Number.isFinite(ws) ? `<div><span class="k">Worst ${state.worstYears.length} starts</span><span class="v">${ws} of ${state.worstYears.length}</span><span class="s st ${wsS.cls}">${ICON[wsS.cls]}${ws ? 'fell short' : 'held up in all'}</span></div>` : ''}
           <div><span class="k">Typically left</span><span class="v">${bigMoney(p.medianEnd)}</span><span class="s">after ${req.years} years</span></div>
@@ -775,12 +827,12 @@ function renderResults() {
     html += optionsTable(r.rows.map((row, i) => ({
       result: row.result,
       badges: row.labels.map((t) => ({ text: t, cls: t === 'Recommended' ? 'strong' : '' })),
-      flag: i === 0 && row.result.status === 'meets-minimum' ? `No plan paid the full ${money(req.wanted)} in every past retirement; these options stay above your minimum.` : '',
+      flag: i === 0 && row.result.status === 'meets-minimum' ? `No plan paid ${req.incomeChange ? 'what you want' : `the full ${money(req.wanted)}`} in every past retirement; these options stay above your minimum.` : '',
     })), n, req);
   } else {
     html += `<section class="closest"><h2>Closest options</h2>
       <p class="hint">Try a lower income, a lower minimum, or allowing more past retirements to run out. The nearest misses were:</p><ul>`
-      + r.closest.map((c) => `<li><strong>${escapeHtml(planName(c.plan))}</strong>: ran out or fell below your minimum in ${c.failingMinimum} of ${n}; typical spending ${money(c.typicalIncome)}. <button type="button" class="link" data-open="${state.openable.push({ result: c, labels: ['Closest'] }) - 1}">See detail</button></li>`).join('')
+      + r.closest.map((c) => `<li><strong>${escapeHtml(planName(c.plan))}</strong>: ran out or fell below your minimum in ${c.failingMinimum} of ${n}; typical spending ${typicalText(c)}. <button type="button" class="link" data-open="${state.openable.push({ result: c, labels: ['Closest'] }) - 1}">See detail</button></li>`).join('')
       + '</ul></section>';
   }
 
@@ -790,13 +842,13 @@ function renderResults() {
       + r.others.map((o) => {
         const idx = state.openable.push({ result: o.result, labels: ['Comparison'] }) - 1;
         return `<div class="mini"><h3>${escapeHtml(planName(o.result.plan))}</h3>
-          <div class="hint">Typical ${money(o.result.typicalIncome)} · lowest year ${money(o.result.worstIncome)} · ran out ${o.result.failures} of ${n}</div>
+          <div class="hint">Typical ${typicalText(o.result)} · lowest year ${money(o.result.worstIncome)} · ran out ${o.result.failures} of ${n}</div>
           <div class="why">Not shown because it ${escapeHtml(o.reason)}.</div>
           <div><button type="button" class="link" data-open="${idx}">See detail ›</button></div></div>`;
       }).join('') + '</div></section>';
   }
 
-  html += `<p class="hint">All money in today's pounds, before tax; spending rounded to the nearest \u00a3100. Typical spending: what you would have to live on each year (from the pot plus other income) in a typical past retirement. Lowest year: the lowest year in any past retirement that did not run out. Ran out or nearly: ran out, or less than one year's withdrawal left at the end. Income cut: past retirements with any year below what you want to spend. Worst ${state.worstYears.length} starts: of the past retirements whose first ${state.config.risk.rankYears} years were worst for your mix after inflation, how many ran out or fell below your minimum. Biggest fall: the largest drop in your investments from a high point, from year-end values. Bold marks the best figure in each column.</p>`;
+  html += `<p class="hint">All money in today's pounds, before tax; spending rounded to the nearest \u00a3100. Typical spending: what you would have to live on each year (from the pot plus other income) in a typical past retirement; if what you want changes at an age, shown for each stage against what you want then. Lowest year: the lowest year in any past retirement that did not run out, against the minimum for that year. Ran out or nearly: ran out, or less than one year's withdrawal left at the end. Income cut: past retirements with any year below what you want to spend. Worst ${state.worstYears.length} starts: of the past retirements whose first ${state.config.risk.rankYears} years were worst for your mix after inflation, how many ran out or fell below your minimum. Biggest fall: the largest drop in your investments from a high point, from year-end values. Bold marks the best figure in each column.</p>`;
 
   const view = $('view-results');
   view.innerHTML = html;
@@ -819,7 +871,7 @@ function worstCase(sims) {
   const tied = sims.filter((s) => s.minIncomeReal <= lowest + 1);
   const year = [...tied].sort((a, b) => a.endReal - b.endReal || a.startYear - b.startYear)[0].startYear;
   let reason = 'Lowest income in any year';
-  if (tied.length === sims.length && sims.length > 1) reason = 'Paid the same in every year, and left the least at the end';
+  if (tied.length === sims.length && sims.length > 1) reason = 'Every start had the same lowest year, and this one left the least at the end';
   else if (tied.length > 1) reason = 'Joint lowest income in any year, and left the least at the end';
   return { year, reason };
 }
@@ -832,7 +884,7 @@ function bestCase(sims) {
   const tied = sims.filter((s) => s.minIncomeReal >= highest - 1);
   const year = [...tied].sort((a, b) => b.endReal - a.endReal || a.startYear - b.startYear)[0].startYear;
   let reason = 'Its lowest year was the highest of any start';
-  if (tied.length === sims.length && sims.length > 1) reason = 'Paid the same in every year, and left the most at the end';
+  if (tied.length === sims.length && sims.length > 1) reason = 'Every start had the same lowest year, and this one left the most at the end';
   else if (tied.length > 1) reason = 'Joint highest lowest year, and left the most at the end';
   return { year, reason };
 }
@@ -996,8 +1048,8 @@ function renderDetail() {
     : `Showing all ${total} past retirements, starting ${state.detail.sims[0].startYear} to ${state.detail.sims.at(-1).startYear}. Choose the worst or best starts for your mix to see how this option did in them.`;
   const fact = (k, v, ref, cls = 'neutral') => `<div class="fact ${cls}"><div class="k">${k}</div><div class="v">${v}</div><div class="ref">${cls !== 'neutral' ? ICON[cls] : ''}${ref}</div></div>`;
   const facts = [
-    fact('Typical spending', money(r.typicalIncome), `a year, ${signedMoney(r.typicalIncome - req.wanted)} vs ${money(req.wanted)} wanted`, r.typicalIncome >= req.wanted - 100 ? 'good' : 'warn'),
-    fact('Lowest year', money(r.worstIncome), `${signedMoney(r.worstIncome - req.minimum)} vs ${money(req.minimum)} minimum`, r.worstIncome >= req.minimum - 100 ? 'good' : 'bad'),
+    fact('Typical spending', typicalValue(r, req), `a year, ${typicalGap(r, req)}`, typicalMeetsWanted(r, req) ? 'good' : 'warn'),
+    fact('Lowest year', money(r.worstIncome), worstGap(r, req), r.worstIncome >= worstMinimum(r, req) - 100 ? 'good' : 'bad'),
     fact('Ran out or nearly', `${r.ranOutOrNearly} of ${n}`, `${ro.word}, limit ${limit}`, ro.cls),
     fact('Income cut', `${r.cutCount} of ${n}`, r.cutCount ? 'past retirements with a year below what you want' : 'never below what you want', cut.cls),
     fact('Typically left', bigMoney(r.medianEnd), `after ${req.years} years, in today's money`),
