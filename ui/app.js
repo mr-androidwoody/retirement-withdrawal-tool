@@ -1141,7 +1141,7 @@ function renderDetail() {
     fact('Lowest year', money(r.worstIncome), worstGap(r, req), r.worstIncome >= worstMinimum(r, req) - 100 ? 'good' : 'bad'),
     fact('Ran out or nearly', `${r.ranOutOrNearly} of ${n}`, `${ro.word}, limit ${limit}`, ro.cls),
     fact('Income cut', `${r.cutCount} of ${n}`, r.cutCount ? 'past retirements with a year below what you want' : 'never below what you want', cut.cls),
-    fact('Typically left', bigMoney(r.medianEnd), `after ${req.years} years, in today's money`),
+    fact('Typically left', bigMoney(r.medianEnd), `middle of these ${n} starts, after ${req.years} years`),
     fact('Biggest fall', pct(r.worstDrawdown), 'largest drop in your investments'),
   ].join('');
   const isBufferYears = plan.cashBuffer.years !== undefined;
@@ -1161,6 +1161,7 @@ function renderDetail() {
         <p class="hint">${escapeHtml(periodHint)}</p>
       </div>
 
+      <h2 class="facts-head">${keep ? `Across the ${periods} ${n} starts` : `Across all ${n} starts`}</h2>
       <div class="facts">${facts}      </div>
 
       <section class="panel">
