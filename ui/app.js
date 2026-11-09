@@ -1050,8 +1050,8 @@ function renderDetail() {
     startAge: req.age, startYear: selected, kind: 'income',
     lines: chartLines((x) => x.totalIncomeReal),
     refs: [
-      { values: profile.wanted, colour: '#2f855a', dash: '7 5', label: `Want ${money(profile.wanted.at(-1))}` },
-      { values: profile.minimum, colour: '#9a3412', dash: '2 4', label: `Minimum ${money(profile.minimum.at(-1))}` },
+      { values: profile.wanted, colour: 'var(--good)', dash: '7 5', label: `Want ${money(profile.wanted.at(-1))}` },
+      { values: profile.minimum, colour: 'var(--bad)', dash: '2 4', label: `Minimum ${money(profile.minimum.at(-1))}` },
     ],
   });
   const potChart = lineChart({
@@ -1060,14 +1060,14 @@ function renderDetail() {
     lines: chartLines((x) => x.endTotalReal),
   });
   const selRanOut = sel.depleted || sel.nearlyDepleted;
-  const key = (colour, width, dash = '') => `<svg class="key" viewBox="0 0 22 8" aria-hidden="true"><line x1="1" x2="21" y1="4" y2="4" stroke="${colour}" stroke-width="${width}" ${dash ? `stroke-dasharray="${dash}"` : ''} stroke-linecap="butt"/></svg>`;
+  const key = (colour, width, dash = '') => `<svg class="key" viewBox="0 0 22 8" aria-hidden="true"><line x1="1" x2="21" y1="4" y2="4" style="stroke:${colour}" stroke-width="${width}" ${dash ? `stroke-dasharray="${dash}"` : ''} stroke-linecap="butt"/></svg>`;
   const legend = (refs) => `<div class="legend">
-      <span>${key(selRanOut ? '#b42318' : '#0b5f7a', 3)}${retiredLabel(selected)}</span>
-      <span>${key('#4b5563', 1.5)}Median</span>
+      <span>${key(selRanOut ? 'var(--critical)' : 'var(--accent)', 3)}${retiredLabel(selected)}</span>
+      <span>${key('var(--chart-median)', 1.5)}Median</span>
       <span><i class="box mid"></i>Middle half of past retirements</span>
       <span><i class="box range"></i>Full range</span>
-      ${anyRanOut ? `<span>${key('#b42318', 1.5)}Ran out or nearly</span>` : ''}
-      ${refs ? `<span>${key('#2f855a', 2, '5 3')}What you want to spend</span><span>${key('#9a3412', 2, '2 3')}Lowest you could live on</span>` : ''}
+      ${anyRanOut ? `<span>${key('var(--critical)', 1.5)}Ran out or nearly</span>` : ''}
+      ${refs ? `<span>${key('var(--good)', 2, '5 3')}What you want to spend</span><span>${key('var(--bad)', 2, '2 3')}Lowest you could live on</span>` : ''}
     </div>
     <p class="hint chart-help">Point at the chart, or select it and use the arrow keys, to read the figures for each year.</p>`;
 
@@ -1249,4 +1249,31 @@ function renderDetail() {
   };
 }
 
+// ---------- colour theme ----------
+
+const THEME_KEY = 'retirement-withdrawal-tool.theme';
+const darkQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+
+/** Auto follows the device; Light and Dark are fixed. The choice is remembered separately from the inputs. */
+function applyTheme(choice) {
+  const dark = choice === 'dark' || (choice === 'auto' && darkQuery?.matches);
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  for (const b of document.querySelectorAll('[data-theme-choice]')) b.setAttribute('aria-checked', String(b.dataset.themeChoice === choice));
+}
+
+function initTheme() {
+  let choice = 'auto';
+  try { choice = localStorage.getItem(THEME_KEY) || 'auto'; } catch { /* no storage */ }
+  applyTheme(choice);
+  $('theme-switch').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-theme-choice]');
+    if (!btn) return;
+    choice = btn.dataset.themeChoice;
+    try { localStorage.setItem(THEME_KEY, choice); } catch { /* no storage */ }
+    applyTheme(choice);
+  });
+  darkQuery?.addEventListener?.('change', () => { if (choice === 'auto') applyTheme('auto'); });
+}
+
+initTheme();
 load();

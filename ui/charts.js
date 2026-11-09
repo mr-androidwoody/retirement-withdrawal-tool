@@ -9,13 +9,15 @@ const W = 760;
 const H = 300;
 const PAD = { left: 64, right: 120, top: 16, bottom: 40 };
 
+// CSS variables from style.css, so the charts follow light and dark mode. They are set through
+// style="..." because SVG colour attributes do not read CSS variables in every browser.
 export const COLOURS = {
-  accent: '#0b5f7a',
-  band: '#0b5f7a',
-  median: '#4b5563',
-  ranOut: '#b42318',
-  grid: '#e2e5ea',
-  axis: '#4b5563',
+  accent: 'var(--accent)',
+  band: 'var(--accent)',
+  median: 'var(--chart-median)',
+  ranOut: 'var(--critical)',
+  grid: 'var(--line)',
+  axis: 'var(--muted)',
 };
 
 function niceStep(range, ticks) {
@@ -74,8 +76,8 @@ export function lineChart({ lines, refs = [], kind = 'income', title, startAge =
 
   const grid = [];
   for (let v = 0; v <= top + 1e-9; v += step) {
-    grid.push(`<line x1="${PAD.left}" x2="${W - PAD.right}" y1="${y(v)}" y2="${y(v)}" stroke="${COLOURS.grid}"/>`
-      + `<text x="${PAD.left - 8}" y="${y(v) + 4}" text-anchor="end" font-size="12" fill="${COLOURS.axis}">${axisMoney(v)}</text>`);
+    grid.push(`<line x1="${PAD.left}" x2="${W - PAD.right}" y1="${y(v)}" y2="${y(v)}" style="stroke:${COLOURS.grid}"/>`
+      + `<text x="${PAD.left - 8}" y="${y(v) + 4}" text-anchor="end" font-size="12" style="fill:${COLOURS.axis}">${axisMoney(v)}</text>`);
   }
   const xticks = [];
   const every = n > 30 ? 10 : 5;
@@ -83,14 +85,14 @@ export function lineChart({ lines, refs = [], kind = 'income', title, startAge =
     const label = startAge ? startAge + i : i + 1;
     if (i === 0 || i === n - 1 || label % every === 0) {
       if (i !== 0 && i !== n - 1 && (i < 2 || i > n - 3)) continue;
-      xticks.push(`<text x="${x(i)}" y="${H - PAD.bottom + 18}" text-anchor="middle" font-size="12" fill="${COLOURS.axis}">${label}</text>`);
+      xticks.push(`<text x="${x(i)}" y="${H - PAD.bottom + 18}" text-anchor="middle" font-size="12" style="fill:${COLOURS.axis}">${label}</text>`);
     }
   }
 
   const hi = lines.find((l) => l.highlight);
   const ranOut = lines.filter((l) => l.ranOut && !l.highlight)
-    .map((l) => `<path d="${path(l.values)}" fill="none" stroke="${COLOURS.ranOut}" stroke-width="1.5" opacity="0.85"/>`);
-  const refLines = refs.map((r) => `<path d="${path(r.values)}" fill="none" stroke="${r.colour}" stroke-width="2" ${r.dash ? `stroke-dasharray="${r.dash}"` : ''}/>`);
+    .map((l) => `<path d="${path(l.values)}" fill="none" style="stroke:${COLOURS.ranOut}" stroke-width="1.5" opacity="0.85"/>`);
+  const refLines = refs.map((r) => `<path d="${path(r.values)}" fill="none" style="stroke:${r.colour}" stroke-width="2" ${r.dash ? `stroke-dasharray="${r.dash}"` : ''}/>`);
 
   // Direct labels at the right-hand end, nudged apart so they never overlap. A label with a
   // note in brackets ("Retired 1973 (worst case)") goes on two lines, and any label too long
@@ -112,7 +114,7 @@ export function lineChart({ lines, refs = [], kind = 'income', title, startAge =
   const endLabels = labels.map((l) => {
     const size = fit(l.text, 12, l.bold).toFixed(1);
     const note = l.note ? `<tspan x="${W - PAD.right + 8}" dy="13" font-size="${fit(l.note, 11, false).toFixed(1)}" font-weight="400">${esc(l.note)}</tspan>` : '';
-    return `<text x="${W - PAD.right + 8}" y="${l.y.toFixed(1)}" font-size="${size}" ${l.bold ? 'font-weight="600"' : ''} fill="${l.colour}">${esc(l.text)}${note}</text>`;
+    return `<text x="${W - PAD.right + 8}" y="${l.y.toFixed(1)}" font-size="${size}" ${l.bold ? 'font-weight="600"' : ''} style="fill:${l.colour}">${esc(l.text)}${note}</text>`;
   });
 
   const data = {
@@ -125,15 +127,15 @@ export function lineChart({ lines, refs = [], kind = 'income', title, startAge =
   return `<div class="chart-wrap" data-chart="${esc(JSON.stringify(data))}">`
     + `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(title)}" tabindex="0">`
     + grid.join('') + xticks.join('')
-    + `<text x="${(PAD.left + W - PAD.right) / 2}" y="${H - 6}" text-anchor="middle" font-size="12" fill="${COLOURS.axis}">${startAge ? 'Your age' : 'Year of retirement'}</text>`
-    + `<path d="${area(stats.max, stats.min)}" fill="${COLOURS.band}" opacity="0.10"/>`
-    + `<path d="${area(stats.p75, stats.p25)}" fill="${COLOURS.band}" opacity="0.22"/>`
-    + `<path d="${path(stats.median)}" fill="none" stroke="${COLOURS.median}" stroke-width="1.5"/>`
+    + `<text x="${(PAD.left + W - PAD.right) / 2}" y="${H - 6}" text-anchor="middle" font-size="12" style="fill:${COLOURS.axis}">${startAge ? 'Your age' : 'Year of retirement'}</text>`
+    + `<path d="${area(stats.max, stats.min)}" style="fill:${COLOURS.band}" opacity="0.10"/>`
+    + `<path d="${area(stats.p75, stats.p25)}" style="fill:${COLOURS.band}" opacity="0.22"/>`
+    + `<path d="${path(stats.median)}" fill="none" style="stroke:${COLOURS.median}" stroke-width="1.5"/>`
     + ranOut.join('') + refLines.join('')
-    + (hi ? `<path d="${path(hi.values)}" fill="none" stroke="${hi.ranOut ? COLOURS.ranOut : COLOURS.accent}" stroke-width="3" stroke-linejoin="round"/>` : '')
+    + (hi ? `<path d="${path(hi.values)}" fill="none" style="stroke:${hi.ranOut ? COLOURS.ranOut : COLOURS.accent}" stroke-width="3" stroke-linejoin="round"/>` : '')
     + endLabels.join('')
-    + `<line class="hover-line" x1="0" x2="0" y1="${PAD.top}" y2="${H - PAD.bottom}" stroke="${COLOURS.axis}" stroke-width="1" visibility="hidden"/>`
-    + `<circle class="hover-dot" r="5" fill="${COLOURS.accent}" stroke="#fff" stroke-width="2" visibility="hidden"/>`
+    + `<line class="hover-line" x1="0" x2="0" y1="${PAD.top}" y2="${H - PAD.bottom}" style="stroke:${COLOURS.axis}" stroke-width="1" visibility="hidden"/>`
+    + `<circle class="hover-dot" r="5" style="fill:${COLOURS.accent};stroke:var(--card)" stroke-width="2" visibility="hidden"/>`
     + `<rect class="hover-area" x="${PAD.left}" y="${PAD.top}" width="${W - PAD.left - PAD.right}" height="${H - PAD.top - PAD.bottom}" fill="transparent"/>`
     + '</svg><div class="chart-tip" hidden></div></div>';
 }
