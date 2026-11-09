@@ -326,6 +326,7 @@ th.num { white-space: normal; }
 }
 
 /* Typical spending with a step-down at an age: one line per stage. */
-.stage { display: block; white-space: nowrap; }
-.stage small { font-family: Inter, system-ui, sans-serif; font-size: 12px; font-weight: 400; color: var(--muted); }
+.stages { display: inline-grid; grid-template-columns: auto auto; column-gap: 6px; align-items: baseline; white-space: nowrap; }
+.stages small { font-family: Inter, system-ui, sans-serif; font-size: 12px; font-weight: 400; color: var(--muted); }
+.stage-gap { display: block; }
 .nw { white-space: nowrap; }
