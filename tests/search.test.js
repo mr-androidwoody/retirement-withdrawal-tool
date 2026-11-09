@@ -127,3 +127,24 @@ test('keep my mix: every option uses the current mix, and there is no separate b
     assert.equal(row.result.plan.cashBuffer.amount, current.cashBuffer);
   }
 });
+
+test('"pass on more" recommends the plan that pays what you asked for and leaves the most', () => {
+  const current = currentFromMix(500000, { equities: 0.6, bonds: 0.3, cash: 0.1 });
+  const spend = runSearch({ dataset, config, request: preset('typical'), current });
+  const passOn = runSearch({ dataset, config, request: { ...preset('typical'), priority: 'pass-on' }, current });
+  const recOf = (r) => r.rows.find((x) => x.labels.includes('Recommended'));
+  const rec = recOf(passOn);
+  // It is the Most left behind plan, shown once with both labels.
+  assert.ok(rec.labels.includes('Most left behind'));
+  // It never pays less than you want, and typically leaves at least as much as the "spend more" pick.
+  assert.equal(rec.result.status, 'meets-both');
+  assert.ok(rec.result.medianEnd >= recOf(spend).result.medianEnd);
+  // Your mix rows follow the same rule: never cut, or failing that typical spending still
+  // reaches what you want.
+  for (const c of passOn.currentRows.filter((x) => x.meetsNeeds)) {
+    assert.ok(c.result.status === 'meets-both' || c.result.typicalByStage.every((st) => st.typical >= st.wanted - 1));
+  }
+  // Leaving the choice out is the same as "spend more" (the default).
+  const explicit = runSearch({ dataset, config, request: { ...preset('typical'), priority: 'spend' }, current });
+  assert.deepEqual(recOf(explicit).result.plan, recOf(spend).result.plan);
+});
