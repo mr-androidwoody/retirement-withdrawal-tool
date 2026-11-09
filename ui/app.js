@@ -1168,6 +1168,7 @@ function renderDetail() {
         <h3>${keep ? `${subsetName}, worst first` : 'Each past retirement'}</h3>
         <p class="hint">Choose a start year to highlight it in the charts and see it year by year. The small number is each start's rank for your mix, 1 being the worst.</p>
         <div class="strip" id="strip">${strip}</div>
+        <p class="hint fine">The rank is how markets went for your mix; the worst case is how this option did.</p>
         ${selBlock}
         <div class="legend"><span class="st good">${ICON.good}Lasted, never below what you want</span><span class="st warn">${ICON.warn}Lasted, some years below what you want</span><span class="st bad">${ICON.bad}Ran out, or under a year's withdrawal left</span></div>
       </section>
