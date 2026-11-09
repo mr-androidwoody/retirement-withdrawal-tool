@@ -552,7 +552,7 @@ function refresh() {
   const { min, max } = state.config.retirementLength;
   showLengthAge(typed.ok && age ? age + years - 1 : null);
   $('years-hint').textContent = typed.ok
-    ? `${n} past retirements tested, starting ${first} to ${last}. Any length from ${min} to ${max} years; the longer the plan, the fewer past retirements there are to test.`
+    ? `A ${years}-year plan can be tested against ${n} past retirements, starting ${first} to ${last}. Any length from ${min} to ${max} years; the longer the plan, the fewer there are.`
     : `Enter a whole number of years from ${min} to ${max}.`;
   $('settings-summary').textContent = `Global shares (£) and UK gilts · starts ${first} to ${last} · all four approaches · ${mixes} · ${buffers}${$('keep-mix').checked ? ' (keeping your mix)' : ' · plus your current mix'} · charges ${Number.isFinite(fee) ? fee : '?'}% a year`;
 
