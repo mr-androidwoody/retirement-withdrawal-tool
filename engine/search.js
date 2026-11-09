@@ -140,6 +140,29 @@ export const ROWS = [
 
 const best = (list, order) => (list.length ? [...list].sort(ORDER[order])[0] : null);
 
+/**
+ * Plans that pay what you asked for, so "most left behind" cannot win by simply paying less:
+ * plans that never cut income below the income wanted, else plans whose typical income
+ * reaches it in every stage (each stage against its own wanted income), else the whole list.
+ * `list` holds plans that already meet the needs.
+ */
+function paysWhatYouAsked(list) {
+  const neverCut = list.filter((r) => r.status === 'meets-both');
+  if (neverCut.length) return neverCut;
+  const paysEnough = list.filter((r) => r.typicalByStage.every((st) => st.typical >= st.wanted - 1));
+  return paysEnough.length ? paysEnough : list;
+}
+
+/**
+ * The recommended plan from a list of plans that meet the needs, by what matters more if
+ * there is room to spare (request.priority): 'spend' (the default) picks the highest typical
+ * spending; 'pass-on' picks the plan that pays what you asked for and typically leaves most.
+ */
+export function recommendFrom(list, request) {
+  if (request.priority === 'pass-on') return best(paysWhatYouAsked(list), 'mostLeft');
+  return best(list, 'recommended');
+}
+
 /** Why a plan is not among the options: one plain line. */
 export function reasonNotShown(r, request) {
   if (r.failures > request.maxFailures) return `ran out in ${r.failures} of ${r.windows} past retirements`;
@@ -170,15 +193,11 @@ export function runSearch({ dataset, config, request: input, current = null, kee
   // The four rows; a plan winning several is shown once with all its labels.
   const rows = [];
   if (eligible.length) {
-    // Most left behind must not win by simply paying less: it chooses from plans that never
-    // cut income below the income wanted, else from plans whose typical income reaches it
-    // in every stage (each stage against its own wanted income), else from all eligible plans.
-    const neverCut = eligible.filter((r) => r.status === 'meets-both');
-    const paysEnough = eligible.filter((r) => r.typicalByStage.every((st) => st.typical >= st.wanted - 1));
-    const leftPool = neverCut.length ? neverCut : (paysEnough.length ? paysEnough : eligible);
+    // Most left behind must not win by simply paying less (see paysWhatYouAsked).
+    const leftPool = paysWhatYouAsked(eligible);
     for (const row of ROWS) {
-      const pool = row.id === 'mostLeft' ? leftPool : eligible;
-      const winner = best(pool, row.id);
+      const winner = row.id === 'recommended' ? recommendFrom(eligible, request)
+        : best(row.id === 'mostLeft' ? leftPool : eligible, row.id);
       const existing = rows.find((x) => x.result === winner);
       if (existing) existing.labels.push(row.label);
       else rows.push({ result: winner, labels: [row.label] });
@@ -193,7 +212,7 @@ export function runSearch({ dataset, config, request: input, current = null, kee
     .map((s) => {
       const family = results.filter((r) => r.plan.strategy === s.id);
       const pool = family.filter((r) => r.status !== 'does-not-meet');
-      const pick = pool.length ? best(pool, 'recommended') : best(family, 'closest');
+      const pick = pool.length ? recommendFrom(pool, request) : best(family, 'closest');
       return { strategy: s.id, result: pick, reason: reasonNotShown(pick, request) };
     });
 
@@ -203,7 +222,7 @@ export function runSearch({ dataset, config, request: input, current = null, kee
     CASH_RULES.forEach((rule, k) => {
       const own = currentPlans(config, current, grid.length + k * perRule, rule, request).map((p) => evaluatePlan(p, windows, request, thresholds));
       const pool = own.filter((r) => r.status !== 'does-not-meet');
-      currentRows.push({ cashRule: rule, result: pool.length ? best(pool, 'recommended') : best(own, 'closest'), meetsNeeds: pool.length > 0 });
+      currentRows.push({ cashRule: rule, result: pool.length ? recommendFrom(pool, request) : best(own, 'closest'), meetsNeeds: pool.length > 0 });
     });
   }
 
