@@ -1206,11 +1206,11 @@ function renderDetail() {
       <section class="panel">
         <h3>Retired in ${selected}, year by year</h3>
         <div class="table-box"><table class="year-table"><thead><tr>
-          <th scope="col">${req.age ? 'Your age' : 'Year'}</th><th scope="col">Calendar year</th><th scope="col" class="num">You could spend</th>
+          <th scope="col">${req.age ? 'Your age' : 'Year'}</th><th scope="col">Market year</th><th scope="col" class="num">You could spend</th>
           <th scope="col" class="num">From cash</th><th scope="col" class="num">From investments</th><th scope="col" class="num">Pensions and earnings</th>
           <th scope="col" class="num">Investment return</th><th scope="col" class="num">Inflation</th><th scope="col" class="num">Pot left</th><th scope="col">Notes</th>
         </tr></thead><tbody>${yearRows}</tbody></table></div>
-        <p class="hint">Money in today's pounds, rounded to the nearest \u00a3100. You could spend = from cash + from investments + pensions and earnings. Investment return is what the whole pot gained or lost that year, after charges; falls are shown in red. Shaded rows: amber is below what you want to spend, red is below your minimum or ran out.</p>
+        <p class="hint">Market year: the past year whose returns and inflation are used. Money in today's pounds, rounded to the nearest \u00a3100. You could spend = from cash + from investments + pensions and earnings. Investment return is what the whole pot gained or lost that year, after charges; falls are shown in red. Shaded rows: amber is below what you want to spend, red is below your minimum or ran out.</p>
       </section>
 
       <section class="panel">
