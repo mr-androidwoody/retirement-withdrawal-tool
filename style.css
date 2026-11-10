@@ -405,7 +405,7 @@ th.num { white-space: normal; }
 
 /* Saved plans: the list on the first page and the save line in an option detail. */
 /* A closed panel until clicked; the count shows how many of the five are used. */
-.saved-plans { display: block; padding-top: 0; padding-bottom: 0; }
+.saved-plans { display: block; padding-top: 0; padding-bottom: 0; border: 2px solid var(--accent); }
 .saved-plans summary { display: flex; align-items: center; gap: 8px; min-height: 56px; cursor: pointer; list-style: none; font-size: 18px; font-weight: 600; }
 .saved-plans summary::-webkit-details-marker { display: none; }
 .saved-plans summary::before { content: ''; flex: none; width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); margin: 0 6px 0 2px; transition: transform .15s; }
