@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { addPlan, removePlan, findPlan, parsePlans, loadPlans, storePlans, cleanName, MAX_PLANS, PLANS_KEY } from '../ui/plans.js';
+import { addPlan, removePlan, findPlan, parsePlans, loadPlans, storePlans, cleanName, renamePlan, shortPot, defaultName, displayName, MAX_PLANS, PLANS_KEY } from '../ui/plans.js';
+import { planParts } from '../ui/format.js';
 
 const sample = (n) => ({
   name: `Plan ${n}`,
@@ -51,4 +52,42 @@ test('stored plans survive a round trip, and bad data is dropped rather than bre
   const broken = { getItem: () => { throw new Error('blocked'); }, setItem: () => { throw new Error('full'); } };
   assert.deepEqual(loadPlans(broken), []);
   assert.equal(storePlans(broken, list), false);
+});
+
+test('a plan can be renamed; a blank name keeps the old one', () => {
+  const { list } = addPlan([], sample(1), new Date(), 'a');
+  assert.equal(renamePlan(list, 'a', '  Main   plan ')[0].name, 'Main plan');
+  assert.equal(renamePlan(list, 'a', '   ')[0].name, 'Plan 1');
+  assert.equal(renamePlan(list, 'zzz', 'x')[0].name, 'Plan 1');
+});
+
+test('short pots and default names', () => {
+  assert.equal(shortPot(1500000), '\u00a31.5m');
+  assert.equal(shortPot(1000000), '\u00a31m');
+  assert.equal(shortPot(1862578), '\u00a31.9m');
+  assert.equal(shortPot(850000), '\u00a3850k');
+  assert.equal(shortPot(NaN), '');
+  assert.equal(defaultName(1500000, 'Floor and ceiling'), '\u00a31.5m, floor and ceiling');
+});
+
+test('names that repeat the option show only the rest; others are shown as typed', () => {
+  const opt = 'Floor and ceiling, your cash spent first, your 70/20/10 mix';
+  assert.equal(displayName(`\u00a31.5m - ${opt}`, opt, 'x'), '\u00a31.5m');
+  assert.equal(displayName(opt, opt, '\u00a31.5m, floor and ceiling'), '\u00a31.5m, floor and ceiling');
+  assert.equal(displayName('Main plan', opt, 'x'), 'Main plan');
+});
+
+test('an option splits into approach, cash rule and starting mix', () => {
+  const mine = planParts({ strategy: 'floor-ceiling', params: { pinned: true }, mix: { equities: 0.75 }, cashBuffer: { amount: 100000 }, cashRule: 'spend-first', currentMix: { equities: 0.6, bonds: 0.3, cash: 0.1 } });
+  assert.equal(mine.approach, 'Floor and ceiling');
+  assert.equal(mine.pinned, true);
+  assert.equal(mine.cash, 'cash spent first');
+  assert.equal(mine.mixLabel, '60/30/10');
+  const grid = { strategy: 'constant-real', params: { rate: 0.04 }, mix: { equities: 0.7 }, cashBuffer: { years: 2 } };
+  assert.equal(planParts(grid).cash, '2-year cash buffer');
+  assert.equal(planParts(grid).split, null);
+  // No cash buffer: the split is the invested mix, known without the pot.
+  assert.equal(planParts({ ...grid, cashBuffer: { years: 0 } }).mixLabel, '70/30/0');
+  const withPot = planParts(grid, { pot: 500000, wanted: 25000, minimum: 20000, years: 30, otherIncome: [], incomeChange: null });
+  assert.equal(withPot.mixLabel, '63/27/10');
 });
