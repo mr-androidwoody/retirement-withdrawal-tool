@@ -52,7 +52,10 @@ Your-mix rows and the comparison cards follow the same choice.
   and the recommendation are always chosen across all starts; the choice only changes which
   starts the figures, status words and run-out limit cover (including the what-if tables).
   The choice carries between the results page and the detail.
-- Option detail: worst-case and best-case tags on the start-year boxes, and a "Retired in X"
+- Option detail: Worst case, Middle case and Best case tags on the start-year boxes (strips
+  along the bottom of the box), all about how this option did: starts ordered by lowest income
+  year (within a pound counts as equal), then what was left; middle is the middle of that order
+  (`middleCase`). The rank number on each box is the market measure. Plus a "Retired in X"
   strip for the selected year.
 
 ### Results page
