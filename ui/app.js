@@ -1054,6 +1054,16 @@ function worstCase(sims) {
 const defaultYear = (sims) => worstCase(sims).year;
 
 /** The mirror of worstCase: the highest lowest year; ties go to the most left at the end. */
+/**
+ * The middle case: the start in the middle when every start is ordered the same way as worst
+ * and best case (lowest income year, years within \u00a31 counting as equal, then what was left).
+ */
+function middleCase(sims) {
+  const order = [...sims].sort((a, b) => (Math.abs(a.minIncomeReal - b.minIncomeReal) <= 1
+    ? a.endReal - b.endReal || a.startYear - b.startYear : a.minIncomeReal - b.minIncomeReal));
+  const year = order[Math.floor((order.length - 1) / 2)].startYear;
+  return { year, reason: `Its result was in the middle of the ${sims.length} starts, judged the same way as the worst and best case` };
+}
 function bestCase(sims) {
   const highest = Math.max(...sims.map((s) => s.minIncomeReal));
   const tied = sims.filter((s) => s.minIncomeReal >= highest - 1);
@@ -1106,7 +1116,11 @@ function renderDetail() {
   const bestRaw = bestCase(sims);
   const best = sims.length > 1 && bestRaw.year !== worst.year ? bestRaw : null;
   const bestName = keep ? `Best case of these ${n}` : 'Best case for this option';
-  const retiredLabel = (y) => `Retired ${y}${y === worst.year ? ' (worst case)' : (best && y === best.year ? ' (best case)' : '')}`;
+  const midRaw = middleCase(sims);
+  const middle = sims.length > 2 && midRaw.year !== worst.year && (!best || midRaw.year !== best.year) ? midRaw : null;
+  const middleName = keep ? `Middle case of these ${n}` : 'Middle case for this option';
+  const retiredLabel = (y) => `Retired ${y}${y === worst.year ? ' (worst case)' : (best && y === best.year ? ' (best case)'
+    : (middle && y === middle.year ? ' (middle case)' : ''))}`;
   const limit = keep ? allowedFailures(req.riskShare ?? 0, n) : req.maxFailures;
   const rankOf = new Map((state.ranking || []).map((x) => [x.startYear, x]));
   const subsetName = keep ? `${periods === 'worst' ? 'Worst' : 'Best'} ${n} starts` : '';
@@ -1156,8 +1170,10 @@ function renderDetail() {
     const rankTag = rk ? `<span class="rk" title="Rank ${rk.rank} of ${total}: 1 is the worst start for your mix">#${rk.rank}</span>` : '';
     const isWorst = s.startYear === worst.year;
     const isBest = Boolean(best) && s.startYear === best.year;
-    const tagName = isWorst ? worstName : (isBest ? bestName : '');
-    const tag = isWorst ? '<span class="case-tag worst-tag">Worst case</span>' : (isBest ? '<span class="case-tag best-tag">Best case</span>' : '');
+    const isMiddle = Boolean(middle) && s.startYear === middle.year;
+    const tagName = isWorst ? worstName : (isBest ? bestName : (isMiddle ? middleName : ''));
+    const tag = isWorst ? '<span class="case-tag worst-tag">Worst case</span>' : (isBest ? '<span class="case-tag best-tag">Best case</span>'
+      : (isMiddle ? '<span class="case-tag mid-tag">Middle case</span>' : ''));
     return `<button type="button" class="yr ${cls}${tag ? ' tagged' : ''}" data-year="${s.startYear}" aria-pressed="${s.startYear === selected}"${tagName ? ` aria-label="${s.startYear}, ${word}, ${tagName.toLowerCase()}"` : ''}>${rankTag}<span class="yr-y">${ICON[cls]}${s.startYear}</span><small>${word}</small>${tag}</button>`;
   }).join('');
 
@@ -1206,8 +1222,8 @@ function renderDetail() {
   const selBlock = `<div class="sel-box">
       <div class="sel-head">
         <div>
-          <h4>Retired in ${selected} <span class="st-chip ${selCls}">${ICON[selCls]}${escapeHtml(selWord)}</span>${selected === worst.year ? `<span class="case-chip worst-chip">${worstName}</span>` : ''}${best && selected === best.year ? `<span class="case-chip best-chip">${bestName}</span>` : ''}</h4>
-          ${selected === worst.year ? `<p class="worst-why">${escapeHtml(worst.reason)}.</p>` : ''}${best && selected === best.year ? `<p class="worst-why">${escapeHtml(best.reason)}.</p>` : ''}
+          <h4>Retired in ${selected} <span class="st-chip ${selCls}">${ICON[selCls]}${escapeHtml(selWord)}</span>${selected === worst.year ? `<span class="case-chip worst-chip">${worstName}</span>` : ''}${best && selected === best.year ? `<span class="case-chip best-chip">${bestName}</span>` : ''}${middle && selected === middle.year ? `<span class="case-chip mid-chip">${middleName}</span>` : ''}</h4>
+          ${selected === worst.year ? `<p class="worst-why">${escapeHtml(worst.reason)}.</p>` : ''}${best && selected === best.year ? `<p class="worst-why">${escapeHtml(best.reason)}.</p>` : ''}${middle && selected === middle.year ? `<p class="worst-why">${escapeHtml(middle.reason)}.</p>` : ''}
         </div>
         ${selRank && mixName ? `<p>Rank ${selRank.rank} of ${total} for your ${escapeHtml(mixName)} mix: ${signedPct(selRank.realReturn, 1)} a year after inflation over its first ${state.config.risk.rankYears} years. Rank 1 is the worst start.</p>` : ''}
       </div>
@@ -1260,7 +1276,7 @@ function renderDetail() {
         <h3>${keep ? `${subsetName}, worst first` : 'Each past retirement'}</h3>
         <p class="hint">Choose a start year to highlight it in the charts and see it year by year. The small number is each start's rank for your mix, 1 being the worst.</p>
         <div class="strip" id="strip">${strip}</div>
-        <p class="hint fine">The rank is how markets went for your mix; the worst case is how this option did.</p>
+        <p class="hint fine">The rank is how markets went for your mix; worst, middle and best case are how this option did.</p>
         ${selBlock}
         <div class="legend"><span class="st good">${ICON.good}Lasted, never below what you want</span><span class="st warn">${ICON.warn}Lasted, some years below what you want</span><span class="st bad">${ICON.bad}Ran out, or under a year's withdrawal left</span></div>
       </section>
