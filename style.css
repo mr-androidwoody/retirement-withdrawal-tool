@@ -33,9 +33,9 @@
   --band-mid: rgba(11, 95, 122, .30);
   --band-range: rgba(11, 95, 122, .12);
   --chart-median: #4b5563;
-  --mix-s: #4b5563;      /* mix bars: shares, bonds, cash in shades of one grey */
-  --mix-b: #9aa1ab;
-  --mix-c: #d3d7dd;
+  --mix-s: #0b5f7a;      /* mix bars: shares teal, bonds violet, cash grey (dark to light) */
+  --mix-b: #8b7fd1;
+  --mix-c: #cfd4da;
   --shadow: rgba(0, 0, 0, .10);
   --shadow-strong: rgba(0, 0, 0, .2);
   --backdrop: rgba(27, 31, 36, .45);
@@ -81,9 +81,9 @@
   --band-mid: rgba(91, 186, 214, .38);
   --band-range: rgba(91, 186, 214, .16);
   --chart-median: #b0b6be;
-  --mix-s: #d6dade;
-  --mix-b: #8a919b;
-  --mix-c: #4b525b;
+  --mix-s: #5bbad6;
+  --mix-b: #a99ce6;
+  --mix-c: #5d646e;
   --shadow: rgba(0, 0, 0, .35);
   --shadow-strong: rgba(0, 0, 0, .55);
   --backdrop: rgba(0, 0, 0, .6);
@@ -434,7 +434,11 @@ th.num { white-space: normal; }
 .mix-chip { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 16px; }
 .mix-bar { display: flex; width: 56px; height: 6px; border-radius: 3px; overflow: hidden; background: var(--line); }
 .mix-bar span { display: block; height: 100%; }
-.mix-chip[aria-checked="true"] .mix-bar { box-shadow: 0 0 0 1px var(--on-accent); }
+/* The selected chip is filled teal, so its bar sits on a card-coloured strip. */
+.mix-chip[aria-checked="true"] .mix-bar { background: var(--card); padding: 2px; height: 10px; box-sizing: border-box; border-radius: 5px; }
+.mix-chip[aria-checked="true"] .mix-bar span:first-child { border-radius: 3px 0 0 3px; }
+.mix-chip[aria-checked="true"] .mix-bar span:last-child { border-radius: 0 3px 3px 0; }
+.mix-chip[aria-checked="true"] { padding-top: 6px; }
 .mix-bar.big { width: 100%; height: 10px; border-radius: 5px; margin-top: 4px; }
 .mix-bar .s, .mix-key .s { background: var(--mix-s); }
 .mix-bar .b, .mix-key .b { background: var(--mix-b); }

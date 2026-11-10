@@ -65,8 +65,10 @@ first.
 
 ### Your current mix
 
-Six one-tap presets (`currentMixes` in config.json) plus Custom. Each chip has a small grey
-shares / bonds / cash bar; a large bar and key sit under the chips. Custom takes pound amounts
+Six one-tap presets (`currentMixes` in config.json) plus Custom. Each chip has a small
+shares / bonds / cash bar (teal, violet, grey: a deliberate exception to colour-for-status only,
+avoiding the status greens, ambers and reds, and stepping dark to light so it reads in
+greyscale); a large bar and key sit under the chips. Custom takes pound amounts
 (default) or percentages, with a switch that converts between them (`ui/mix.js`, tested in
 `tests/mix.test.js`). In pounds the split is what counts; if the amounts do not add up to the pot
 a warning offers "Use (amount) as my pot". Saves without `mixUnit` are percentages.
