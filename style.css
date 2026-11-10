@@ -36,6 +36,10 @@
   --mix-s: #0b5f7a;      /* mix bars: shares teal, bonds violet, cash grey (dark to light) */
   --mix-b: #8b7fd1;
   --mix-c: #cfd4da;
+  --case-worst: #3d4f9f;      /* case tags step dark to bright, worst to best; not status colours */
+  --case-worst-ink: #ffffff;
+  --case-mid: #6b7a99;
+  --case-mid-ink: #ffffff;
   --shadow: rgba(0, 0, 0, .10);
   --shadow-strong: rgba(0, 0, 0, .2);
   --backdrop: rgba(27, 31, 36, .45);
@@ -84,6 +88,10 @@
   --mix-s: #5bbad6;
   --mix-b: #a99ce6;
   --mix-c: #5d646e;
+  --case-worst: #9aa8f0;
+  --case-worst-ink: #151a33;
+  --case-mid: #a9b4c8;
+  --case-mid-ink: #1b1f24;
   --shadow: rgba(0, 0, 0, .35);
   --shadow-strong: rgba(0, 0, 0, .55);
   --backdrop: rgba(0, 0, 0, .6);
@@ -363,12 +371,14 @@ th.num { white-space: normal; }
 /* ---------- worst case call-out ---------- */
 /* Case tags: a strip across the bottom of the box, sized to the box so it never overruns. */
 .yr.tagged { padding-bottom: 22px; overflow: hidden; }
-.case-tag { position: absolute; left: 0; right: 0; bottom: 0; padding: 3px 2px; font-size: 9px; font-weight: 700; letter-spacing: .05em; line-height: 1.2; text-transform: uppercase; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--card); background: var(--ink); }
+.case-tag { position: absolute; left: 0; right: 0; bottom: 0; padding: 3px 2px; font-size: 9px; font-weight: 700; letter-spacing: .05em; line-height: 1.2; text-transform: uppercase; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.worst-tag { background: var(--case-worst); color: var(--case-worst-ink); }
 .best-tag { background: var(--accent); color: var(--on-accent); }
-.mid-tag { background: var(--panel); color: var(--ink); border-top: 1px solid var(--line-strong); }
-.case-chip { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--ink); color: var(--card); }
-.best-chip { background: var(--accent); }
-.mid-chip { background: var(--panel); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.mid-tag { background: var(--case-mid); color: var(--case-mid-ink); }
+.case-chip { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+.worst-chip { background: var(--case-worst); color: var(--case-worst-ink); }
+.best-chip { background: var(--accent); color: var(--on-accent); }
+.mid-chip { background: var(--case-mid); color: var(--case-mid-ink); }
 .worst-why { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
 
 /* ---------- strategies overlay ---------- */

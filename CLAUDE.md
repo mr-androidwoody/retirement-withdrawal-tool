@@ -55,7 +55,8 @@ Your-mix rows and the comparison cards follow the same choice.
 - Option detail: Worst case, Middle case and Best case tags on the start-year boxes (strips
   along the bottom of the box), all about how this option did: starts ordered by lowest income
   year (within a pound counts as equal), then what was left; middle is the middle of that order
-  (`middleCase`). The rank number on each box is the market measure. Plus a "Retired in X"
+  (`middleCase`). Tag colours (`--case-worst`, `--case-mid`, accent for best) are indigo, slate and teal,
+  stepping dark to bright, and are not status colours. The rank number on each box is the market measure. Plus a "Retired in X"
   strip for the selected year.
 
 ### Results page
