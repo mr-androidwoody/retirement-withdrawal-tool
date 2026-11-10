@@ -8,6 +8,7 @@ import { summarisePlan, investmentIndex, worstFall } from '../engine/metrics.js'
 import { allowedFailures, rankWindows, pickPeriods, subsetSummary } from '../engine/periods.js';
 import { gbp, pct, escapeHtml, parseAmount, formatAmount, planName, recipe, holdingsText, money, bigMoney, signedMoney, signedPct, STRATEGY_INFO, strategyTag } from './format.js';
 import { lineChart, wireCharts } from './charts.js';
+import { mixFromValues, wholePercents, convertValues } from './mix.js';
 import { loadPlans, storePlans, addPlan, removePlan, findPlan, cleanName, MAX_PLANS, MAX_NAME } from './plans.js';
 
 const $ = (id) => document.getElementById(id);
@@ -15,6 +16,7 @@ const state = {
   config: null,
   dataset: null,
   mixLabel: null,
+  mixUnit: 'gbp',
   riskShare: 0.05,
   priority: 'spend',
   ranking: null,
@@ -114,7 +116,7 @@ function formatMoney(id) {
 
 /** Everything on the form, in the saved-inputs format (also what a saved plan keeps). */
 function collectInputs() {
-  const data = { version: 1, fields: {}, open: {}, mix: state.mixLabel, riskShare: state.riskShare, priority: state.priority, keepMix: $('keep-mix').checked };
+  const data = { version: 1, fields: {}, open: {}, mix: state.mixLabel, mixUnit: state.mixUnit, riskShare: state.riskShare, priority: state.priority, keepMix: $('keep-mix').checked };
   for (const id of SAVED_FIELDS) data.fields[id] = $(id).value;
   for (const id of SAVED_BOXES) data.open[id] = !$(id).hidden;
   return data;
@@ -156,6 +158,8 @@ function restoreInputs(data = loadSaved()) {
   if (!state.config.risk.choices.some((c) => c.share === state.riskShare)) state.riskShare = state.config.defaults.riskShare;
   $('keep-mix').checked = Boolean(data.keepMix);
   state.priority = data.priority === 'pass-on' ? 'pass-on' : 'spend';
+  // Saves from before the \u00a3 / % switch hold percentages.
+  setMixUnit(data.mixUnit === 'gbp' ? 'gbp' : 'pct', { convert: false });
   const labels = [...(state.config.currentMixes || []).map((m) => m.label), 'Custom'];
   selectMix(labels.includes(data.mix) ? data.mix : (state.config.defaultMix || 'Custom'));
   return true;
@@ -225,12 +229,29 @@ function initForm() {
 
   // Current mix: predefined splits plus a custom one.
   const mixes = config.currentMixes || [];
-  $('mixes').innerHTML = [...mixes.map((m) => m.label), 'Custom'].map((label) =>
-    `<button type="button" class="chip" role="radio" aria-checked="false" data-mix="${label}">${label === 'Custom' ? 'Custom' : label}</button>`).join('');
+  // Each chip carries a small shares / bonds / cash bar, so the split shows at a glance.
+  $('mixes').innerHTML = [...mixes.map((m) =>
+    `<button type="button" class="chip mix-chip" role="radio" aria-checked="false" data-mix="${m.label}">${mixBar(m)}<span>${m.label}</span></button>`),
+  `<button type="button" class="chip mix-chip" role="radio" aria-checked="false" data-mix="Custom"><span class="mix-bar empty" aria-hidden="true"></span><span>Custom</span></button>`].join('');
   $('mixes').addEventListener('click', (e) => {
     const btn = e.target.closest('[data-mix]');
     if (btn) selectMix(btn.dataset.mix);
   });
+  $('mix-unit').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-unit]');
+    if (btn) { setMixUnit(btn.dataset.unit); refresh(); }
+  });
+  $('mix-use-pot').addEventListener('click', () => {
+    const m = readMix();
+    if (m.total > 0) {
+      $('pot').value = formatAmount(m.total);
+      refresh();
+      $('pot').focus();
+    }
+  });
+  for (const id of MIX_FIELDS) {
+    $(id).addEventListener('blur', () => { if (state.mixUnit === 'gbp') formatMoney(id); });
+  }
   selectMix(config.defaultMix || mixes[0]?.label || 'Custom');
 
   // Any edit refreshes the goal; money fields get thousands separators on blur.
@@ -381,12 +402,38 @@ function selectMix(label) {
   const custom = label === 'Custom';
   $('custom-mix').hidden = !custom;
   if (custom && !$('mix-eq').value) {
+    // Start Custom from the default preset, in whichever unit is chosen.
     const m = state.config.currentMixes.find((x) => x.label === state.config.defaultMix) || { equities: 0.6, bonds: 0.3, cash: 0.1 };
-    $('mix-eq').value = Math.round(m.equities * 100);
-    $('mix-bd').value = Math.round(m.bonds * 100);
-    $('mix-cash').value = Math.round(m.cash * 100);
+    const pot = parseAmount($('pot').value);
+    const f = [m.equities, m.bonds, m.cash];
+    const vals = state.mixUnit === 'gbp' && pot > 0 ? f.map((x) => formatAmount(x * pot)) : f.map((x) => Math.round(x * 100));
+    MIX_FIELDS.forEach((id, i) => { $(id).value = vals[i]; });
   }
   refresh();
+}
+
+const MIX_FIELDS = ['mix-eq', 'mix-bd', 'mix-cash'];
+const mixValues = () => MIX_FIELDS.map((id) => parseAmount(String($(id).value).replace('%', '')));
+
+/** Small or large shares / bonds / cash bar (shades of one grey; colour is kept for status). */
+function mixParts(m) {
+  const p = wholePercents(m);
+  return ['s', 'b', 'c'].map((k, i) => (p[i] ? `<span class="${k}" style="width:${p[i]}%"></span>` : '')).join('');
+}
+const mixBar = (m) => `<span class="mix-bar" aria-hidden="true">${mixParts(m)}</span>`;
+
+/** Switch Custom between pound amounts and percentages, converting what is typed. */
+function setMixUnit(unit, { convert = true } = {}) {
+  const from = state.mixUnit;
+  state.mixUnit = unit;
+  for (const b of $('mix-unit').querySelectorAll('[data-unit]')) b.setAttribute('aria-checked', String(b.dataset.unit === unit));
+  const suffix = unit === 'gbp' ? '(\u00a3)' : '(%)';
+  $('mix-eq-label').textContent = `Shares ${suffix}`;
+  $('mix-bd-label').textContent = `Bonds ${suffix}`;
+  $('mix-cash-label').textContent = `Cash ${suffix}`;
+  if (!convert || from === unit) return;
+  const next = convertValues(mixValues(), from, unit, parseAmount($('pot').value));
+  if (next) MIX_FIELDS.forEach((id, i) => { $(id).value = unit === 'gbp' ? formatAmount(next[i]) : next[i]; });
 }
 
 /** The current mix as fractions { equities, bonds, cash }, or { error } for a bad custom split. */
@@ -395,11 +442,12 @@ function readMix() {
     const m = state.config.currentMixes.find((x) => x.label === state.mixLabel);
     return m ? { equities: m.equities, bonds: m.bonds, cash: m.cash } : { error: 'Choose your current mix.' };
   }
-  const v = ['mix-eq', 'mix-bd', 'mix-cash'].map((id) => Number(String($(id).value).replace('%', '').trim() || 0));
-  if (v.some((x) => !Number.isFinite(x) || x < 0)) return { error: 'Mix percentages must be zero or more.' };
-  const total = v[0] + v[1] + v[2];
-  if (Math.abs(total - 100) > 0.5) return { error: `Your mix adds up to ${+total.toFixed(1)}%, not 100%.` };
-  return { equities: v[0] / 100, bonds: v[1] / 100, cash: v[2] / 100 };
+  const raw = MIX_FIELDS.map((id) => String($(id).value).trim());
+  const v = mixValues();
+  if (raw.some((t, i) => t !== '' && !Number.isFinite(v[i]))) {
+    return { error: state.mixUnit === 'gbp' ? 'Amounts must be numbers, like 250,000.' : 'Mix percentages must be numbers.' };
+  }
+  return mixFromValues(v, state.mixUnit);
 }
 
 /** How many past retirements may run out for this length, from the chosen share. */
@@ -556,11 +604,23 @@ function refresh() {
   const fee = Number($('fee').value);
   const mix = readMix();
   const potNow = parseAmount($('pot').value);
+  const usedFor = 'Used for the "Your mix as it is now" rows; the search also tries other mixes.';
+  const customGbp = state.mixLabel === 'Custom' && state.mixUnit === 'gbp';
+  $('mix-bar').innerHTML = mix.error ? '' : mixParts(mix);
   if (mix.error) $('mix-summary').textContent = mix.error;
-  else if (potNow > 0) {
-    $('mix-summary').textContent = `${gbp(potNow * mix.equities)} shares \u00b7 ${gbp(potNow * mix.bonds)} bonds \u00b7 ${gbp(potNow * mix.cash)} cash. `
-      + 'Used for the "Your mix as it is now" rows; the search also tries other mixes.';
+  else if (customGbp) {
+    const p = wholePercents(mix);
+    $('mix-summary').textContent = `${p[0]}% shares \u00b7 ${p[1]}% bonds \u00b7 ${p[2]}% cash. ${usedFor}`;
+  } else if (potNow > 0) {
+    $('mix-summary').textContent = `${gbp(potNow * mix.equities)} shares \u00b7 ${gbp(potNow * mix.bonds)} bonds \u00b7 ${gbp(potNow * mix.cash)} cash, from your ${gbp(potNow)} pot. ${usedFor}`;
   } else $('mix-summary').textContent = '';
+  // In pounds, say when the amounts and the pot disagree (the split is still used either way).
+  const off = customGbp && !mix.error && potNow > 0 && Math.abs(mix.total - potNow) >= 1;
+  $('mix-pot-warn').hidden = !off;
+  if (off) {
+    $('mix-pot-text').textContent = `These add up to ${gbp(mix.total)}, not your ${gbp(potNow)} pot.`;
+    $('mix-use-pot').textContent = `Use ${gbp(mix.total)} as my pot`;
+  }
   pensionHint(1);
   pensionHint(2);
   const sp = state.config.statePension;
