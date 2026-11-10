@@ -1,13 +1,14 @@
 // The page: wizard, results and option detail. All modelling happens in engine/.
 
 import { validateDataset, makeWindows, lengthError } from '../engine/dataset.js';
-import { runSearch, whatIf, buildGrid, strategySettings, CASH_RULES, currentFromMix } from '../engine/search.js';
+import { runSearch, whatIf, buildGrid, strategySettings, CASH_RULES, currentFromMix, evaluatePlan } from '../engine/search.js';
 import { simulate } from '../engine/simulate.js';
 import { buildProfile } from '../engine/profile.js';
 import { summarisePlan, investmentIndex, worstFall } from '../engine/metrics.js';
 import { allowedFailures, rankWindows, pickPeriods, subsetSummary } from '../engine/periods.js';
 import { gbp, pct, escapeHtml, parseAmount, formatAmount, planName, recipe, holdingsText, money, bigMoney, signedMoney, signedPct, STRATEGY_INFO, strategyTag } from './format.js';
 import { lineChart, wireCharts } from './charts.js';
+import { loadPlans, storePlans, addPlan, removePlan, findPlan, cleanName, MAX_PLANS, MAX_NAME } from './plans.js';
 
 const $ = (id) => document.getElementById(id);
 const state = {
@@ -47,6 +48,7 @@ async function load() {
     state.config = config;
     state.dataset = dataset;
     initForm();
+    initSavedPlans();
   } catch (err) {
     $('source-line').textContent = `The historical data could not be loaded (${err.message}).`;
   }
@@ -110,12 +112,17 @@ function formatMoney(id) {
   if (Number.isFinite(v)) $(id).value = formatAmount(v);
 }
 
-function saveInputs() {
-  if (!state.ready) return;
+/** Everything on the form, in the saved-inputs format (also what a saved plan keeps). */
+function collectInputs() {
   const data = { version: 1, fields: {}, open: {}, mix: state.mixLabel, riskShare: state.riskShare, priority: state.priority, keepMix: $('keep-mix').checked };
   for (const id of SAVED_FIELDS) data.fields[id] = $(id).value;
   for (const id of SAVED_BOXES) data.open[id] = !$(id).hidden;
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch { /* storage unavailable: nothing to do */ }
+  return data;
+}
+
+function saveInputs() {
+  if (!state.ready) return;
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(collectInputs())); } catch { /* storage unavailable: nothing to do */ }
 }
 
 function loadSaved() {
@@ -126,9 +133,8 @@ function loadSaved() {
   } catch { return null; }
 }
 
-/** Put saved inputs back into the form. Returns true if there were any. */
-function restoreInputs() {
-  const data = loadSaved();
+/** Put saved inputs (by default the last ones used) back into the form. Returns true if there were any. */
+function restoreInputs(data = loadSaved()) {
   if (!data) return false;
   for (const id of SAVED_FIELDS) if (typeof data.fields?.[id] === 'string' && $(id)) $(id).value = data.fields[id];
   if (!typedYears().ok) $('years').value = String(state.config.defaults.years);
@@ -613,6 +619,11 @@ function refresh() {
 
 function onFind(e) {
   e.preventDefault();
+  runFind(() => { renderResults(); show('results'); });
+}
+
+/** Run the search on what is in the form, then call `after` (nothing happens if the form has errors). */
+function runFind(after) {
   const { request, errors, mix } = readRequest();
   const box = $('form-errors');
   if (errors.length) {
@@ -637,8 +648,9 @@ function onFind(e) {
       state.views = new WeakMap();
       state.result = runSearch({ dataset: state.dataset, config: state.config, request,
         current: currentFromMix(request.pot, mix), keepMix: $('keep-mix').checked });
-      renderResults();
-      show('results');
+      // The inputs these results came from, kept with a plan if it is saved.
+      state.searchInputs = collectInputs();
+      after();
     } catch (err) {
       box.hidden = false;
       box.textContent = `Something went wrong: ${err.message}`;
@@ -1172,6 +1184,7 @@ function renderDetail() {
         <p class="recipe"><strong>Cash:</strong> ${escapeHtml(rec.cash)}</p>
         <p class="recipe"><strong>The rest:</strong> ${escapeHtml(rec.rest)}</p>
       </header>
+      ${saveBlock()}
 
       <div class="periods-bar">
         <div class="segmented periods" role="radiogroup" aria-label="Which past retirements to show">${periodChoices(periods, total)}</div>
@@ -1245,8 +1258,135 @@ function renderDetail() {
       if (again) again.focus();
       return;
     }
+    if (e.target.closest('[data-save-open]')) {
+      state.detail.saving = true;
+      renderDetail();
+      const input = $('save-name');
+      if (input) { input.focus(); input.select(); }
+      return;
+    }
+    if (e.target.closest('[data-save-cancel]')) { state.detail.saving = false; state.detail.saveError = ''; renderDetail(); return; }
+    if (e.target.closest('[data-save-confirm]')) {
+      saveCurrentPlan();
+      renderDetail();
+      const focus = view.querySelector('.save-line');
+      if (focus) { focus.setAttribute('tabindex', '-1'); focus.focus({ preventScroll: true }); }
+      return;
+    }
     if (e.target.closest('[data-nav="results"]')) { renderResults(); show('results'); }
   };
+  // Enter in the name box saves.
+  view.onkeydown = (e) => {
+    if (e.key === 'Enter' && e.target.id === 'save-name') {
+      e.preventDefault();
+      view.querySelector('[data-save-confirm]')?.click();
+    }
+  };
+}
+
+// ---------- saved plans ----------
+
+const storage = (() => { try { return window.localStorage; } catch { return null; } })();
+const plansNow = () => (storage ? loadPlans(storage) : []);
+const savedDate = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
+/** The "Your saved plans" list on the first page; hidden when there are none. */
+function renderSavedPlans() {
+  const list = plansNow();
+  const box = $('saved-plans');
+  box.hidden = list.length === 0;
+  if (!list.length) { box.innerHTML = ''; return; }
+  box.innerHTML = `<h2>Your saved plans</h2>
+    <p class="hint">Up to ${MAX_PLANS}, kept in this browser. View opens a plan with the inputs it was saved with (they replace what is in the form). Load inputs only fills in the form.</p>
+    <ul class="plan-list">${list.map((p) => {
+      const s = p.summary || {};
+      const meta = [`Saved ${savedDate(p.savedAt)}`, s.pot ? `${gbp(s.pot)} pot` : '', s.years ? `${s.years} years` : '', s.typical ? `typical ${s.typical}` : '',
+        p.inputs?.priority === 'pass-on' ? 'pass on more' : '']
+        .filter(Boolean).join(' \u00b7 ');
+      return `<li>
+        <div class="plan-text"><strong>${escapeHtml(p.name)}</strong>
+          ${p.name === planName(p.plan) ? '' : `<span class="hint">${escapeHtml(planName(p.plan))}</span>`}
+          <span class="hint">${escapeHtml(meta)}</span></div>
+        <div class="plan-actions">
+          <button type="button" class="secondary" data-plan-view="${p.id}">View</button>
+          <button type="button" class="link" data-plan-load="${p.id}">Load inputs</button>
+          <button type="button" class="link" data-plan-delete="${p.id}" aria-label="Delete ${escapeHtml(p.name)}">Delete</button>
+        </div></li>`;
+    }).join('')}</ul>
+    <p class="hint" id="plans-msg" role="status"></p>`;
+}
+
+function initSavedPlans() {
+  renderSavedPlans();
+  $('saved-plans').addEventListener('click', (e) => {
+    const view = e.target.closest('[data-plan-view]');
+    const load = e.target.closest('[data-plan-load]');
+    const del = e.target.closest('[data-plan-delete]');
+    const id = (view || load || del)?.dataset.planView || (view || load || del)?.dataset.planLoad || (view || load || del)?.dataset.planDelete;
+    if (!id) return;
+    const entry = findPlan(plansNow(), id);
+    if (!entry) { renderSavedPlans(); return; }
+    if (del) {
+      // Two steps, no pop-up: the first press asks, the second deletes.
+      if (del.dataset.confirm !== 'yes') {
+        del.dataset.confirm = 'yes';
+        del.textContent = 'Press again to delete';
+        return;
+      }
+      storePlans(storage, removePlan(plansNow(), id));
+      renderSavedPlans();
+      $('plans-msg').textContent = `Deleted ${entry.name}.`;
+      return;
+    }
+    restoreInputs(entry.inputs);
+    for (const f of MONEY_FIELDS) formatMoney(f);
+    refresh();
+    if (load) {
+      $('plans-msg').textContent = `Inputs from ${entry.name} are in the form.`;
+      return;
+    }
+    runFind(() => {
+      renderResults();
+      const result = evaluatePlan(entry.plan, windowsFor(state.request.years), state.request, state.config.thresholds);
+      openDetail({ result, labels: ['Saved plan'], savedId: entry.id });
+    });
+  });
+}
+
+/** The save line at the top of an option detail. */
+function saveBlock() {
+  const d = state.detail;
+  const saved = d.item.savedId ? findPlan(plansNow(), d.item.savedId) : null;
+  if (saved) return `<p class="save-line" role="status">Saved as <strong>${escapeHtml(saved.name)}</strong>. Find it on the first page under Your saved plans.</p>`;
+  const count = plansNow().length;
+  if (!d.saving) {
+    return `<div class="save-line"><button type="button" class="secondary" data-save-open ${count >= MAX_PLANS ? 'disabled' : ''}>Save this plan</button>
+      ${count >= MAX_PLANS ? `<span class="hint">You have ${MAX_PLANS} saved plans, the most it keeps. Delete one on the first page to save this.</span>` : `<span class="hint">${count} of ${MAX_PLANS} saved</span>`}</div>`;
+  }
+  return `<div class="save-line save-form">
+      <label for="save-name">Name this plan</label>
+      <input id="save-name" maxlength="${MAX_NAME}" value="${escapeHtml(planName(d.item.result.plan))}">
+      <button type="button" class="primary small" data-save-confirm>Save</button>
+      <button type="button" class="link" data-save-cancel>Cancel</button>
+      ${d.saveError ? `<p class="hint bad-text" role="alert">${escapeHtml(d.saveError)}</p>` : ''}
+    </div>`;
+}
+
+function saveCurrentPlan() {
+  const d = state.detail;
+  const result = d.item.result;
+  const out = addPlan(plansNow(), {
+    name: cleanName($('save-name').value, planName(result.plan)),
+    inputs: state.searchInputs || collectInputs(),
+    plan: result.plan,
+    summary: { pot: state.request.pot, years: state.request.years, age: state.request.age, typical: typicalText(result) },
+  });
+  if (out.error) { d.saveError = out.error; return; }
+  if (!storePlans(storage, out.list)) { d.saveError = 'This browser would not save it (storage is off or full).'; return; }
+  d.item = { ...d.item, savedId: out.entry.id };
+  d.saving = false;
+  d.saveError = '';
+  renderSavedPlans();
 }
 
 // ---------- colour theme ----------
