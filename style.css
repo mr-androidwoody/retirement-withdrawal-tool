@@ -451,7 +451,7 @@ th.num { white-space: normal; }
 .secondary[disabled] { opacity: .5; cursor: not-allowed; }
 .bad-text { color: var(--bad-ink); width: 100%; }
 
-/* Current mix: chips with a small split bar, the pounds / percent switch, a large bar and key. */
+/* Current mix: chips with a small split bar (Custom shows what is typed), the pounds / percent switch, and a key. */
 .mix-chip { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 16px; }
 .mix-bar { display: flex; width: 56px; height: 6px; border-radius: 3px; overflow: hidden; background: var(--line); }
 .mix-bar span { display: block; height: 100%; }
@@ -460,7 +460,6 @@ th.num { white-space: normal; }
 .mix-chip[aria-checked="true"] .mix-bar span:first-child { border-radius: 3px 0 0 3px; }
 .mix-chip[aria-checked="true"] .mix-bar span:last-child { border-radius: 0 3px 3px 0; }
 .mix-chip[aria-checked="true"] { padding-top: 6px; }
-.mix-bar.big { width: 100%; height: 10px; border-radius: 5px; margin-top: 4px; }
 .mix-bar .s, .mix-key .s { background: var(--mix-s); }
 .mix-bar .b, .mix-key .b { background: var(--mix-b); }
 .mix-bar .c, .mix-key .c { background: var(--mix-c); }
