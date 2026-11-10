@@ -402,3 +402,17 @@ th.num { white-space: normal; }
 @media (max-width: 720px) { .theme-switch { margin-bottom: 0; position: relative; z-index: 1; } }
 .theme-switch button { font: inherit; font-size: 13px; padding: 6px 12px; min-height: 36px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--muted); cursor: pointer; }
 .theme-switch button[aria-checked="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+
+/* Saved plans: the list on the first page and the save line in an option detail. */
+.saved-plans h2 { font-size: 18px; margin: 0 0 4px; }
+.plan-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; }
+.plan-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 12px 0; border-top: 1px solid var(--line); }
+.plan-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.plan-text strong { overflow-wrap: anywhere; }
+.plan-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+.save-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0; }
+.save-form label { font-weight: 600; width: 100%; }
+.save-form input { flex: 1 1 260px; max-width: 480px; }
+.primary.small { padding: 10px 20px; min-height: 44px; font-size: 15px; }
+.secondary[disabled] { opacity: .5; cursor: not-allowed; }
+.bad-text { color: var(--bad-ink); width: 100%; }

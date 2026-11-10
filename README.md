@@ -30,6 +30,11 @@ Inputs are saved as you type in the browser's `localStorage` (key
 browser. "Clear saved inputs" removes them and goes back to the defaults. If the saved format ever
 changes, bump the version in the key so old saves are ignored rather than misread.
 
+Up to five plans can be saved by name from an option's detail page ("Save this plan"), in
+`localStorage` under `retirement-withdrawal-tool.plans.v1` (code in `ui/plans.js`). Each keeps the
+inputs it was searched with and the chosen option. "Your saved plans" on the first page can view
+one (puts its inputs back, reruns the search and opens it), load just its inputs, or delete it.
+
 ## Historical data
 
 `data/jst-r6-global-gbp.json` holds one row per year from 1950 to 2020:

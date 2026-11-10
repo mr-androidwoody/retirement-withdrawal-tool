@@ -63,10 +63,15 @@ now", then the other options and how the other approaches compare. When no plan 
 needs, a single "Nearest misses" list replaces both: the best try of each approach, closest
 first.
 
-### Saved inputs
+### Saved inputs and saved plans
 
-In localStorage, key `retirement-withdrawal-tool.inputs.v1`. Bump the version if the saved
-format changes.
+- Inputs: localStorage key `retirement-withdrawal-tool.inputs.v1`. Bump the version if the saved
+  format changes.
+- Saved plans (`ui/plans.js`, tested in `tests/plans.test.js`): up to 5 named plans in
+  `retirement-withdrawal-tool.plans.v1`, each holding the form inputs it was searched with and
+  the option's plan object. "Save this plan" in the option detail; "Your saved plans" on the
+  first page with View (restores the inputs, reruns the search, opens the plan), Load inputs and
+  a two-press Delete. This browser only; no check-ins yet (see ideas).
 
 ### Out of scope (Woody's choice)
 
@@ -101,7 +106,7 @@ Tax, and a yearly results view. Keep it a simple guidance tool, not overcomplica
 
 ## Working on it
 
-- Tests: `node --test` (Node 18+), 101 passing. They also run on GitHub Actions on every push
+- Tests: `node --test` (Node 18+), 105 passing. They also run on GitHub Actions on every push
   (`.github/workflows/test.yml`). Add tests for engine changes.
 - If results change on purpose: review `tools/results-report.md` (`node tools/print-results.mjs`),
   then `node tools/print-results.mjs --update-golden`.
@@ -116,5 +121,8 @@ Tax, and a yearly results view. Keep it a simple guidance tool, not overcomplica
 - Extending the data to 2021 to 2025 using MSCI World (GBP). Woody would need to supply the data;
   splicing it onto the GDP-weighted JST series needs care. Mostly helps shorter plans.
 - A "to age X" entry for the retirement length.
+- Check-ins for saved plans: enter today's pot (and price rise since the start) to see where you
+  stand against the plan's past runs and this year's income under its rules. Discussed: one
+  check-in for all plans, yearly income resets, optional export/import file between devices.
 - On the "nothing meets your needs" page, say what would work (e.g. the highest income any plan
   meets). Needs extra searches.
