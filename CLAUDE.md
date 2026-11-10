@@ -70,7 +70,7 @@ first.
 - Saved plans (`ui/plans.js`, tested in `tests/plans.test.js`): up to 5 named plans in
   `retirement-withdrawal-tool.plans.v1`, each holding the form inputs it was searched with and
   the option's plan object. "Save this plan" in the option detail; "Your saved plans" on the
-  first page with View (restores the inputs, reruns the search, opens the plan), Load inputs and
+  first page (a panel, closed until clicked, showing "2 of 5") with View (restores the inputs, reruns the search, opens the plan), Load inputs and
   a two-press Delete. This browser only; no check-ins yet (see ideas).
 
 ### Out of scope (Woody's choice)

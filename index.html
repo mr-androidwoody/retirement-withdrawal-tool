@@ -35,7 +35,10 @@
     <p class="source"><span class="dot" aria-hidden="true"></span><span id="source-line">Loading the historical data...</span></p>
   </header>
 
-  <section class="card saved-plans" id="saved-plans" aria-label="Your saved plans" hidden></section>
+  <details class="card saved-plans" id="saved-plans-panel" hidden>
+    <summary><span class="sp-title">Your saved plans</span> <span class="sp-count" id="saved-plans-count"></span></summary>
+    <div id="saved-plans"></div>
+  </details>
 
   <form id="plan-form" novalidate>
     <section class="card step">
