@@ -79,9 +79,14 @@ a warning offers "Use (amount) as my pot". Saves without `mixUnit` are percentag
   format changes.
 - Saved plans (`ui/plans.js`, tested in `tests/plans.test.js`): up to 5 named plans in
   `retirement-withdrawal-tool.plans.v1`, each holding the form inputs it was searched with and
-  the option's plan object. "Save this plan" in the option detail; "Your saved plans" on the
-  first page (a panel, closed until clicked, showing "2 of 5") with View (restores the inputs, reruns the search, opens the plan), Load inputs and
-  a two-press Delete. This browser only; no check-ins yet (see ideas).
+  the option's plan object, plus a summary (pot, years, typical spending, starting split).
+  "Save this plan" in the option detail (default name like "(pot), floor and ceiling").
+  "Your saved plans" on the first page: a panel, closed until clicked ("2 of 5"), holding a
+  table (cards under 860px) with Plan, Pot, Approach, Mix and Typical spending, newest first,
+  and View (restores inputs, reruns the search, opens the plan), Load, inline Rename and a
+  two-press Delete. Names that repeat the option (older saves) show only the rest
+  (`displayName`); stored names are not changed. Option parts come from `planParts` in
+  `ui/format.js`. This browser only; no check-ins yet (see ideas).
 
 ### Out of scope (Woody's choice)
 
@@ -116,7 +121,7 @@ Tax, and a yearly results view. Keep it a simple guidance tool, not overcomplica
 
 ## Working on it
 
-- Tests: `node --test` (Node 18+), 110 passing. They also run on GitHub Actions on every push
+- Tests: `node --test` (Node 18+), 114 passing. They also run on GitHub Actions on every push
   (`.github/workflows/test.yml`). Add tests for engine changes.
 - If results change on purpose: review `tools/results-report.md` (`node tools/print-results.mjs`),
   then `node tools/print-results.mjs --update-golden`.

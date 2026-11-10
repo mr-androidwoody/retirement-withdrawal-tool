@@ -418,11 +418,32 @@ th.num { white-space: normal; }
 .saved-plans[open] summary::before { transform: rotate(45deg); }
 .saved-plans .sp-count { font-size: 14px; font-weight: 400; color: var(--muted); }
 .saved-plans[open] > div { padding-bottom: 20px; }
-.plan-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; }
-.plan-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 12px 0; border-top: 1px solid var(--line); }
-.plan-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.plan-text strong { overflow-wrap: anywhere; }
-.plan-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+/* Saved plans table: a row per plan with columns for what you compare; cards on a phone. */
+.plans-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 15px; }
+.plans-table thead th { text-align: left; font-size: 13px; font-weight: 600; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--line-strong); }
+.plans-table tbody th, .plans-table td { background: none; text-align: left; font-weight: 400; padding: 12px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.plans-table tbody tr:last-child > * { border-bottom: 0; }
+.plans-table .nm { font-weight: 600; overflow-wrap: anywhere; }
+.plans-table .sub { display: block; font-size: 13px; color: var(--muted); }
+.plans-table .mix-bar { display: inline-flex; vertical-align: middle; margin-right: 8px; }
+.plans-table .mix-num { white-space: nowrap; }
+.plans-table .plan-actions { text-align: right; white-space: nowrap; }
+.plans-table .plan-actions .link { margin-left: 14px; }
+.link.strong { font-weight: 600; }
+.rename { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.rename input { flex: 1 1 180px; min-width: 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+@media (max-width: 860px) {
+  .plans-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .plans-table, .plans-table tbody { display: block; }
+  .plans-table tr { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .plans-table tbody tr:last-child { border-bottom: 0; }
+  .plans-table tbody th, .plans-table td { display: block; padding: 0; border: 0; }
+  .plans-table tbody th, .plans-table .plan-actions { grid-column: 1 / -1; }
+  .plans-table td[data-label]::before { content: attr(data-label); display: block; font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+  .plans-table .plan-actions { text-align: left; white-space: normal; display: flex; flex-wrap: wrap; gap: 4px 18px; }
+  .plans-table .plan-actions .link { margin-left: 0; min-height: 40px; }
+}
 .save-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0; }
 .save-form label { font-weight: 600; width: 100%; }
 .save-form input { flex: 1 1 260px; max-width: 480px; }
