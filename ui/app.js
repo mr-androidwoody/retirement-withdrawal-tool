@@ -233,7 +233,7 @@ function initForm() {
   // Each chip carries a small shares / bonds / cash bar, so the split shows at a glance.
   $('mixes').innerHTML = [...mixes.map((m) =>
     `<button type="button" class="chip mix-chip" role="radio" aria-checked="false" data-mix="${m.label}">${mixBar(m)}<span>${m.label}</span></button>`),
-  `<button type="button" class="chip mix-chip" role="radio" aria-checked="false" data-mix="Custom"><span class="mix-bar empty" aria-hidden="true"></span><span>Custom</span></button>`].join('');
+  `<button type="button" class="chip mix-chip" role="radio" aria-checked="false" data-mix="Custom"><span class="mix-bar" id="custom-mix-bar" aria-hidden="true"></span><span>Custom</span></button>`].join('');
   $('mixes').addEventListener('click', (e) => {
     const btn = e.target.closest('[data-mix]');
     if (btn) selectMix(btn.dataset.mix);
@@ -607,7 +607,8 @@ function refresh() {
   const potNow = parseAmount($('pot').value);
   const usedFor = 'Used for the "Your mix as it is now" rows; the search also tries other mixes.';
   const customGbp = state.mixLabel === 'Custom' && state.mixUnit === 'gbp';
-  $('mix-bar').innerHTML = mix.error ? '' : mixParts(mix);
+  // The Custom chip's bar shows the split typed in (empty until Custom has one).
+  $('custom-mix-bar').innerHTML = state.mixLabel === 'Custom' && !mix.error ? mixParts(mix) : '';
   if (mix.error) $('mix-summary').textContent = mix.error;
   else if (customGbp) {
     const p = wholePercents(mix);
