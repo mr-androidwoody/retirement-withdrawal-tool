@@ -1294,10 +1294,10 @@ const savedDate = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'num
 function renderSavedPlans() {
   const list = plansNow();
   const box = $('saved-plans');
-  box.hidden = list.length === 0;
-  if (!list.length) { box.innerHTML = ''; return; }
-  box.innerHTML = `<h2>Your saved plans</h2>
-    <p class="hint">Up to ${MAX_PLANS}, kept in this browser. View opens a plan with the inputs it was saved with (they replace what is in the form). Load inputs only fills in the form.</p>
+  $('saved-plans-panel').hidden = list.length === 0;
+  $('saved-plans-count').textContent = `(${list.length} of ${MAX_PLANS})`;
+  if (!list.length) { box.innerHTML = ''; $('saved-plans-panel').open = false; return; }
+  box.innerHTML = `<p class="hint">Kept in this browser. View opens a plan with the inputs it was saved with (they replace what is in the form). Load inputs only fills in the form.</p>
     <ul class="plan-list">${list.map((p) => {
       const s = p.summary || {};
       const meta = [`Saved ${savedDate(p.savedAt)}`, s.pot ? `${gbp(s.pot)} pot` : '', s.years ? `${s.years} years` : '', s.typical ? `typical ${s.typical}` : '',
