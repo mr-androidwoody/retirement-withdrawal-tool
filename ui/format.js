@@ -122,6 +122,31 @@ export function planName(plan) {
   return `${label}, ${buffer}, ${mixText(plan)}`;
 }
 
+/**
+ * An option split into the parts shown in the saved-plans table: the approach, the cash rule,
+ * and the starting split of the pot (shares, bonds, cash as fractions) where it is known.
+ * Pass the request to work out a cash buffer in pounds; without it, a buffer plan's split
+ * covers only the invested part.
+ */
+export function planParts(plan, request = null) {
+  const s = getStrategy(plan.strategy);
+  const pinned = Boolean(plan.params?.pinned);
+  let cash;
+  if (plan.cashBuffer.amount !== undefined) cash = plan.cashRule === 'flexible' ? '1 to 3 year cash reserve' : 'cash spent first';
+  else if (plan.cashBuffer.years) cash = `${plan.cashBuffer.years}-year cash buffer`;
+  else cash = 'no cash buffer';
+  let split = null;
+  if (plan.currentMix) split = { ...plan.currentMix };
+  else if (plan.cashBuffer.amount === undefined && !plan.cashBuffer.years) split = { equities: plan.mix.equities, bonds: 1 - plan.mix.equities, cash: 0 };
+  else if (request && request.pot > 0) {
+    const c = bufferAmount(plan, request).amount / request.pot;
+    split = { equities: (1 - c) * plan.mix.equities, bonds: (1 - c) * (1 - plan.mix.equities), cash: c };
+  }
+  const r = (x) => Math.round(x * 100);
+  const mixLabel = split ? `${r(split.equities)}/${r(split.bonds)}/${r(split.cash)}` : mixText(plan);
+  return { approach: s.label, pinned, cash, split, mixLabel, invested: { equities: plan.mix.equities, bonds: 1 - plan.mix.equities, cash: 0 } };
+}
+
 /** The three recipe lines shown under each option: income, cash, the rest. */
 export function recipe(plan, request) {
   const profile = buildProfile(request);

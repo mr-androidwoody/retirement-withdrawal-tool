@@ -6,10 +6,10 @@ import { simulate } from '../engine/simulate.js';
 import { buildProfile } from '../engine/profile.js';
 import { summarisePlan, investmentIndex, worstFall } from '../engine/metrics.js';
 import { allowedFailures, rankWindows, pickPeriods, subsetSummary } from '../engine/periods.js';
-import { gbp, pct, escapeHtml, parseAmount, formatAmount, planName, recipe, holdingsText, money, bigMoney, signedMoney, signedPct, STRATEGY_INFO, strategyTag } from './format.js';
+import { gbp, pct, escapeHtml, parseAmount, formatAmount, planName, planParts, recipe, holdingsText, money, bigMoney, signedMoney, signedPct, STRATEGY_INFO, strategyTag } from './format.js';
 import { lineChart, wireCharts } from './charts.js';
 import { mixFromValues, wholePercents, convertValues } from './mix.js';
-import { loadPlans, storePlans, addPlan, removePlan, findPlan, cleanName, MAX_PLANS, MAX_NAME } from './plans.js';
+import { loadPlans, storePlans, addPlan, removePlan, findPlan, cleanName, renamePlan, defaultName, displayName, MAX_PLANS, MAX_NAME } from './plans.js';
 
 const $ = (id) => document.getElementById(id);
 const state = {
@@ -24,6 +24,7 @@ const state = {
   bestYears: [],
   periods: 'all',
   views: new WeakMap(),
+  renaming: null,
   result: null,
   request: null,
   openable: [],
@@ -1350,47 +1351,83 @@ const storage = (() => { try { return window.localStorage; } catch { return null
 const plansNow = () => (storage ? loadPlans(storage) : []);
 const savedDate = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
-/** The "Your saved plans" list on the first page; hidden when there are none. */
+/** The "Your saved plans" table on the first page (cards on a phone); hidden when there are none. */
 function renderSavedPlans() {
   const list = plansNow();
   const box = $('saved-plans');
   $('saved-plans-panel').hidden = list.length === 0;
   $('saved-plans-count').textContent = `(${list.length} of ${MAX_PLANS})`;
   if (!list.length) { box.innerHTML = ''; $('saved-plans-panel').open = false; return; }
-  box.innerHTML = `<p class="hint">Kept in this browser. View opens a plan with the inputs it was saved with (they replace what is in the form). Load inputs only fills in the form.</p>
-    <ul class="plan-list">${list.map((p) => {
-      const s = p.summary || {};
-      const meta = [`Saved ${savedDate(p.savedAt)}`, s.pot ? `${gbp(s.pot)} pot` : '', s.years ? `${s.years} years` : '', s.typical ? `typical ${s.typical}` : '',
-        p.inputs?.priority === 'pass-on' ? 'pass on more' : '']
-        .filter(Boolean).join(' \u00b7 ');
-      return `<li>
-        <div class="plan-text"><strong>${escapeHtml(p.name)}</strong>
-          ${p.name === planName(p.plan) ? '' : `<span class="hint">${escapeHtml(planName(p.plan))}</span>`}
-          <span class="hint">${escapeHtml(meta)}</span></div>
-        <div class="plan-actions">
-          <button type="button" class="secondary" data-plan-view="${p.id}">View</button>
-          <button type="button" class="link" data-plan-load="${p.id}">Load inputs</button>
-          <button type="button" class="link" data-plan-delete="${p.id}" aria-label="Delete ${escapeHtml(p.name)}">Delete</button>
-        </div></li>`;
-    }).join('')}</ul>
+  const rows = list.map((p) => {
+    const s = p.summary || {};
+    const parts = planParts(p.plan);
+    const split = s.split || parts.split;
+    const name = displayName(p.name, planName(p.plan), defaultName(s.pot, parts.approach));
+    const when = [savedDate(p.savedAt), s.years ? `${s.years} years` : '', p.inputs?.priority === 'pass-on' ? 'pass on more' : ''].filter(Boolean).join(' \u00b7 ');
+    const typical = String(s.typical || '').split(' then ');
+    const nameCell = state.renaming === p.id
+      ? `<div class="rename"><label class="sr-only" for="rename-${p.id}">New name</label>
+          <input id="rename-${p.id}" maxlength="${MAX_NAME}" value="${escapeHtml(name)}" data-rename-input="${p.id}">
+          <button type="button" class="link" data-plan-rename-save="${p.id}">Save</button>
+          <button type="button" class="link" data-plan-rename-cancel>Cancel</button></div>`
+      : `<span class="nm">${escapeHtml(name)}</span>`;
+    return `<tr>
+      <th scope="row" data-label="Plan">${nameCell}<span class="sub">${escapeHtml(when)}</span></th>
+      <td data-label="Pot">${s.pot ? gbp(s.pot) : ''}</td>
+      <td data-label="Approach">${escapeHtml(parts.approach)}<span class="sub">${escapeHtml([parts.pinned ? 'at the income you want' : '', parts.cash].filter(Boolean).join(' \u00b7 '))}</span></td>
+      <td data-label="Mix">${split ? mixBar(split) : ''}<span class="mix-num">${escapeHtml(split ? wholePercents(split).join('/') : parts.mixLabel)}</span></td>
+      <td data-label="Typical spending">${escapeHtml(typical[0] || '')}${typical[1] ? `<span class="sub">then ${escapeHtml(typical[1])}</span>` : ''}</td>
+      <td class="plan-actions">
+        <button type="button" class="link strong" data-plan-view="${p.id}">View<span class="sr-only"> ${escapeHtml(name)}</span></button>
+        <button type="button" class="link" data-plan-load="${p.id}">Load<span class="sr-only"> inputs from ${escapeHtml(name)}</span></button>
+        <button type="button" class="link" data-plan-rename="${p.id}">Rename<span class="sr-only"> ${escapeHtml(name)}</span></button>
+        <button type="button" class="link" data-plan-delete="${p.id}">Delete<span class="sr-only"> ${escapeHtml(name)}</span></button>
+      </td></tr>`;
+  }).join('');
+  box.innerHTML = `<p class="hint">Newest first, kept in this browser. View opens a plan with the inputs it was saved with (they replace what is in the form); Load only fills in the form.</p>
+    <table class="plans-table">
+      <thead><tr><th scope="col">Plan</th><th scope="col">Pot</th><th scope="col">Approach</th><th scope="col">Mix</th><th scope="col">Typical spending</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
     <p class="hint" id="plans-msg" role="status"></p>`;
+  if (state.renaming) {
+    const input = box.querySelector('[data-rename-input]');
+    if (input) { input.focus(); input.select(); }
+  }
 }
 
 function initSavedPlans() {
   renderSavedPlans();
-  $('saved-plans').addEventListener('click', (e) => {
-    const view = e.target.closest('[data-plan-view]');
-    const load = e.target.closest('[data-plan-load]');
-    const del = e.target.closest('[data-plan-delete]');
-    const id = (view || load || del)?.dataset.planView || (view || load || del)?.dataset.planLoad || (view || load || del)?.dataset.planDelete;
+  const box = $('saved-plans');
+  const finishRename = (id) => {
+    const input = box.querySelector(`[data-rename-input="${id}"]`);
+    if (input) storePlans(storage, renamePlan(plansNow(), id, input.value));
+    state.renaming = null;
+    renderSavedPlans();
+    $('plans-msg').textContent = 'Renamed.';
+  };
+  box.addEventListener('keydown', (e) => {
+    const id = e.target.dataset?.renameInput;
+    if (!id) return;
+    if (e.key === 'Enter') { e.preventDefault(); finishRename(id); }
+    if (e.key === 'Escape') { state.renaming = null; renderSavedPlans(); }
+  });
+  box.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const d = btn.dataset;
+    if (d.planRenameSave) { finishRename(d.planRenameSave); return; }
+    if ('planRenameCancel' in d) { state.renaming = null; renderSavedPlans(); return; }
+    const id = d.planView || d.planLoad || d.planDelete || d.planRename;
     if (!id) return;
     const entry = findPlan(plansNow(), id);
     if (!entry) { renderSavedPlans(); return; }
-    if (del) {
+    if (d.planRename) { state.renaming = id; renderSavedPlans(); return; }
+    if (d.planDelete) {
       // Two steps, no pop-up: the first press asks, the second deletes.
-      if (del.dataset.confirm !== 'yes') {
-        del.dataset.confirm = 'yes';
-        del.textContent = 'Press again to delete';
+      if (d.confirm !== 'yes') {
+        btn.dataset.confirm = 'yes';
+        btn.textContent = 'Press again to delete';
         return;
       }
       storePlans(storage, removePlan(plansNow(), id));
@@ -1401,8 +1438,8 @@ function initSavedPlans() {
     restoreInputs(entry.inputs);
     for (const f of MONEY_FIELDS) formatMoney(f);
     refresh();
-    if (load) {
-      $('plans-msg').textContent = `Inputs from ${entry.name} are in the form.`;
+    if (d.planLoad) {
+      $('plans-msg').textContent = `Inputs from ${displayName(entry.name, planName(entry.plan), entry.name)} are in the form.`;
       return;
     }
     runFind(() => {
@@ -1417,7 +1454,7 @@ function initSavedPlans() {
 function saveBlock() {
   const d = state.detail;
   const saved = d.item.savedId ? findPlan(plansNow(), d.item.savedId) : null;
-  if (saved) return `<p class="save-line" role="status">Saved as <strong>${escapeHtml(saved.name)}</strong>. Find it on the first page under Your saved plans.</p>`;
+  if (saved) return `<p class="save-line" role="status">Saved as <strong>${escapeHtml(displayName(saved.name, planName(saved.plan), saved.name))}</strong>. Find it on the first page under Your saved plans.</p>`;
   const count = plansNow().length;
   if (!d.saving) {
     return `<div class="save-line"><button type="button" class="secondary" data-save-open ${count >= MAX_PLANS ? 'disabled' : ''}>Save this plan</button>
@@ -1425,7 +1462,7 @@ function saveBlock() {
   }
   return `<div class="save-line save-form">
       <label for="save-name">Name this plan</label>
-      <input id="save-name" maxlength="${MAX_NAME}" value="${escapeHtml(planName(d.item.result.plan))}">
+      <input id="save-name" maxlength="${MAX_NAME}" value="${escapeHtml(defaultName(state.request.pot, planParts(d.item.result.plan).approach))}">
       <button type="button" class="primary small" data-save-confirm>Save</button>
       <button type="button" class="link" data-save-cancel>Cancel</button>
       ${d.saveError ? `<p class="hint bad-text" role="alert">${escapeHtml(d.saveError)}</p>` : ''}
@@ -1436,10 +1473,11 @@ function saveCurrentPlan() {
   const d = state.detail;
   const result = d.item.result;
   const out = addPlan(plansNow(), {
-    name: cleanName($('save-name').value, planName(result.plan)),
+    name: cleanName($('save-name').value, defaultName(state.request.pot, planParts(result.plan).approach)),
     inputs: state.searchInputs || collectInputs(),
     plan: result.plan,
-    summary: { pot: state.request.pot, years: state.request.years, age: state.request.age, typical: typicalText(result) },
+    summary: { pot: state.request.pot, years: state.request.years, age: state.request.age, typical: typicalText(result),
+      split: planParts(result.plan, state.request).split },
   });
   if (out.error) { d.saveError = out.error; return; }
   if (!storePlans(storage, out.list)) { d.saveError = 'This browser would not save it (storage is off or full).'; return; }
