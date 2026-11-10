@@ -33,6 +33,9 @@
   --band-mid: rgba(11, 95, 122, .30);
   --band-range: rgba(11, 95, 122, .12);
   --chart-median: #4b5563;
+  --mix-s: #4b5563;      /* mix bars: shares, bonds, cash in shades of one grey */
+  --mix-b: #9aa1ab;
+  --mix-c: #d3d7dd;
   --shadow: rgba(0, 0, 0, .10);
   --shadow-strong: rgba(0, 0, 0, .2);
   --backdrop: rgba(27, 31, 36, .45);
@@ -78,6 +81,9 @@
   --band-mid: rgba(91, 186, 214, .38);
   --band-range: rgba(91, 186, 214, .16);
   --chart-median: #b0b6be;
+  --mix-s: #d6dade;
+  --mix-b: #8a919b;
+  --mix-c: #4b525b;
   --shadow: rgba(0, 0, 0, .35);
   --shadow-strong: rgba(0, 0, 0, .55);
   --backdrop: rgba(0, 0, 0, .6);
@@ -423,3 +429,25 @@ th.num { white-space: normal; }
 .primary.small { padding: 10px 20px; min-height: 44px; font-size: 15px; }
 .secondary[disabled] { opacity: .5; cursor: not-allowed; }
 .bad-text { color: var(--bad-ink); width: 100%; }
+
+/* Current mix: chips with a small split bar, the pounds / percent switch, a large bar and key. */
+.mix-chip { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 16px; }
+.mix-bar { display: flex; width: 56px; height: 6px; border-radius: 3px; overflow: hidden; background: var(--line); }
+.mix-bar span { display: block; height: 100%; }
+.mix-chip[aria-checked="true"] .mix-bar { box-shadow: 0 0 0 1px var(--on-accent); }
+.mix-bar.big { width: 100%; height: 10px; border-radius: 5px; margin-top: 4px; }
+.mix-bar .s, .mix-key .s { background: var(--mix-s); }
+.mix-bar .b, .mix-key .b { background: var(--mix-b); }
+.mix-bar .c, .mix-key .c { background: var(--mix-c); }
+.mix-key { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; color: var(--muted); }
+.mix-key i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.custom-mix { display: flex; flex-direction: column; gap: 10px; }
+.unit-switch { display: inline-flex; align-self: flex-start; }
+.unit-switch button { font: inherit; font-size: 14px; min-height: 40px; padding: 6px 16px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); cursor: pointer; }
+.unit-switch button:first-child { border-radius: 8px 0 0 8px; }
+.unit-switch button:last-child { border-radius: 0 8px 8px 0; margin-left: -1px; }
+.unit-switch button[aria-checked="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); position: relative; }
+.mix-warn { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 14px; color: var(--warn-ink); background: var(--warn-soft); padding: 8px 12px; border-radius: 8px; }
+.mix-warn .secondary { min-height: 36px; padding: 6px 12px; font-size: 14px; }
+.mix-warn[hidden] { display: none; }
+@media (max-width: 720px) { .custom-mix .grid-3 { grid-template-columns: 1fr; } }

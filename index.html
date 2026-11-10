@@ -78,22 +78,34 @@
       </div>
 
       <div class="field">
-        <span class="field-label" id="mix-label">Your current mix: shares / bonds / cash</span>
+        <span class="field-label" id="mix-label">Your current mix (shares / bonds / cash)</span>
         <div class="chips" id="mixes" role="radiogroup" aria-labelledby="mix-label"></div>
-        <div id="custom-mix" class="grid-3" hidden>
-          <div class="field">
-            <label for="mix-eq">Shares %</label>
-            <input id="mix-eq" inputmode="decimal" autocomplete="off">
+        <div id="custom-mix" class="custom-mix" hidden>
+          <div class="unit-switch" role="radiogroup" aria-label="Enter your mix as" id="mix-unit">
+            <button type="button" role="radio" data-unit="gbp" aria-checked="true">&pound; amounts</button>
+            <button type="button" role="radio" data-unit="pct" aria-checked="false">%</button>
           </div>
-          <div class="field">
-            <label for="mix-bd">Bonds %</label>
-            <input id="mix-bd" inputmode="decimal" autocomplete="off">
+          <div class="grid-3">
+            <div class="field">
+              <label for="mix-eq" id="mix-eq-label">Shares (&pound;)</label>
+              <input id="mix-eq" inputmode="decimal" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="mix-bd" id="mix-bd-label">Bonds (&pound;)</label>
+              <input id="mix-bd" inputmode="decimal" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="mix-cash" id="mix-cash-label">Cash (&pound;)</label>
+              <input id="mix-cash" inputmode="decimal" autocomplete="off">
+            </div>
           </div>
-          <div class="field">
-            <label for="mix-cash">Cash %</label>
-            <input id="mix-cash" inputmode="decimal" autocomplete="off">
+          <div class="mix-warn" id="mix-pot-warn" role="status" hidden>
+            <span><span aria-hidden="true">&#9888;</span> <span id="mix-pot-text"></span></span>
+            <button type="button" class="secondary" id="mix-use-pot"></button>
           </div>
         </div>
+        <div class="mix-bar big" id="mix-bar" aria-hidden="true"></div>
+        <div class="mix-key" aria-hidden="true"><span><i class="s"></i>Shares</span><span><i class="b"></i>Bonds</span><span><i class="c"></i>Cash</span></div>
         <p class="hint" id="mix-summary"></p>
       </div>
     </section>
@@ -226,7 +238,7 @@
           </div>
         </div>
         <button type="button" class="link" id="add-earned2">+ Add your partner's earnings</button>
-        <p class="hint">Leave a row blank (or £0) if that person is not earning. Earnings replace money taken from the pot while they last; after they stop, your planned spending carries on from the pot.</p>
+        <p class="hint">Leave a row blank (or &pound;0) if that person is not earning. Earnings replace money taken from the pot while they last; after they stop, your planned spending carries on from the pot.</p>
       </div>
     </section>
 

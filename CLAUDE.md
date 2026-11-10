@@ -63,6 +63,14 @@ now", then the other options and how the other approaches compare. When no plan 
 needs, a single "Nearest misses" list replaces both: the best try of each approach, closest
 first.
 
+### Your current mix
+
+Six one-tap presets (`currentMixes` in config.json) plus Custom. Each chip has a small grey
+shares / bonds / cash bar; a large bar and key sit under the chips. Custom takes pound amounts
+(default) or percentages, with a switch that converts between them (`ui/mix.js`, tested in
+`tests/mix.test.js`). In pounds the split is what counts; if the amounts do not add up to the pot
+a warning offers "Use (amount) as my pot". Saves without `mixUnit` are percentages.
+
 ### Saved inputs and saved plans
 
 - Inputs: localStorage key `retirement-withdrawal-tool.inputs.v1`. Bump the version if the saved
@@ -106,7 +114,7 @@ Tax, and a yearly results view. Keep it a simple guidance tool, not overcomplica
 
 ## Working on it
 
-- Tests: `node --test` (Node 18+), 105 passing. They also run on GitHub Actions on every push
+- Tests: `node --test` (Node 18+), 110 passing. They also run on GitHub Actions on every push
   (`.github/workflows/test.yml`). Add tests for engine changes.
 - If results change on purpose: review `tools/results-report.md` (`node tools/print-results.mjs`),
   then `node tools/print-results.mjs --update-golden`.

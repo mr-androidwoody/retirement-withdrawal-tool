@@ -87,7 +87,8 @@ and in Node:
   What Recommended means follows "If there is room to spare" on the form: Spend more (highest
   typical spending) or Pass on more (pays what you want and typically leaves the most).
   It also tests your current mix (pot split into shares / bonds / cash, from a predefined list in
-  `config.json` under `currentMixes`, or a custom split) two ways: cash spent first, and cash
+  `config.json` under `currentMixes`, or a custom split typed in pounds or percentages, see
+  `ui/mix.js`) two ways: cash spent first, and cash
   kept as a flexible reserve (1 to 3 years of withdrawals, aiming for 2, with the rest invested
   over 5 years and top-ups paused in a downturn; settings under `cashReserve`). Each strategy is
   also tried at the rate that pays exactly the income wanted. With "Keep my mix" ticked, every
