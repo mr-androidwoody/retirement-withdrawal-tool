@@ -1801,16 +1801,21 @@ function updateEditedPlan() {
 const THEME_KEY = 'retirement-withdrawal-tool.theme';
 const darkQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 
-/** Auto follows the device; Light and Dark are fixed. The choice is remembered separately from the inputs. */
+const THEMES = ['light', 'dark', 'navy'];
+
+/**
+ * Light, Dark (charcoal) and Navy are fixed choices, remembered separately from the inputs. With no
+ * choice saved (first visit, or an old "auto" save), the page follows the device: Light or Navy.
+ */
 function applyTheme(choice) {
-  const dark = choice === 'dark' || (choice === 'auto' && darkQuery?.matches);
-  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-  for (const b of document.querySelectorAll('[data-theme-choice]')) b.setAttribute('aria-checked', String(b.dataset.themeChoice === choice));
+  const theme = THEMES.includes(choice) ? choice : (darkQuery?.matches ? 'navy' : 'light');
+  document.documentElement.dataset.theme = theme;
+  for (const b of document.querySelectorAll('[data-theme-choice]')) b.setAttribute('aria-checked', String(b.dataset.themeChoice === theme));
 }
 
 function initTheme() {
-  let choice = 'auto';
-  try { choice = localStorage.getItem(THEME_KEY) || 'auto'; } catch { /* no storage */ }
+  let choice = null;
+  try { choice = localStorage.getItem(THEME_KEY); } catch { /* no storage */ }
   applyTheme(choice);
   $('theme-switch').addEventListener('click', (e) => {
     const btn = e.target.closest('[data-theme-choice]');
@@ -1819,7 +1824,7 @@ function initTheme() {
     try { localStorage.setItem(THEME_KEY, choice); } catch { /* no storage */ }
     applyTheme(choice);
   });
-  darkQuery?.addEventListener?.('change', () => { if (choice === 'auto') applyTheme('auto'); });
+  darkQuery?.addEventListener?.('change', () => { if (!THEMES.includes(choice)) applyTheme(choice); });
 }
 
 initTheme();
