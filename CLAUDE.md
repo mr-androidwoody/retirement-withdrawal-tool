@@ -88,8 +88,11 @@ a warning offers "Use (amount) as my pot". Saves without `mixUnit` are percentag
   "Your saved plans" on the first page: a panel, closed until clicked ("2 of 5"), holding a
   compact table (one line per figure, cards under 860px) with Plan, Pot, Approach, Mix and
   Typical spending, in your own
-  order (move up / down arrows, `movePlan`; new saves go to the top), and View (restores inputs, reruns the search, opens the plan), Load, inline Rename and a
-  two-press Delete. Names that repeat the option (older saves) show only the rest
+  order (move up / down arrows, `movePlan`; new saves go to the top), and View (restores inputs, reruns the search, opens the plan), Edit, inline Rename and a
+  two-press Delete. Edit puts the plan's inputs in the form, closes the panel and shows an edit
+  bar (`setEditing`); in the option detail, saving then offers "Update (name)" (replaces inputs,
+  option and summary in place, same position, `updatePlan`) or "Save as a new plan". Default
+  names (`autoName`, or matching the default) refresh on update; typed names stay. Names that repeat the option (older saves) show only the rest
   (`displayName`); stored names are not changed. Option parts come from `planParts` in
   `ui/format.js`. This browser only; no check-ins yet (see ideas).
 - Comparing saved plans: a Compare tick column on the left of the table (two or three plans,
@@ -133,7 +136,7 @@ Tax, and a yearly results view. Keep it a simple guidance tool, not overcomplica
 
 ## Working on it
 
-- Tests: `node --test` (Node 18+), 118 passing. They also run on GitHub Actions on every push
+- Tests: `node --test` (Node 18+), 119 passing. They also run on GitHub Actions on every push
   (`.github/workflows/test.yml`). Add tests for engine changes.
 - If results change on purpose: review `tools/results-report.md` (`node tools/print-results.mjs`),
   then `node tools/print-results.mjs --update-golden`.

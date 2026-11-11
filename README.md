@@ -33,7 +33,8 @@ changes, bump the version in the key so old saves are ignored rather than misrea
 Up to five plans can be saved by name from an option's detail page ("Save this plan"), in
 `localStorage` under `retirement-withdrawal-tool.plans.v1` (code in `ui/plans.js`). Each keeps the
 inputs it was searched with and the chosen option. "Your saved plans" on the first page can view
-one (puts its inputs back, reruns the search and opens it), load just its inputs, or delete it. Tick
+one (puts its inputs back, reruns the search and opens it), edit it (its inputs go in the form;
+saving from an option then offers to update the plan in place), rename, reorder or delete it. Tick
 two to compare them side by side (`ui/compare.js`), each worked out from its own saved inputs.
 
 ## Historical data

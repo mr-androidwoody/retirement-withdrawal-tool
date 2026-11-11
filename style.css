@@ -539,3 +539,8 @@ th.num { white-space: normal; }
   .plans-table td:not(.cmp-cell) { order: 2; }
   .plans-table .cmp-word { display: inline; }
 }
+
+/* Edit mode: a bar above the form naming the saved plan being edited. */
+.edit-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 12px 16px; border-radius: 12px; background: var(--info); border: 2px solid var(--accent); font-size: 15px; }
+.edit-bar[hidden] { display: none; }
+.edit-bar:focus { outline: none; box-shadow: 0 0 0 3px var(--focus); }
