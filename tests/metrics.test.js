@@ -105,3 +105,26 @@ test('a lowest year tied to the penny goes to the first such year', () => {
   const later = { ...path, lowestAt: 2, minIncomeReal: path.minIncomeReal - 0.01 };
   assert.equal(summarisePlan([later, path], { pot: 1 }).worstIncomeAt, 0);
 });
+
+test('an amount to leave behind counts retirements that end below it as failing the needs', () => {
+  const path = (o) => ({ depleted: false, nearlyDepleted: false, yearsBelowWanted: 0, yearsBelowMinimum: 0,
+    medianIncomeReal: 100, minIncomeReal: 90, endReal: 1000, maxDrawdown: 0.2, incomeVolatility: 0.01,
+    firstWithdrawalReal: 40, ...o });
+  const paths = [
+    path({}),
+    path({ yearsBelowWanted: 3, minIncomeReal: 70 }),
+    path({ yearsBelowWanted: 5, yearsBelowMinimum: 1, minIncomeReal: 50 }),
+    path({ depleted: true, minIncomeReal: 0, endReal: 0, maxDrawdown: 1 }),
+    path({ nearlyDepleted: true, endReal: 10 }),
+    path({ endReal: 499.5 }), // within a pound of the amount counts as reached
+  ];
+  const none = summarisePlan(paths, { pot: 1000 });
+  assert.equal(none.leftShort, 0);
+  assert.equal(none.failingMinimum, none.failingIncome);
+  const s = summarisePlan(paths, { pot: 1000, leaveAtLeast: 500 });
+  assert.equal(s.leftShort, 2);          // ran out, and ended with 10
+  assert.equal(s.failingIncome, 2);      // ran out, and below the minimum
+  assert.equal(s.failingMinimum, 3);     // either: the two above plus the one that ended with 10
+  assert.equal(s.fallingShort, 4);       // two cut, ran out, ended with 10
+  assert.equal(summarisePlan(paths, { pot: 1000, leaveAtLeast: 1002 }).leftShort, 6);
+});

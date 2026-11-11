@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { buildGrid, strategySettings, runSearch, whatIf, statusOf, currentFromMix } from '../engine/search.js';
+import { buildGrid, strategySettings, runSearch, whatIf, statusOf, currentFromMix, reasonNotShown } from '../engine/search.js';
 
 const dataset = JSON.parse(readFileSync(new URL('../data/jst-r6-global-gbp.json', import.meta.url)));
 const config = JSON.parse(readFileSync(new URL('../data/config.json', import.meta.url)));
@@ -147,4 +147,32 @@ test('"pass on more" recommends the plan that pays what you asked for and leaves
   // Leaving the choice out is the same as "spend more" (the default).
   const explicit = runSearch({ dataset, config, request: { ...preset('typical'), priority: 'spend' }, current });
   assert.deepEqual(recOf(explicit).result.plan, recOf(spend).result.plan);
+});
+
+test('an amount to leave behind: every option leaves at least that in all but the allowed starts', () => {
+  const leave = 300000;
+  const r = runSearch({ dataset, config, request: { ...preset('typical'), leaveAtLeast: leave } });
+  assert.ok(r.rows.length > 0);
+  for (const row of r.rows) {
+    const short = row.result.paths.filter((p) => p.endReal < leave - 1).length;
+    assert.equal(row.result.leftShort, short);
+    assert.ok(short <= r.maxFailures, `${row.labels} left less in ${short}`);
+  }
+  // Without the amount, the typical recommendation leaves less than this in more starts.
+  const rec = typical.rows.find((x) => x.labels.includes('Recommended')).result;
+  assert.ok(rec.paths.filter((p) => p.endReal < leave - 1).length > typical.maxFailures);
+  // Zero or blank means no amount: the same options as without it.
+  const zero = runSearch({ dataset, config, request: { ...preset('typical'), leaveAtLeast: 0 } });
+  assert.deepEqual(zero.rows.map((x) => x.result.plan.gridIndex), typical.rows.map((x) => x.result.plan.gridIndex));
+});
+
+test('the reason a plan is not shown names what it missed', () => {
+  const req = { maxFailures: 1, leaveAtLeast: 150000 };
+  const r = (o) => ({ windows: 47, failures: 0, failingIncome: 0, leftShort: 0, failingMinimum: 0, ...o });
+  assert.equal(reasonNotShown(r({ failures: 3, failingIncome: 3, failingMinimum: 3 }), req), 'ran out in 3 of 47 past retirements');
+  assert.equal(reasonNotShown(r({ failingIncome: 2, failingMinimum: 2 }), req), 'fell below your minimum in 2 of 47');
+  assert.equal(reasonNotShown(r({ leftShort: 9, failingMinimum: 9 }), req), 'left less than \u00a3150,000 in 9 of 47');
+  assert.equal(reasonNotShown(r({ failingIncome: 1, leftShort: 1, failingMinimum: 2 }), req),
+    'fell below your minimum or left less than \u00a3150,000 in 2 of 47');
+  assert.equal(reasonNotShown(r({}), req), 'was beaten by the options above');
 });
