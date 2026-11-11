@@ -488,3 +488,27 @@ th.num { white-space: normal; }
 .mix-warn .secondary { min-height: 36px; padding: 6px 12px; font-size: 14px; }
 .mix-warn[hidden] { display: none; }
 @media (max-width: 720px) { .custom-mix .grid-3 { grid-template-columns: 1fr; } }
+
+/* Saved plans: compare ticks, and the comparison page (two plans side by side). */
+.cmp-tick { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 13px; color: var(--muted); cursor: pointer; }
+.cmp-tick input { width: 18px; height: 18px; accent-color: var(--accent); }
+.cmp-tick input[aria-disabled="true"] { opacity: .5; }
+.cmp-bar { margin-top: 10px; }
+.compare-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.compare-table th, .compare-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.compare-table thead th { vertical-align: bottom; font-size: 15px; }
+.compare-table thead .link { display: block; font-size: 13px; font-weight: 400; margin-top: 4px; }
+.compare-table tbody th { font-weight: 400; color: var(--muted); width: 22%; background: none; }
+.compare-table tr.grp th { font-weight: 600; color: var(--ink); background: var(--th); padding-top: 8px; padding-bottom: 8px; }
+.compare-table td.win { font-weight: 600; }
+.win-mark { color: var(--good); margin-right: 4px; }
+.win-mark svg { width: 14px; height: 14px; vertical-align: -2px; }
+.compare-table td.diff { color: var(--muted); font-size: 14px; }
+.compare-table .sub { display: block; font-size: 13px; font-weight: 400; color: var(--muted); }
+.compare-table .mix-bar { display: inline-flex; vertical-align: middle; margin-right: 6px; }
+.cmp-letter { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-size: 13px; margin-right: 4px; }
+@media (max-width: 720px) {
+  .compare-table tbody th { width: auto; }
+  .compare-table th, .compare-table td { padding: 8px 6px; font-size: 14px; }
+  .compare-table td.diff, .compare-table thead th:last-child { display: none; }
+}

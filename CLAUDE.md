@@ -91,6 +91,12 @@ a warning offers "Use (amount) as my pot". Saves without `mixUnit` are percentag
   two-press Delete. Names that repeat the option (older saves) show only the rest
   (`displayName`); stored names are not changed. Option parts come from `planParts` in
   `ui/format.js`. This browser only; no check-ins yet (see ideas).
+- Comparing two saved plans: a Compare tick on each row (two at most), then "Compare these 2"
+  opens `view-compare`. Each plan is rerun from its own saved inputs (`requestFromInputs` reads
+  them through the form and puts the form back). Rows: what it is, spending, safety, what is
+  left; All / Worst 10 / Best 10 uses each plan's own ranking. The better figure gets a tick
+  and bold; a Difference column says it in words (hidden on phones). Logic in `ui/compare.js`,
+  tested in `tests/compare.test.js`.
 
 ### Out of scope (Woody's choice)
 
@@ -125,7 +131,7 @@ Tax, and a yearly results view. Keep it a simple guidance tool, not overcomplica
 
 ## Working on it
 
-- Tests: `node --test` (Node 18+), 114 passing. They also run on GitHub Actions on every push
+- Tests: `node --test` (Node 18+), 116 passing. They also run on GitHub Actions on every push
   (`.github/workflows/test.yml`). Add tests for engine changes.
 - If results change on purpose: review `tools/results-report.md` (`node tools/print-results.mjs`),
   then `node tools/print-results.mjs --update-golden`.
