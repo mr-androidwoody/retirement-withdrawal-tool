@@ -1435,6 +1435,10 @@ function renderSavedPlans() {
 
 function initSavedPlans() {
   renderSavedPlans();
+  // The closed bar's line goes back to its usual text once the panel is opened again.
+  $('saved-plans-panel').addEventListener('toggle', (e) => {
+    if (e.target.open) $('saved-plans-hint').textContent = 'View and compare your saved plans';
+  });
   const box = $('saved-plans');
   const finishRename = (id) => {
     const input = box.querySelector(`[data-rename-input="${id}"]`);
@@ -1503,7 +1507,12 @@ function initSavedPlans() {
       restoreInputs(entry.inputs);
       for (const f of MONEY_FIELDS) formatMoney(f);
       refresh();
-      $('plans-msg').textContent = `Inputs from ${displayName(entry.name, planName(entry.plan), entry.name)} are in the form.`;
+      // Close the panel so the form is in view, and say what happened on its closed bar.
+      const panel = $('saved-plans-panel');
+      panel.open = false;
+      $('saved-plans-hint').textContent = `Inputs from ${displayName(entry.name, planName(entry.plan), entry.name)} are now in the form`;
+      panel.querySelector('summary').focus({ preventScroll: true });
+      panel.scrollIntoView({ block: 'start', behavior: 'smooth' });
       return;
     }
     viewSaved(entry);
