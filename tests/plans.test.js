@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { addPlan, removePlan, findPlan, parsePlans, loadPlans, storePlans, cleanName, renamePlan, shortPot, defaultName, displayName, MAX_PLANS, PLANS_KEY } from '../ui/plans.js';
+import { addPlan, removePlan, findPlan, parsePlans, loadPlans, storePlans, cleanName, renamePlan, movePlan, shortPot, defaultName, displayName, MAX_PLANS, PLANS_KEY } from '../ui/plans.js';
 import { planParts } from '../ui/format.js';
 
 const sample = (n) => ({
@@ -68,6 +68,7 @@ test('short pots and default names', () => {
   assert.equal(shortPot(850000), '\u00a3850k');
   assert.equal(shortPot(NaN), '');
   assert.equal(defaultName(1500000, 'Floor and ceiling'), '\u00a31.5m, floor and ceiling');
+  assert.equal(defaultName(1500000, 'Guyton-Klinger guardrails'), '\u00a31.5m, Guyton-Klinger guardrails');
 });
 
 test('names that repeat the option show only the rest; others are shown as typed', () => {
@@ -90,4 +91,15 @@ test('an option splits into approach, cash rule and starting mix', () => {
   assert.equal(planParts({ ...grid, cashBuffer: { years: 0 } }).mixLabel, '70/30/0');
   const withPot = planParts(grid, { pot: 500000, wanted: 25000, minimum: 20000, years: 30, otherIncome: [], incomeChange: null });
   assert.equal(withPot.mixLabel, '63/27/10');
+});
+
+test('plans move one place up or down, and stay put at the ends', () => {
+  let list = [];
+  for (const id of ['c', 'b', 'a']) list = addPlan(list, sample(id), new Date(), id).list;
+  assert.deepEqual(list.map((p) => p.id), ['a', 'b', 'c']);
+  assert.deepEqual(movePlan(list, 'c', -1).map((p) => p.id), ['a', 'c', 'b']);
+  assert.deepEqual(movePlan(list, 'a', 1).map((p) => p.id), ['b', 'a', 'c']);
+  assert.equal(movePlan(list, 'a', -1), list);
+  assert.equal(movePlan(list, 'c', 1), list);
+  assert.equal(movePlan(list, 'zzz', 1), list);
 });
