@@ -271,8 +271,9 @@ function initForm() {
   $('plan-form').addEventListener('submit', onFind);
 
   $('footnote').innerHTML = 'All figures are in today’s money. Historical data: Jordà-Schularick-Taylor Macrohistory Database, Release 6 '
-    + '(<a href="https://www.macrohistory.net/database/">macrohistory.net</a>), used under its non-commercial licence. '
-    + 'Global shares are a GDP-weighted mix of 16 developed markets, converted to pounds at year-end exchange rates; bonds are UK gilts and cash is UK Treasury bills; inflation is UK CPI.';
+    + '(<a href="https://www.macrohistory.net/database/">macrohistory.net</a>), used under its non-commercial licence, for 1950 to 2020. '
+    + '2021 to 2025 follow the same method using MSCI country index returns, Bank of England gilt yields and exchange rates, OECD short-term interest rates and ONS inflation. '
+    + 'Global shares are a GDP-weighted mix of 16 developed markets, converted to pounds at year-end exchange rates; bonds are UK gilts and cash is UK Treasury bills (a 3-month interbank rate from 2021); inflation is UK CPI.';
 
   $('fee').value = (config.defaults.annualFee * 100).toFixed(2);
   applyValues(config.defaults);
