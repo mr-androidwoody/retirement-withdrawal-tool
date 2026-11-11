@@ -40,15 +40,15 @@ test('ranking uses the real return of the mix over the first years, worst first'
 test('the real data puts the early 1970s and late 1960s starts among the worst', () => {
   const windows = makeWindows(ds, 30, config.firstStartYear);
   const r = rankWindows(windows, { equities: 0.6, bonds: 0.3, cash: 0.1 }, 10);
-  assert.equal(r.length, 42);
-  assert.deepEqual([...new Set(r.map((x) => x.rank))].length, 42, 'every rank used once');
+  assert.equal(r.length, 47);
+  assert.deepEqual([...new Set(r.map((x) => x.rank))].length, 47, 'every rank used once');
   const worst = pickPeriods(r, 'worst', 10);
   const best = pickPeriods(r, 'best', 10);
   assert.equal(worst.length, 10);
   assert.equal(best.length, 10);
   assert.ok(worst.some((y) => y >= 1965 && y <= 1974), `worst: ${worst}`);
   assert.ok(!worst.some((y) => best.includes(y)));
-  assert.equal(pickPeriods(r, 'all', 10).length, 42);
+  assert.equal(pickPeriods(r, 'all', 10).length, 47);
 });
 
 test('a subset summary counts only the chosen past retirements', () => {

@@ -6,26 +6,26 @@ import { validateDataset, makeWindows, lengthError } from '../engine/dataset.js'
 const ds = JSON.parse(readFileSync(new URL('../data/jst-r6-global-gbp.json', import.meta.url)));
 const config = JSON.parse(readFileSync(new URL('../data/config.json', import.meta.url)));
 
-test('the shipped dataset is valid and runs 1950 to 2020', () => {
+test('the shipped dataset is valid and runs 1950 to 2025', () => {
   validateDataset(ds);
   assert.equal(ds.years[0].year, 1950);
-  assert.equal(ds.years.at(-1).year, 2020);
+  assert.equal(ds.years.at(-1).year, 2025);
 });
 
-test('30-year retirements from 1950 give 42 windows, 1950 to 1991', () => {
+test('30-year retirements from 1950 give 47 windows, 1950 to 1996', () => {
   const w = makeWindows(ds, 30, config.firstStartYear);
-  assert.equal(w.length, 42);
+  assert.equal(w.length, 47);
   assert.equal(w[0].startYear, 1950);
   assert.equal(w[0].endYear, 1979);
-  assert.equal(w.at(-1).startYear, 1991);
-  assert.equal(w.at(-1).endYear, 2020);
+  assert.equal(w.at(-1).startYear, 1996);
+  assert.equal(w.at(-1).endYear, 2025);
   assert.ok(w.every((x) => x.rows.length === 30));
 });
 
-test('35-year retirements give 37 windows; 25-year give 47; a later first start gives fewer', () => {
-  assert.equal(makeWindows(ds, 35, config.firstStartYear).length, 37);
-  assert.equal(makeWindows(ds, 25, config.firstStartYear).length, 47);
-  assert.equal(makeWindows(ds, 30, 1970).length, 22);
+test('35-year retirements give 42 windows; 25-year give 52; a later first start gives fewer', () => {
+  assert.equal(makeWindows(ds, 35, config.firstStartYear).length, 42);
+  assert.equal(makeWindows(ds, 25, config.firstStartYear).length, 52);
+  assert.equal(makeWindows(ds, 30, 1970).length, 27);
 });
 
 test('a gap in the years is refused', () => {
@@ -57,13 +57,13 @@ test('the length range runs 20 to 45 years, and every preset is inside it', () =
   assert.equal(lengthError(config.defaults.years, r), null);
 });
 
-test('the shortest and longest lengths give 52 and 27 past retirements', () => {
+test('the shortest and longest lengths give 57 and 32 past retirements', () => {
   const short = makeWindows(ds, 20, config.firstStartYear);
   const long = makeWindows(ds, 45, config.firstStartYear);
-  assert.equal(short.length, 52);
-  assert.equal(short.at(-1).startYear, 2001);
-  assert.equal(long.length, 27);
-  assert.equal(long.at(-1).startYear, 1976);
+  assert.equal(short.length, 57);
+  assert.equal(short.at(-1).startYear, 2006);
+  assert.equal(long.length, 32);
+  assert.equal(long.at(-1).startYear, 1981);
 });
 
 test('a length outside the range, or not a whole number, is refused with a plain message', () => {
