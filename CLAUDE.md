@@ -86,16 +86,18 @@ a warning offers "Use (amount) as my pot". Saves without `mixUnit` are percentag
   the option's plan object, plus a summary (pot, years, typical spending, starting split).
   "Save this plan" in the option detail (default name like "(pot), floor and ceiling").
   "Your saved plans" on the first page: a panel, closed until clicked ("2 of 5"), holding a
-  table (cards under 860px) with Plan, Pot, Approach, Mix and Typical spending, in your own
+  compact table (one line per figure, cards under 860px) with Plan, Pot, Approach, Mix and
+  Typical spending, in your own
   order (move up / down arrows, `movePlan`; new saves go to the top), and View (restores inputs, reruns the search, opens the plan), Load, inline Rename and a
   two-press Delete. Names that repeat the option (older saves) show only the rest
   (`displayName`); stored names are not changed. Option parts come from `planParts` in
   `ui/format.js`. This browser only; no check-ins yet (see ideas).
-- Comparing two saved plans: a Compare tick on each row (two at most), then "Compare these 2"
-  opens `view-compare`. Each plan is rerun from its own saved inputs (`requestFromInputs` reads
+- Comparing saved plans: a Compare tick column on the left of the table (two or three plans,
+  `MAX_COMPARE`), then "Compare these N" opens `view-compare`. Each plan is rerun from its own saved inputs (`requestFromInputs` reads
   them through the form and puts the form back). Rows: what it is, spending, safety, what is
-  left; All / Worst 10 / Best 10 uses each plan's own ranking. The better figure gets a tick
-  and bold; a Difference column says it in words (hidden on phones). Logic in `ui/compare.js`,
+  left; All / Worst 10 / Best 10 uses each plan's own ranking. The best figure gets a tick and
+  bold when one plan clearly has it (`bestIndex`; typical spending compares stages weighted by
+  length); with two plans a Difference column says the gap in words (hidden on phones). Logic in `ui/compare.js`,
   tested in `tests/compare.test.js`.
 
 ### Out of scope (Woody's choice)
@@ -131,7 +133,7 @@ Tax, and a yearly results view. Keep it a simple guidance tool, not overcomplica
 
 ## Working on it
 
-- Tests: `node --test` (Node 18+), 117 passing. They also run on GitHub Actions on every push
+- Tests: `node --test` (Node 18+), 118 passing. They also run on GitHub Actions on every push
   (`.github/workflows/test.yml`). Add tests for engine changes.
 - If results change on purpose: review `tools/results-report.md` (`node tools/print-results.mjs`),
   then `node tools/print-results.mjs --update-golden`.

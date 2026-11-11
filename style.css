@@ -434,14 +434,14 @@ th.num { white-space: normal; }
 /* Saved plans table: a row per plan with columns for what you compare; cards on a phone. */
 .plans-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 15px; }
 .plans-table thead th { text-align: left; font-size: 13px; font-weight: 600; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--line-strong); }
-.plans-table tbody th, .plans-table td { background: none; text-align: left; font-weight: 400; padding: 12px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.plans-table tbody th, .plans-table td { background: none; text-align: left; font-weight: 400; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
 .plans-table tbody tr:last-child > * { border-bottom: 0; }
 .plans-table .nm { font-weight: 600; overflow-wrap: anywhere; }
 .plans-table .sub { display: block; font-size: 13px; color: var(--muted); }
 .plans-table .mix-bar { display: inline-flex; vertical-align: middle; margin-right: 8px; }
 .plans-table .mix-num { white-space: nowrap; }
 .plans-table .plan-actions { text-align: right; white-space: nowrap; }
-.plans-table .plan-actions .link { margin-left: 14px; }
+.plans-table .plan-actions .link { margin-left: 12px; }
 .link.strong { font-weight: 600; }
 .rename { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
 .rename input { flex: 1 1 180px; min-width: 0; }
@@ -490,10 +490,14 @@ th.num { white-space: normal; }
 @media (max-width: 720px) { .custom-mix .grid-3 { grid-template-columns: 1fr; } }
 
 /* Saved plans: compare ticks, and the comparison page (two plans side by side). */
-.cmp-tick { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 13px; color: var(--muted); cursor: pointer; }
+.cmp-tick { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); cursor: pointer; }
+.plans-table .cmp-cell { width: 1%; padding-right: 4px; text-align: center; }
+.plans-table thead .cmp-cell { font-size: 12px; }
+.plans-table .cmp-word { display: none; }
+.plans-table .nowrap { white-space: nowrap; }
 .cmp-tick input { width: 18px; height: 18px; accent-color: var(--accent); }
 .cmp-tick input[aria-disabled="true"] { opacity: .5; }
-.cmp-bar { margin-top: 10px; }
+.cmp-bar { margin-top: 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 .compare-table { width: 100%; border-collapse: collapse; font-size: 15px; }
 .compare-table th, .compare-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .compare-table thead th { vertical-align: bottom; font-size: 15px; }
@@ -515,7 +519,7 @@ th.num { white-space: normal; }
 
 /* Saved plans: move up / down arrows (kept in place at the ends so the links line up). */
 .plans-table .move { display: inline-flex; gap: 4px; vertical-align: middle; margin-right: 6px; }
-.move-btn { font: inherit; font-size: 11px; line-height: 1; width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--muted); cursor: pointer; }
+.move-btn { font: inherit; font-size: 10px; line-height: 1; width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--muted); cursor: pointer; }
 .move-btn:hover { color: var(--ink); border-color: var(--accent); }
 .move-btn[data-end] { visibility: hidden; }
 @media (max-width: 860px) {
@@ -523,4 +527,11 @@ th.num { white-space: normal; }
   .plans-table tbody th { padding-right: 96px; }
   .plans-table .move { position: absolute; top: 12px; right: 0; margin: 0; }
   .move-btn { width: 40px; height: 40px; }
+}
+@media (max-width: 860px) {
+  /* Phone cards: "Compare" sits under the plan name, before the figures. */
+  .plans-table tbody th { order: 0; }
+  .plans-table .cmp-cell { grid-column: 1 / -1; order: 1; width: auto; text-align: left; padding: 0; }
+  .plans-table td:not(.cmp-cell) { order: 2; }
+  .plans-table .cmp-word { display: inline; }
 }
