@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { betterSide, diffText } from '../ui/compare.js';
+import { betterSide, diffText, bestIndex } from '../ui/compare.js';
 
 test('the better side depends on whether high or low is better', () => {
   assert.equal(betterSide(90000, 80000, 'high'), 'a');
@@ -23,4 +23,13 @@ test('differences are said in words, naming the plan', () => {
   assert.equal(diffText(1, 0, 'years', { labels }), '1 year longer in A');
   assert.equal(diffText(60000, 60040, 'money', { labels, tolerance: 100 }), 'Same');
   assert.equal(diffText(NaN, 1, 'money'), '');
+});
+
+test('with three plans, the best figure is marked only when one plan clearly has it', () => {
+  assert.equal(bestIndex([90000, 60000, 75000], 'high'), 0);
+  assert.equal(bestIndex([2, 0, 1], 'low'), 1);
+  assert.equal(bestIndex([90000, 90040, 60000], 'high', 100), null);
+  assert.equal(bestIndex([5, 5, 5], 'low'), null);
+  assert.equal(bestIndex([1, NaN, 2], 'high'), null);
+  assert.equal(bestIndex([1, 2], null), null);
 });
