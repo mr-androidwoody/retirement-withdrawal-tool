@@ -117,3 +117,74 @@ S&P 500 total returns: for example 2018 is +14.2% in JST, where the S&P 500 fell
 same years match published FTSE All-Share returns closely. The data is used as published, not
 patched from another source. It affects only the last five years of retirements starting 1987
 to 1991. The multi-year total is similar, so the effect on outcomes is limited.
+
+## Extension 2021 to 2025
+
+JST R6 ends in 2020. Rows for 2021 to 2025 are added by `tools/extend-dataset.py` from the
+figures in `tools/recent-sources.json`, rebuilding each JST series by the same method. JST rows
+are not changed.
+
+- Shares: MSCI country index total returns in US dollars for the 16 JST countries with equity data, converted to pounds with the year-end GBP/USD rate and weighted by JST real GDP for 2020 (rgdpmad x pop), held for every new year. Weights: USA 48.0%, JPN 12.5%, DEU 8.1%, GBR 6.7%, FRA 6.3%.
+- Gilts: Return on a 10-year par gilt bought at the previous year-end yield and revalued at this year-end yield as a 9-year bond (coupon plus price change).
+- Cash: OECD 3-month interbank rate, annual average (FRED series IR3TIB01GBA156N), standing in for the 3-month Treasury bill rate (Bank of England series IUMAJNB stopped in June 2017).
+- Inflation: ONS CPI annual rate, series D7G7 (MM23), annual average, release of 21 October 2026. Matches JST to the decimal for 2017 to 2020.
+- GBP/USD: GBP/USD at year end. 2020-2023 and 2025: Bank of England reference rate on the last business day (via poundsterlinglive.com BoE pages). 2024: market mid on 31 Dec (BoE page not reachable).
+
+### New rows
+
+| Year | Global equities (GBP) | UK gilts | UK cash | UK CPI | UK equities |
+| --- | --- | --- | --- | --- | --- |
+| 2021 | 19.7% | -6.3% | 0.09% | 2.6% | 20.0% |
+| 2022 | -7.0% | -19.9% | 2.00% | 9.1% | 6.5% |
+| 2023 | 17.0% | 5.2% | 4.95% | 7.3% | 7.8% |
+| 2024 | 16.4% | -2.9% | 5.00% | 2.5% | 9.3% |
+| 2025 | 18.2% | 4.9% | 4.12% | 3.4% | 25.9% |
+
+### Overlap test: shares
+
+The same 16 countries and JST GDP weights, with JST's own country returns against MSCI's.
+
+| Year | JST composite | Rebuilt from MSCI | Difference |
+| --- | --- | --- | --- |
+| 2012 | 12.1% | 14.0% | +1.9 pts |
+| 2013 | 24.7% | 22.9% | -1.8 pts |
+| 2014 | 9.9% | 7.9% | -2.0 pts |
+| 2015 | 7.2% | 5.8% | -1.5 pts |
+| 2016 | 23.4% | 27.4% | +4.0 pts |
+| 2017 | 13.0% | 12.5% | -0.4 pts |
+| 2018 | 5.1% | -4.6% | -9.7 pts |
+| 2019 | 11.8% | 22.0% | +10.3 pts |
+| 2020 | 8.7% | 11.0% | +2.3 pts |
+| 2012 to 2020 | 193.2% | 196.2% | |
+
+Single years differ most in 2018 and 2019, where JST's US returns look like annual averages
+(see the known data issue above). Outside the US, MSCI runs about 1% a year below JST (large and
+mid caps only, and some figures are after withholding tax).
+
+### Overlap test: gilts
+
+| Year | JST gilts | Rebuilt 10-year gilt |
+| --- | --- | --- |
+| 2011 | 18.4% | 15.4% |
+| 2012 | 3.8% | 3.9% |
+| 2013 | -6.1% | -7.6% |
+| 2014 | 15.6% | 13.2% |
+| 2015 | 0.8% | 0.1% |
+| 2016 | 7.1% | 8.3% |
+| 2017 | 3.7% | 1.5% |
+| 2018 | 2.2% | 0.6% |
+| 2019 | 5.7% | 5.0% |
+| 2020 | 5.8% | 6.8% |
+| 2011 to 2020 | 70.8% | 55.6% |
+
+The rebuilt gilt follows JST year by year but leaves out the gain from rolling down an upward
+sloping yield curve, which was steep in 2011 to 2020. The curve was flat or inverted for much of
+2022 to 2024, so the effect on the new years is smaller. Longer maturities fit the single years
+worse.
+
+### Cash
+
+JST's UK cash return is the annual average of the Bank of England 3-month Treasury bill rate
+(IUMAJNB): 0.50% in 2010, 0.48% in 2011 and 0.45% in 2015 against JST's 0.50%, 0.48% and 0.44%.
+That series stopped in June 2017, so the OECD 3-month interbank rate stands in. It runs a little
+above Treasury bills.
