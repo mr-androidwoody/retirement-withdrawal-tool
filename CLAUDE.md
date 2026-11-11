@@ -30,7 +30,9 @@ Every start year from 1950 is used.
 
 Any whole number of years from 20 to 45 (`retirementLength` in config.json), typed in, with
 quick picks for 25, 30, 35 and 40. Past retirements tested: 57 at 20 years, 52 at 25, 47 at 30,
-42 at 35, 37 at 40, 32 at 45. Checked by `lengthError` in `engine/dataset.js`.
+42 at 35, 37 at 40, 32 at 45. Checked by `lengthError` in `engine/dataset.js`. The plan must
+also end by age 110 (`maxEndAge`): `endAgeError` says so in the length hint and on Find, with the
+longest length that fits (or that even 20 years runs past 110, from age 92 up).
 
 ### Search
 

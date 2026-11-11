@@ -89,7 +89,7 @@ and in Node:
   `firstStartYear` in `config.json`, 1950: 47 retirements for 30 years, 42 for 35, 52 for 25)
   and checks the retirement length against `retirementLength` in `config.json` (any whole
   number of years from 20 to 45, with quick picks for 25, 30, 35 and 40; 57 retirements at
-  20 years, 32 at 45)
+  20 years, 32 at 45), and that the plan ends by age 110 (`maxEndAge`)
 - `periods.js` turns the risk choice ("about 1 in 20" may run out) into a count for the number of
   retirements tested, ranks every start by the real return of your current mix over its first
   10 years (rank 1 is the worst; the same ranking applies to every option), and gives a plan's
