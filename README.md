@@ -108,6 +108,8 @@ and in Node:
   and picks the four rows: Recommended, Safest income, Highest typical income, Most left behind.
   What Recommended means follows "If there is room to spare" on the form: Spend more (highest
   typical spending) or Pass on more (pays what you want and typically leaves the most).
+  An optional "Leave at least" amount (today's money, at the end) is a need like the minimum
+  income: a past retirement that ends with less counts against the same run-out limit.
   It also tests your current mix (pot split into shares / bonds / cash, from a predefined list in
   `config.json` under `currentMixes`, or a custom split typed in pounds or percentages, see
   `ui/mix.js`) two ways: cash spent first, and cash

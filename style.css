@@ -212,6 +212,12 @@ input[aria-invalid="true"] { border-color: var(--bad); }
 .segmented button { font: inherit; font-size: 14px; padding: 10px 18px; min-height: 44px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); cursor: pointer; }
 .segmented button[aria-checked="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .segmented button small { display: block; font-size: 12px; opacity: .8; margin-top: 1px; }
+/* Step 2: the three amounts on one line, inputs level even if a label wraps; the two
+   "room to spare" buttons share one width (the wider one's). */
+.grid-3.needs { gap: 16px; align-items: end; }
+.needs-hint { margin-top: 6px; }
+#priority { display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; align-self: flex-start; }
+@media (max-width: 720px) { #priority { grid-auto-flow: row; } }
 .periods-bar { display: flex; flex-direction: column; gap: 8px; }
 /* Says the tiles in an option detail cover the chosen set of starts, not the selected year. */
 .detail .facts-head { font-size: 16px; margin: 0 0 -12px; }
