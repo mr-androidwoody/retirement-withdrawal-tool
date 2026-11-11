@@ -125,11 +125,14 @@ Tax, and a yearly results view. Keep it a simple guidance tool, not overcomplica
 - Keep explanations short and plain.
 - Pages share a 1180px width. Colour is used only for status (good / warning / bad), always with
   an icon and words.
-- Light and dark mode: every colour is a CSS variable in `style.css` (`:root` for light,
-  `:root[data-theme="dark"]` for dark). Never write a fixed colour in CSS or JS; add a variable
-  to both sets. Chart colours go through `style="stroke:var(--x)"`, not SVG colour attributes.
-  The Auto / Light / Dark switch is saved under `retirement-withdrawal-tool.theme`, and a small
-  script in `index.html` sets the theme before the page draws.
+- Three themes: every colour is a CSS variable in `style.css` (`:root` for Light,
+  `:root[data-theme="dark"]` for Dark (charcoal, teal accent), `:root[data-theme="navy"]` for
+  Navy (Woody's .wealth palette: navy grounds, violet accent `#a8a3ff`, mint / coral / red
+  status, bonds blue in the mix bar)). Never write a fixed colour in CSS or JS; add a variable
+  to all three sets. Chart colours go through `style="stroke:var(--x)"`, not SVG colour attributes.
+  The Light / Dark / Navy switch is saved under `retirement-withdrawal-tool.theme`; with nothing
+  saved (or an old "auto" save) the page follows the device: Light, or Navy on a dark device.
+  A small script in `index.html` sets the theme before the page draws.
 
 ## How Woody ships changes
 
