@@ -524,6 +524,8 @@ th.num { white-space: normal; }
 .move-btn { font: inherit; font-size: 10px; line-height: 1; width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--muted); cursor: pointer; }
 .move-btn:hover { color: var(--ink); border-color: var(--accent); }
 .move-btn[data-end] { visibility: hidden; }
+/* The arrow just used, on the plan that moved. */
+.move-btn.moved { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 @media (max-width: 860px) {
   .plans-table tr { position: relative; }
   .plans-table tbody th { padding-right: 96px; }
