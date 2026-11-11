@@ -430,6 +430,8 @@ th.num { white-space: normal; }
 .saved-plans summary::before { content: ''; flex: none; width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); margin: 0 6px 0 2px; transition: transform .15s; }
 .saved-plans[open] summary::before { transform: rotate(45deg); }
 .saved-plans .sp-count { font-size: 14px; font-weight: 400; color: var(--muted); }
+.saved-plans summary { flex-wrap: wrap; row-gap: 2px; padding: 8px 0; }
+.saved-plans .sp-hint { flex-basis: 100%; padding-left: 26px; font-size: 14px; font-weight: 400; color: var(--muted); }
 .saved-plans[open] > div { padding-bottom: 20px; }
 /* Saved plans table: a row per plan with columns for what you compare; cards on a phone. */
 .plans-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 15px; }
