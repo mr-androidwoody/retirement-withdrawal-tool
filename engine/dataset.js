@@ -49,3 +49,17 @@ export function lengthError(years, range) {
   }
   return null;
 }
+
+/**
+ * Check that a plan ends by the oldest age the tool plans for (range.maxEndAge in config.json).
+ * The plan's last year is at age + years - 1. Returns null when it is fine, or a plain message.
+ */
+export function endAgeError(age, years, range) {
+  const { min, maxEndAge } = range;
+  if (!Number.isInteger(maxEndAge) || !Number.isInteger(age) || !Number.isInteger(years)) return null;
+  const lastAge = age + years - 1;
+  if (lastAge <= maxEndAge) return null;
+  const most = maxEndAge - age + 1;
+  if (most < min) return `From age ${age}, even a ${min}-year plan would run past age ${maxEndAge}, the oldest age this tool plans to.`;
+  return `A ${years}-year plan from age ${age} would run to age ${lastAge}. Plans end by age ${maxEndAge}, so choose ${most} years or fewer.`;
+}
