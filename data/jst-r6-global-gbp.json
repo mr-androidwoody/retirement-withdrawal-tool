@@ -1,7 +1,7 @@
 {
  "id": "jst-r6-global-gbp",
- "version": "1.0.0",
- "label": "Global equities (GBP), UK gilts, UK cash, UK CPI",
+ "version": "1.1.0",
+ "label": "Global equities (GBP), UK gilts, UK cash, UK CPI, 1950 to 2025",
  "currency": "GBP",
  "source": {
   "name": "Jorda-Schularick-Taylor Macrohistory Database, Release 6",
@@ -762,6 +762,64 @@
    "ukEquities": -0.0944,
    "equitiesLocalCurrency": 0.071173,
    "equitiesCountries": 16
+  },
+  {
+   "year": 2021,
+   "equities": 0.196971,
+   "bonds": -0.062693,
+   "cash": 0.0009,
+   "inflation": 0.026,
+   "ukEquities": 0.200427,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 2022,
+   "equities": -0.069527,
+   "bonds": -0.198942,
+   "cash": 0.020008,
+   "inflation": 0.091,
+   "ukEquities": 0.065376,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 2023,
+   "equities": 0.170128,
+   "bonds": 0.051504,
+   "cash": 0.049508,
+   "inflation": 0.073,
+   "ukEquities": 0.07772,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 2024,
+   "equities": 0.164407,
+   "bonds": -0.028922,
+   "cash": 0.050017,
+   "inflation": 0.025,
+   "ukEquities": 0.093428,
+   "equitiesCountries": 16
+  },
+  {
+   "year": 2025,
+   "equities": 0.181988,
+   "bonds": 0.048878,
+   "cash": 0.04125,
+   "inflation": 0.034,
+   "ukEquities": 0.259486,
+   "equitiesCountries": 16
   }
- ]
+ ],
+ "extension": {
+  "years": [
+   2021,
+   2025
+  ],
+  "script": "tools/extend-dataset.py",
+  "sources": "tools/recent-sources.json",
+  "equities": "MSCI country index total returns in US dollars for the 16 JST countries with equity data, converted to pounds with the year-end GBP/USD rate and weighted by JST real GDP for 2020 (rgdpmad x pop), held for every new year.",
+  "bonds": "Return on a 10-year par gilt bought at the previous year-end yield and revalued at this year-end yield as a 9-year bond (coupon plus price change).",
+  "cash": "OECD 3-month interbank rate, annual average (FRED series IR3TIB01GBA156N), standing in for the 3-month Treasury bill rate (Bank of England series IUMAJNB stopped in June 2017).",
+  "inflation": "ONS CPI annual rate, series D7G7 (MM23), annual average, release of 21 October 2026.",
+  "extras": "ukEquities is MSCI United Kingdom in pounds; equitiesLocalCurrency is not given for these years."
+ }
 }
