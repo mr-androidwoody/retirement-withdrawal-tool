@@ -35,3 +35,14 @@ export function diffText(a, b, kind, { labels = ['A', 'B'], tolerance = 0 } = {}
     default: return '';
   }
 }
+
+/**
+ * Which of several figures is best: its index, or null when the best is shared (within
+ * tolerance) or the figures are not comparable. better: 'high' or 'low'.
+ */
+export function bestIndex(values, better, tolerance = 0) {
+  if (!better || values.length < 2 || !values.every(Number.isFinite)) return null;
+  const top = better === 'high' ? Math.max(...values) : Math.min(...values);
+  const near = values.map((v, i) => [v, i]).filter(([v]) => Math.abs(v - top) <= tolerance);
+  return near.length === 1 ? near[0][1] : null;
+}

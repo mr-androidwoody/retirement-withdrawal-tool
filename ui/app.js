@@ -9,7 +9,7 @@ import { allowedFailures, rankWindows, pickPeriods, subsetSummary } from '../eng
 import { gbp, pct, escapeHtml, parseAmount, formatAmount, planName, planParts, recipe, holdingsText, money, bigMoney, signedMoney, signedPct, STRATEGY_INFO, strategyTag } from './format.js';
 import { lineChart, wireCharts } from './charts.js';
 import { mixFromValues, wholePercents, convertValues } from './mix.js';
-import { betterSide, diffText } from './compare.js';
+import { diffText, bestIndex } from './compare.js';
 import { loadPlans, storePlans, addPlan, removePlan, findPlan, cleanName, renamePlan, movePlan, defaultName, displayName, MAX_PLANS, MAX_NAME } from './plans.js';
 
 const $ = (id) => document.getElementById(id);
@@ -1370,7 +1370,8 @@ function renderDetail() {
 
 const storage = (() => { try { return window.localStorage; } catch { return null; } })();
 const plansNow = () => (storage ? loadPlans(storage) : []);
-const savedDate = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+const MAX_COMPARE = 3;
+const shortDate = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
 /** The "Your saved plans" table on the first page (cards on a phone); hidden when there are none. */
 function renderSavedPlans() {
@@ -1385,8 +1386,9 @@ function renderSavedPlans() {
     const parts = planParts(p.plan);
     const split = s.split || parts.split;
     const name = displayName(p.name, planName(p.plan), defaultName(s.pot, parts.approach));
-    const when = [savedDate(p.savedAt), s.years ? `${s.years} years` : '', p.inputs?.priority === 'pass-on' ? 'pass on more' : ''].filter(Boolean).join(' \u00b7 ');
+    const when = [shortDate(p.savedAt), s.years ? `${s.years} yrs` : '', p.inputs?.priority === 'pass-on' ? 'pass on more' : ''].filter(Boolean).join(' \u00b7 ');
     const typical = String(s.typical || '').split(' then ');
+    const approachSub = [parts.pinned ? 'at income wanted' : '', parts.cash].filter(Boolean).join(' \u00b7 ');
     const nameCell = state.renaming === p.id
       ? `<div class="rename"><label class="sr-only" for="rename-${p.id}">New name</label>
           <input id="rename-${p.id}" maxlength="${MAX_NAME}" value="${escapeHtml(name)}" data-rename-input="${p.id}">
@@ -1394,14 +1396,17 @@ function renderSavedPlans() {
           <button type="button" class="link" data-plan-rename-cancel>Cancel</button></div>`
       : `<span class="nm">${escapeHtml(name)}</span>`;
     const ticked = state.compareIds.includes(p.id);
-    const blocked = !ticked && state.compareIds.length >= 2;
-    const tick = `<label class="cmp-tick"><input type="checkbox" data-plan-compare="${p.id}" ${ticked ? 'checked' : ''} ${blocked ? 'aria-disabled="true"' : ''}> Compare<span class="sr-only"> ${escapeHtml(name)}</span></label>`;
+    const blocked = !ticked && state.compareIds.length >= MAX_COMPARE;
+    const tick = list.length > 1
+      ? `<label class="cmp-tick"><input type="checkbox" data-plan-compare="${p.id}" ${ticked ? 'checked' : ''} ${blocked ? 'aria-disabled="true"' : ''}><span class="cmp-word">Compare</span><span class="sr-only"> ${escapeHtml(name)}</span></label>`
+      : '';
     return `<tr>
-      <th scope="row" data-label="Plan">${nameCell}<span class="sub">${escapeHtml(when)}</span>${list.length > 1 ? tick : ''}</th>
-      <td data-label="Pot">${s.pot ? gbp(s.pot) : ''}</td>
-      <td data-label="Approach">${escapeHtml(parts.approach)}<span class="sub">${escapeHtml([parts.pinned ? 'at the income you want' : '', parts.cash].filter(Boolean).join(' \u00b7 '))}</span></td>
-      <td data-label="Mix">${split ? mixBar(split) : ''}<span class="mix-num">${escapeHtml(split ? wholePercents(split).join('/') : parts.mixLabel)}</span></td>
-      <td data-label="Typical spending">${escapeHtml(typical[0] || '')}${typical[1] ? `<span class="sub">then ${escapeHtml(typical[1])}</span>` : ''}</td>
+      ${list.length > 1 ? `<td class="cmp-cell">${tick}</td>` : ''}
+      <th scope="row" data-label="Plan">${nameCell}<span class="sub">${escapeHtml(when)}</span></th>
+      <td data-label="Pot" class="nowrap">${s.pot ? gbp(s.pot) : ''}</td>
+      <td data-label="Approach">${escapeHtml(parts.approach)}<span class="sub">${escapeHtml(approachSub)}</span></td>
+      <td data-label="Mix" class="nowrap">${split ? mixBar(split) : ''}<span class="mix-num">${escapeHtml(split ? wholePercents(split).join('/') : parts.mixLabel)}</span></td>
+      <td data-label="Typical spending" class="nowrap">${escapeHtml(typical[0] || '')}${typical[1] ? `<span class="sub">then ${escapeHtml(typical[1])}</span>` : ''}</td>
       <td class="plan-actions">
         <span class="move">
           <button type="button" class="move-btn" data-plan-move="${p.id}" data-dir="-1" ${i === 0 ? 'tabindex="-1" aria-hidden="true" data-end' : ''} aria-label="Move ${escapeHtml(name)} up">\u25b2</button>
@@ -1413,14 +1418,14 @@ function renderSavedPlans() {
         <button type="button" class="link" data-plan-delete="${p.id}">Delete<span class="sr-only"> ${escapeHtml(name)}</span></button>
       </td></tr>`;
   }).join('');
-  box.innerHTML = `<p class="hint">Your order (use \u25b2 \u25bc to move a plan; new plans go to the top), kept in this browser. View opens a plan with the inputs it was saved with (they replace what is in the form); Load only fills in the form.</p>
+  box.innerHTML = `<p class="hint">Kept in this browser, in your order (\u25b2 \u25bc to move). View reruns a plan with its saved inputs; Load only fills in the form.</p>
     <table class="plans-table">
-      <thead><tr><th scope="col">Plan</th><th scope="col">Pot</th><th scope="col">Approach</th><th scope="col">Mix</th><th scope="col">Typical spending</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+      <thead><tr>${list.length > 1 ? '<th scope="col" class="cmp-cell">Compare</th>' : ''}<th scope="col">Plan</th><th scope="col">Pot</th><th scope="col">Approach</th><th scope="col">Mix</th><th scope="col">Typical spending</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
-    ${list.length > 1 ? `<div class="cmp-bar">${state.compareIds.length === 2
-      ? '<button type="button" class="secondary" data-compare-go>Compare these 2</button>'
-      : `<span class="hint">Tick two plans to compare them${state.compareIds.length === 1 ? ' (1 ticked)' : ''}.</span>`}</div>` : ''}
+    ${list.length > 1 ? `<div class="cmp-bar">${state.compareIds.length >= 2
+      ? `<button type="button" class="secondary" data-compare-go>Compare these ${state.compareIds.length}</button>`
+      : ''}<span class="hint">Tick 2 or ${MAX_COMPARE} plans to compare them${state.compareIds.length ? ` (${state.compareIds.length} ticked)` : ''}.</span></div>` : ''}
     <p class="hint" id="plans-msg" role="status"></p>`;
   if (state.renaming) {
     const input = box.querySelector('[data-rename-input]');
@@ -1448,9 +1453,9 @@ function initSavedPlans() {
     const id = e.target.dataset?.planCompare;
     if (!id) return;
     if (e.target.checked) {
-      if (state.compareIds.length >= 2) {
+      if (state.compareIds.length >= MAX_COMPARE) {
         e.target.checked = false;
-        $('plans-msg').textContent = 'You can compare two plans at a time. Untick one first.';
+        $('plans-msg').textContent = `You can compare up to ${MAX_COMPARE} plans at a time. Untick one first.`;
         return;
       }
       state.compareIds = [...state.compareIds, id];
@@ -1550,7 +1555,7 @@ function comparePlan(entry) {
 
 function openCompare(ids) {
   const entries = ids.map((id) => findPlan(plansNow(), id)).filter(Boolean);
-  if (entries.length !== 2) return;
+  if (entries.length < 2 || entries.length > MAX_COMPARE) return;
   state.compare = { plans: entries.map(comparePlan), periods: state.periods || 'all' };
   renderCompare();
   show('compare');
@@ -1571,14 +1576,15 @@ function renderCompare() {
   const cmp = state.compare;
   const which = cmp.periods;
   const size = state.config.risk.subsetSize;
-  const labels = ['A', 'B'];
+  const N = cmp.plans.length;
+  const labels = ['A', 'B', 'C'].slice(0, N);
   const names = cmp.plans.map((c) => {
     const parts = planParts(c.entry.plan);
     return displayName(c.entry.name, planName(c.entry.plan), defaultName(c.entry.summary?.pot, parts.approach));
   });
   const head = `<header class="results-head">
       <button type="button" class="link back" data-nav="plan">\u2039 Back to your plans</button>
-      <h1>Comparing two saved plans</h1>
+      <h1>Comparing ${N === 2 ? 'two' : 'three'} saved plans</h1>
       <p class="hint">Each plan is worked out from its own saved inputs. The form is not changed.</p>
     </header>`;
   const broken = cmp.plans.find((c) => c.error);
@@ -1590,46 +1596,49 @@ function renderCompare() {
   const P = cmp.plans.map((c) => planParts(c.entry.plan, c.request));
   const age = (c) => (c.request.age ? `age ${c.request.age} to ${c.request.age + c.request.years - 1}` : '');
 
-  // A row: label, the two cells, and optionally numbers to mark the better one and say the difference.
+  // A row: label, one cell per plan, and optionally the figures behind it (`values`) to mark
+  // the best plan; with two plans the Difference column says the gap in words.
   const row = (label, cells, nums = null) => {
-    let mark = null;
-    let diff = '';
-    if (nums) {
-      mark = betterSide(nums.a, nums.b, nums.better, nums.tolerance || 0);
-      diff = diffText(nums.a, nums.b, nums.kind, { labels, tolerance: nums.tolerance || 0 });
-    }
-    const cell = (i) => {
-      const win = mark === labels[i].toLowerCase();
-      return `<td class="${win ? 'win' : ''}">${win ? `<span class="win-mark">${ICON.good}<span class="sr-only">Better: </span></span>` : ''}${cells[i]}</td>`;
-    };
-    return `<tr><th scope="row">${label}</th>${cell(0)}${cell(1)}<td class="diff">${escapeHtml(diff)}</td></tr>`;
+    const best = nums ? bestIndex(nums.values, nums.better, nums.tolerance || 0) : null;
+    const diff = nums && N === 2 ? diffText(nums.values[0], nums.values[1], nums.kind, { labels, tolerance: nums.tolerance || 0 }) : '';
+    const cell = (c, i) => `<td class="${best === i ? 'win' : ''}">${best === i ? `<span class="win-mark">${ICON.good}<span class="sr-only">Best: </span></span>` : ''}${c}</td>`;
+    return `<tr><th scope="row">${label}</th>${cells.map(cell).join('')}${N === 2 ? `<td class="diff">${escapeHtml(diff)}</td>` : ''}</tr>`;
   };
-  const group = (title) => `<tr class="grp"><th scope="rowgroup" colspan="4">${title}</th></tr>`;
+  const group = (title) => `<tr class="grp"><th scope="rowgroup" colspan="${N + (N === 2 ? 2 : 1)}">${title}</th></tr>`;
   const stageText = (r) => escapeHtml(typicalText(r));
+  // Typical spending averaged across the stages by their length, so a higher first stage
+  // counts even when the later stage is the same (the single middle figure would tie).
+  const spendLevel = (r) => {
+    const st = r.typicalByStage || [];
+    if (st.length < 2) return r.typicalIncome;
+    const yrs = st.map((x) => x.to - x.from + 1);
+    return st.reduce((a, x, i) => a + x.typical * yrs[i], 0) / yrs.reduce((a, b) => a + b, 0);
+  };
+  const plans = cmp.plans;
 
   const rows = [
     group('What it is'),
-    row('Pot', cmp.plans.map((c) => gbp(c.request.pot)), { a: cmp.plans[0].request.pot, b: cmp.plans[1].request.pot, kind: 'big' }),
-    row('Length', cmp.plans.map((c) => `${c.request.years} years<span class="sub">${escapeHtml(age(c))}</span>`), { a: cmp.plans[0].request.years, b: cmp.plans[1].request.years, kind: 'years' }),
-    row('Approach', P.map((p) => `${escapeHtml(p.approach)}<span class="sub">${escapeHtml([p.pinned ? 'at the income you want' : '', p.cash].filter(Boolean).join(' \u00b7 '))}</span>`)),
+    row('Pot', plans.map((c) => gbp(c.request.pot)), { values: plans.map((c) => c.request.pot), kind: 'big' }),
+    row('Length', plans.map((c) => `${c.request.years} years<span class="sub">${escapeHtml(age(c))}</span>`), { values: plans.map((c) => c.request.years), kind: 'years' }),
+    row('Approach', P.map((p) => `${escapeHtml(p.approach)}<span class="sub">${escapeHtml([p.pinned ? 'at the income you want' : '', p.cash].filter(Boolean).join(' · '))}</span>`)),
     row('Mix at the start', P.map((p) => (p.split ? `${mixBar(p.split)} ${wholePercents(p.split).join('/')}` : escapeHtml(p.mixLabel)))),
-    row('If there is room to spare', cmp.plans.map((c) => (c.request.priority === 'pass-on' ? 'Pass on more' : 'Spend more'))),
+    row('If there is room to spare', plans.map((c) => (c.request.priority === 'pass-on' ? 'Pass on more' : 'Spend more'))),
     group('Spending'),
-    row('Typical spending', F.map((f) => stageText(f.r)), { a: F[0].r.typicalIncome, b: F[1].r.typicalIncome, better: 'high', kind: 'money', tolerance: 100 }),
-    row('Lowest year', F.map((f) => money(f.r.worstIncome)), { a: F[0].r.worstIncome, b: F[1].r.worstIncome, better: 'high', kind: 'money', tolerance: 100 }),
+    row('Typical spending', F.map((f) => stageText(f.r)), { values: F.map((f) => spendLevel(f.r)), better: 'high', kind: 'money', tolerance: 100 }),
+    row('Lowest year', F.map((f) => money(f.r.worstIncome)), { values: F.map((f) => f.r.worstIncome), better: 'high', kind: 'money', tolerance: 100 }),
     group('Safety'),
-    row('Ran out or nearly', F.map((f) => `${f.r.ranOutOrNearly} of ${f.n}`), { a: F[0].r.ranOutOrNearly, b: F[1].r.ranOutOrNearly, better: 'low', kind: 'count' }),
-    row('Any years below what you want', F.map((f) => `${f.r.cutCount} of ${f.n}`), { a: F[0].r.cutCount, b: F[1].r.cutCount, better: 'low', kind: 'count' }),
+    row('Ran out or nearly', F.map((f) => `${f.r.ranOutOrNearly} of ${f.n}`), { values: F.map((f) => f.r.ranOutOrNearly), better: 'low', kind: 'count' }),
+    row('Any years below what you want', F.map((f) => `${f.r.cutCount} of ${f.n}`), { values: F.map((f) => f.r.cutCount), better: 'low', kind: 'count' }),
     group('What is left'),
-    row('Typically left', F.map((f) => bigMoney(f.r.medianEnd)), { a: F[0].r.medianEnd, b: F[1].r.medianEnd, better: 'high', kind: 'big', tolerance: 50000 }),
-    row('Biggest fall', F.map((f) => pct(f.r.worstDrawdown, 0)), { a: F[0].r.worstDrawdown, b: F[1].r.worstDrawdown, better: 'low', kind: 'points', tolerance: 0.005 }),
-    row('Worst case', F.map((f) => `Retired ${f.worst.year}<span class="sub">left ${bigMoney(f.worstLeft)}</span>`), { a: F[0].worstLeft, b: F[1].worstLeft, better: 'high', kind: 'big', tolerance: 50000 }),
+    row('Typically left', F.map((f) => bigMoney(f.r.medianEnd)), { values: F.map((f) => f.r.medianEnd), better: 'high', kind: 'big', tolerance: 50000 }),
+    row('Biggest fall', F.map((f) => pct(f.r.worstDrawdown, 0)), { values: F.map((f) => f.r.worstDrawdown), better: 'low', kind: 'points', tolerance: 0.005 }),
+    row('Worst case', F.map((f) => `Retired ${f.worst.year}<span class="sub">left ${bigMoney(f.worstLeft)}</span>`), { values: F.map((f) => f.worstLeft), better: 'high', kind: 'big', tolerance: 50000 }),
   ].join('');
 
   const choice = [['all', 'All'], ['worst', `Worst ${size}`], ['best', `Best ${size}`]]
     .map(([id, label]) => `<button type="button" role="radio" data-cmp-periods="${id}" aria-checked="${which === id}">${label}</button>`).join('');
   const hint = which === 'all'
-    ? `Figures cover all past retirements for each plan (${F[0].n} and ${F[1].n}).`
+    ? `Figures cover all past retirements for each plan (${F.map((f) => f.n).join(', ')}).`
     : `Figures cover each plan's own ${which} ${size} starts, picked for its own mix, so the years can differ.`;
 
   $('view-compare').innerHTML = `${head}
@@ -1641,10 +1650,10 @@ function renderCompare() {
       <thead><tr><th scope="col"><span class="sr-only">Figure</span></th>
         ${names.map((nm, i) => `<th scope="col"><span class="cmp-letter">${labels[i]}</span> ${escapeHtml(nm)}
           <button type="button" class="link" data-cmp-open="${cmp.plans[i].entry.id}">Open detail</button></th>`).join('')}
-        <th scope="col">Difference</th></tr></thead>
+        ${N === 2 ? '<th scope="col">Difference</th>' : ''}</tr></thead>
       <tbody>${rows}</tbody>
     </table></div>
-    <p class="hint"><span class="win-mark">${ICON.good}</span>marks the better figure on each row (shown in bold). Money is in today's pounds.</p>`;
+    <p class="hint"><span class="win-mark">${ICON.good}</span>marks the best figure on each row (shown in bold), when one plan clearly has it. Money is in today's pounds.</p>`;
 }
 
 function initCompare() {
