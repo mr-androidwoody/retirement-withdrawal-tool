@@ -1248,6 +1248,12 @@ function renderDetail() {
   const periodHint = keep
     ? `Showing the ${n} ${periods} starts for your ${mixName} mix, judged by its return after inflation over the first ${state.config.risk.rankYears} years. Everything below covers only these, including the what-if tables.`
     : `Showing all ${total} past retirements, starting ${state.detail.sims[0].startYear} to ${state.detail.sims.at(-1).startYear}. Choose the worst or best starts for your mix to see how this option did in them.`;
+  // Each box is a whole retirement: say how far the first and last ones run, so it is clear
+  // the later years of the data (up to its latest year) are covered.
+  const firstStart = state.detail.sims[0].startYear;
+  const lastStart = state.detail.sims.at(-1).startYear;
+  const runsTo = (y) => y + req.years - 1;
+  const spanHint = `Each box is a retirement that starts that year and lasts ${req.years} years, so ${firstStart} runs to ${runsTo(firstStart)} and ${lastStart} runs to ${runsTo(lastStart)}, the latest year in the data. Choose one to highlight it in the charts and see it year by year. The small number is each start's rank for your mix, 1 being the worst.`;
   const fact = (k, v, ref, cls = 'neutral') => `<div class="fact ${cls}"><div class="k">${k}</div><div class="v">${v}</div><div class="ref">${cls !== 'neutral' ? ICON[cls] : ''}<span>${ref}</span></div></div>`;
   const facts = [
     fact('Typical spending', typicalValue(r, req), stagesOf(r) ? typicalGap(r, req) : `a year, ${typicalGap(r, req)}`, typicalMeetsWanted(r, req) ? 'good' : 'warn'),
@@ -1280,7 +1286,7 @@ function renderDetail() {
 
       <section class="panel">
         <h3>${keep ? `${subsetName}, worst first` : 'Each past retirement'}</h3>
-        <p class="hint">Choose a start year to highlight it in the charts and see it year by year. The small number is each start's rank for your mix, 1 being the worst.</p>
+        <p class="hint">${escapeHtml(spanHint)}</p>
         <div class="strip" id="strip">${strip}</div>
         <p class="hint fine">The rank is how markets went for your mix; worst, middle and best case are how this option did.</p>
         ${selBlock}
