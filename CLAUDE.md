@@ -49,16 +49,6 @@ Recommended depends on "If there is room to spare" in step 2 (`priority` in the 
   behind" row, so that row merges with Recommended.
 Your-mix rows and the comparison cards follow the same choice.
 
-Leave at least (optional, step 2, `leaveAtLeast` in the request, today's money; blank or 0 = none):
-a hard need, counted like the minimum. In `summarisePlan` a past retirement that ends below it
-(within a pound counts as reached) is added to both `failingMinimum` and `fallingShort`, so the
-risk limit covers running out, dropping below the minimum and leaving too little together.
-`leftShort` counts those retirements on their own and `failingIncome` is the old income-only
-count; `reasonNotShown` uses them to say which need was missed. With no amount every figure is
-as before (the golden presets have none). Shown in the goal sentence, results hint, Typically
-left (table, recommendation box, detail fact), nearest misses and the comparison page. Presets
-clear it; older saves and saved plans without it mean none.
-
 ### Risk and periods
 
 - Risk is a share ("None", "About 1 in 20", "About 1 in 10") turned into a count for the number
