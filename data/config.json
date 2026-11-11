@@ -1,7 +1,7 @@
 {
   "dataset": "data/jst-r6-global-gbp.json",
   "firstStartYear": 1950,
-  "retirementLength": { "min": 20, "max": 45, "presets": [25, 30, 35, 40] },
+  "retirementLength": { "min": 20, "max": 45, "presets": [25, 30, 35, 40], "maxEndAge": 110 },
 
   "defaults": {
     "pot": 500000,
