@@ -9,6 +9,7 @@ import { allowedFailures, rankWindows, pickPeriods, subsetSummary } from '../eng
 import { gbp, pct, escapeHtml, parseAmount, formatAmount, planName, planParts, recipe, holdingsText, money, bigMoney, signedMoney, signedPct, STRATEGY_INFO, strategyTag } from './format.js';
 import { lineChart, wireCharts } from './charts.js';
 import { mixFromValues, wholePercents, convertValues } from './mix.js';
+import { betterSide, diffText } from './compare.js';
 import { loadPlans, storePlans, addPlan, removePlan, findPlan, cleanName, renamePlan, defaultName, displayName, MAX_PLANS, MAX_NAME } from './plans.js';
 
 const $ = (id) => document.getElementById(id);
@@ -25,6 +26,8 @@ const state = {
   periods: 'all',
   views: new WeakMap(),
   renaming: null,
+  compareIds: [],
+  compare: null,
   result: null,
   request: null,
   openable: [],
@@ -52,6 +55,7 @@ async function load() {
     state.dataset = dataset;
     initForm();
     initSavedPlans();
+    initCompare();
   } catch (err) {
     $('source-line').textContent = `The historical data could not be loaded (${err.message}).`;
   }
@@ -724,7 +728,7 @@ function runFind(after) {
 }
 
 function show(view) {
-  for (const v of ['plan', 'results', 'detail']) $(`view-${v}`).hidden = v !== view;
+  for (const v of ['plan', 'results', 'detail', 'compare']) $(`view-${v}`).hidden = v !== view;
   window.scrollTo(0, 0);
   const h = $(`view-${view}`).querySelector('h1');
   if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
@@ -1371,6 +1375,7 @@ const savedDate = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'num
 /** The "Your saved plans" table on the first page (cards on a phone); hidden when there are none. */
 function renderSavedPlans() {
   const list = plansNow();
+  state.compareIds = state.compareIds.filter((id) => list.some((p) => p.id === id));
   const box = $('saved-plans');
   $('saved-plans-panel').hidden = list.length === 0;
   $('saved-plans-count').textContent = `(${list.length} of ${MAX_PLANS})`;
@@ -1388,8 +1393,11 @@ function renderSavedPlans() {
           <button type="button" class="link" data-plan-rename-save="${p.id}">Save</button>
           <button type="button" class="link" data-plan-rename-cancel>Cancel</button></div>`
       : `<span class="nm">${escapeHtml(name)}</span>`;
+    const ticked = state.compareIds.includes(p.id);
+    const blocked = !ticked && state.compareIds.length >= 2;
+    const tick = `<label class="cmp-tick"><input type="checkbox" data-plan-compare="${p.id}" ${ticked ? 'checked' : ''} ${blocked ? 'aria-disabled="true"' : ''}> Compare<span class="sr-only"> ${escapeHtml(name)}</span></label>`;
     return `<tr>
-      <th scope="row" data-label="Plan">${nameCell}<span class="sub">${escapeHtml(when)}</span></th>
+      <th scope="row" data-label="Plan">${nameCell}<span class="sub">${escapeHtml(when)}</span>${list.length > 1 ? tick : ''}</th>
       <td data-label="Pot">${s.pot ? gbp(s.pot) : ''}</td>
       <td data-label="Approach">${escapeHtml(parts.approach)}<span class="sub">${escapeHtml([parts.pinned ? 'at the income you want' : '', parts.cash].filter(Boolean).join(' \u00b7 '))}</span></td>
       <td data-label="Mix">${split ? mixBar(split) : ''}<span class="mix-num">${escapeHtml(split ? wholePercents(split).join('/') : parts.mixLabel)}</span></td>
@@ -1406,6 +1414,9 @@ function renderSavedPlans() {
       <thead><tr><th scope="col">Plan</th><th scope="col">Pot</th><th scope="col">Approach</th><th scope="col">Mix</th><th scope="col">Typical spending</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
+    ${list.length > 1 ? `<div class="cmp-bar">${state.compareIds.length === 2
+      ? '<button type="button" class="secondary" data-compare-go>Compare these 2</button>'
+      : `<span class="hint">Tick two plans to compare them${state.compareIds.length === 1 ? ' (1 ticked)' : ''}.</span>`}</div>` : ''}
     <p class="hint" id="plans-msg" role="status"></p>`;
   if (state.renaming) {
     const input = box.querySelector('[data-rename-input]');
@@ -1429,9 +1440,24 @@ function initSavedPlans() {
     if (e.key === 'Enter') { e.preventDefault(); finishRename(id); }
     if (e.key === 'Escape') { state.renaming = null; renderSavedPlans(); }
   });
+  box.addEventListener('change', (e) => {
+    const id = e.target.dataset?.planCompare;
+    if (!id) return;
+    if (e.target.checked) {
+      if (state.compareIds.length >= 2) {
+        e.target.checked = false;
+        $('plans-msg').textContent = 'You can compare two plans at a time. Untick one first.';
+        return;
+      }
+      state.compareIds = [...state.compareIds, id];
+    } else state.compareIds = state.compareIds.filter((x) => x !== id);
+    renderSavedPlans();
+    box.querySelector(`[data-plan-compare="${id}"]`)?.focus();
+  });
   box.addEventListener('click', (e) => {
     const btn = e.target.closest('button');
     if (!btn) return;
+    if ('compareGo' in btn.dataset) { openCompare(state.compareIds); return; }
     const d = btn.dataset;
     if (d.planRenameSave) { finishRename(d.planRenameSave); return; }
     if ('planRenameCancel' in d) { state.renaming = null; renderSavedPlans(); return; }
@@ -1452,18 +1478,180 @@ function initSavedPlans() {
       $('plans-msg').textContent = `Deleted ${entry.name}.`;
       return;
     }
-    restoreInputs(entry.inputs);
-    for (const f of MONEY_FIELDS) formatMoney(f);
-    refresh();
     if (d.planLoad) {
+      restoreInputs(entry.inputs);
+      for (const f of MONEY_FIELDS) formatMoney(f);
+      refresh();
       $('plans-msg').textContent = `Inputs from ${displayName(entry.name, planName(entry.plan), entry.name)} are in the form.`;
       return;
     }
-    runFind(() => {
-      renderResults();
-      const result = evaluatePlan(entry.plan, windowsFor(state.request.years), state.request, state.config.thresholds);
-      openDetail({ result, labels: ['Saved plan'], savedId: entry.id });
-    });
+    viewSaved(entry);
+  });
+}
+
+/** Open a saved plan: its inputs go back in the form, the search reruns, and its detail opens. */
+function viewSaved(entry) {
+  restoreInputs(entry.inputs);
+  for (const f of MONEY_FIELDS) formatMoney(f);
+  refresh();
+  runFind(() => {
+    renderResults();
+    const result = evaluatePlan(entry.plan, windowsFor(state.request.years), state.request, state.config.thresholds);
+    openDetail({ result, labels: ['Saved plan'], savedId: entry.id });
+  });
+}
+
+// ---------- comparing two saved plans ----------
+
+/**
+ * The request a saved plan's inputs make, read through the form and then put back as it was,
+ * so the comparison never changes what is in the form. Returns { request, mix } or { error }.
+ */
+function requestFromInputs(inputs) {
+  const now = collectInputs();
+  restoreInputs(inputs);
+  const out = readRequest();
+  restoreInputs(now);
+  for (const f of MONEY_FIELDS) formatMoney(f);
+  refresh();
+  readRequest(); // put the form's own error marks back as they were
+  if (out.errors.length) return { error: out.errors[0] };
+  return { request: out.request, mix: out.mix };
+}
+
+/** Everything the comparison needs for one plan, worked out from its own saved inputs. */
+function comparePlan(entry) {
+  const got = requestFromInputs(entry.inputs);
+  if (got.error) return { entry, error: got.error };
+  const { request, mix } = got;
+  const windows = windowsFor(request.years);
+  const result = evaluatePlan(entry.plan, windows, request, state.config.thresholds);
+  const rk = state.config.risk;
+  const ranking = rankWindows(windows, mix, rk.rankYears);
+  return { entry, request, mix, result,
+    years: { worst: pickPeriods(ranking, 'worst', rk.subsetSize), best: pickPeriods(ranking, 'best', rk.subsetSize) } };
+}
+
+function openCompare(ids) {
+  const entries = ids.map((id) => findPlan(plansNow(), id)).filter(Boolean);
+  if (entries.length !== 2) return;
+  state.compare = { plans: entries.map(comparePlan), periods: state.periods || 'all' };
+  renderCompare();
+  show('compare');
+}
+
+/** One plan's figures over the chosen starts (all, or its own worst or best 10). */
+function compareFigures(c, which) {
+  const years = which === 'all' ? null : c.years[which];
+  const r = years ? { ...c.result, ...subsetSummary(c.result, years, c.request) } : c.result;
+  const paths = years ? c.result.paths.filter((p) => years.includes(p.startYear)) : c.result.paths;
+  const n = paths.length;
+  const limit = years ? allowedFailures(c.request.riskShare ?? 0, n) : c.request.maxFailures;
+  const worst = worstCase(paths);
+  return { r, n, limit, worst, worstLeft: paths.find((p) => p.startYear === worst.year)?.endReal };
+}
+
+function renderCompare() {
+  const cmp = state.compare;
+  const which = cmp.periods;
+  const size = state.config.risk.subsetSize;
+  const labels = ['A', 'B'];
+  const names = cmp.plans.map((c) => {
+    const parts = planParts(c.entry.plan);
+    return displayName(c.entry.name, planName(c.entry.plan), defaultName(c.entry.summary?.pot, parts.approach));
+  });
+  const head = `<header class="results-head">
+      <button type="button" class="link back" data-nav="plan">\u2039 Back to your plans</button>
+      <h1>Comparing two saved plans</h1>
+      <p class="hint">Each plan is worked out from its own saved inputs. The form is not changed.</p>
+    </header>`;
+  const broken = cmp.plans.find((c) => c.error);
+  if (broken) {
+    $('view-compare').innerHTML = `${head}<p class="hint">${escapeHtml(broken.entry.name)} could not be worked out: ${escapeHtml(broken.error)}</p>`;
+    return;
+  }
+  const F = cmp.plans.map((c) => compareFigures(c, which));
+  const P = cmp.plans.map((c) => planParts(c.entry.plan, c.request));
+  const age = (c) => (c.request.age ? `age ${c.request.age} to ${c.request.age + c.request.years - 1}` : '');
+
+  // A row: label, the two cells, and optionally numbers to mark the better one and say the difference.
+  const row = (label, cells, nums = null) => {
+    let mark = null;
+    let diff = '';
+    if (nums) {
+      mark = betterSide(nums.a, nums.b, nums.better, nums.tolerance || 0);
+      diff = diffText(nums.a, nums.b, nums.kind, { labels, tolerance: nums.tolerance || 0 });
+    }
+    const cell = (i) => {
+      const win = mark === labels[i].toLowerCase();
+      return `<td class="${win ? 'win' : ''}">${win ? `<span class="win-mark">${ICON.good}<span class="sr-only">Better: </span></span>` : ''}${cells[i]}</td>`;
+    };
+    return `<tr><th scope="row">${label}</th>${cell(0)}${cell(1)}<td class="diff">${escapeHtml(diff)}</td></tr>`;
+  };
+  const group = (title) => `<tr class="grp"><th scope="rowgroup" colspan="4">${title}</th></tr>`;
+  const stageText = (r) => escapeHtml(typicalText(r));
+
+  const rows = [
+    group('What it is'),
+    row('Pot', cmp.plans.map((c) => gbp(c.request.pot)), { a: cmp.plans[0].request.pot, b: cmp.plans[1].request.pot, kind: 'big' }),
+    row('Length', cmp.plans.map((c) => `${c.request.years} years<span class="sub">${escapeHtml(age(c))}</span>`), { a: cmp.plans[0].request.years, b: cmp.plans[1].request.years, kind: 'years' }),
+    row('Approach', P.map((p) => `${escapeHtml(p.approach)}<span class="sub">${escapeHtml([p.pinned ? 'at the income you want' : '', p.cash].filter(Boolean).join(' \u00b7 '))}</span>`)),
+    row('Mix at the start', P.map((p) => (p.split ? `${mixBar(p.split)} ${wholePercents(p.split).join('/')}` : escapeHtml(p.mixLabel)))),
+    row('If there is room to spare', cmp.plans.map((c) => (c.request.priority === 'pass-on' ? 'Pass on more' : 'Spend more'))),
+    group('Spending'),
+    row('Typical spending', F.map((f) => stageText(f.r)), { a: F[0].r.typicalIncome, b: F[1].r.typicalIncome, better: 'high', kind: 'money', tolerance: 100 }),
+    row('Lowest year', F.map((f) => money(f.r.worstIncome)), { a: F[0].r.worstIncome, b: F[1].r.worstIncome, better: 'high', kind: 'money', tolerance: 100 }),
+    group('Safety'),
+    row('Ran out or nearly', F.map((f) => `${f.r.ranOutOrNearly} of ${f.n}`), { a: F[0].r.ranOutOrNearly, b: F[1].r.ranOutOrNearly, better: 'low', kind: 'count' }),
+    row('Any years below what you want', F.map((f) => `${f.r.cutCount} of ${f.n}`), { a: F[0].r.cutCount, b: F[1].r.cutCount, better: 'low', kind: 'count' }),
+    group('What is left'),
+    row('Typically left', F.map((f) => bigMoney(f.r.medianEnd)), { a: F[0].r.medianEnd, b: F[1].r.medianEnd, better: 'high', kind: 'big', tolerance: 50000 }),
+    row('Biggest fall', F.map((f) => pct(f.r.worstDrawdown, 0)), { a: F[0].r.worstDrawdown, b: F[1].r.worstDrawdown, better: 'low', kind: 'points', tolerance: 0.005 }),
+    row('Worst case', F.map((f) => `Retired ${f.worst.year}<span class="sub">left ${bigMoney(f.worstLeft)}</span>`), { a: F[0].worstLeft, b: F[1].worstLeft, better: 'high', kind: 'big', tolerance: 50000 }),
+  ].join('');
+
+  const choice = [['all', 'All'], ['worst', `Worst ${size}`], ['best', `Best ${size}`]]
+    .map(([id, label]) => `<button type="button" role="radio" data-cmp-periods="${id}" aria-checked="${which === id}">${label}</button>`).join('');
+  const hint = which === 'all'
+    ? `Figures cover all past retirements for each plan (${F[0].n} and ${F[1].n}).`
+    : `Figures cover each plan's own ${which} ${size} starts, picked for its own mix, so the years can differ.`;
+
+  $('view-compare').innerHTML = `${head}
+    <div class="periods-bar">
+      <div class="segmented periods" role="radiogroup" aria-label="Which past retirements the figures cover">${choice}</div>
+      <p class="hint">${escapeHtml(hint)}</p>
+    </div>
+    <div class="table-box"><table class="compare-table">
+      <thead><tr><th scope="col"><span class="sr-only">Figure</span></th>
+        ${names.map((nm, i) => `<th scope="col"><span class="cmp-letter">${labels[i]}</span> ${escapeHtml(nm)}
+          <button type="button" class="link" data-cmp-open="${cmp.plans[i].entry.id}">Open detail</button></th>`).join('')}
+        <th scope="col">Difference</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+    <p class="hint"><span class="win-mark">${ICON.good}</span>marks the better figure on each row (shown in bold). Money is in today's pounds.</p>`;
+}
+
+function initCompare() {
+  const view = $('view-compare');
+  view.addEventListener('click', (e) => {
+    const pick = e.target.closest('[data-cmp-periods]');
+    if (pick) {
+      state.compare.periods = pick.dataset.cmpPeriods;
+      renderCompare();
+      view.querySelector(`[data-cmp-periods="${pick.dataset.cmpPeriods}"]`)?.focus();
+      return;
+    }
+    const open = e.target.closest('[data-cmp-open]');
+    if (open) {
+      const entry = findPlan(plansNow(), open.dataset.cmpOpen);
+      if (entry) viewSaved(entry);
+      return;
+    }
+    if (e.target.closest('[data-nav="plan"]')) {
+      show('plan');
+      $('saved-plans-panel').open = true;
+      $('saved-plans-panel').scrollIntoView({ block: 'start' });
+    }
   });
 }
 
