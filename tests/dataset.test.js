@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { validateDataset, makeWindows, lengthError } from '../engine/dataset.js';
+import { validateDataset, makeWindows, lengthError, endAgeError } from '../engine/dataset.js';
 
 const ds = JSON.parse(readFileSync(new URL('../data/jst-r6-global-gbp.json', import.meta.url)));
 const config = JSON.parse(readFileSync(new URL('../data/config.json', import.meta.url)));
@@ -71,4 +71,15 @@ test('a length outside the range, or not a whole number, is refused with a plain
   for (const bad of [19, 46, 0, 30.5, NaN]) assert.match(lengthError(bad, r), /from 20 to 45/);
   assert.equal(lengthError(20, r), null);
   assert.equal(lengthError(45, r), null);
+});
+
+test('a plan must end by age 110', () => {
+  const r = config.retirementLength;
+  assert.equal(r.maxEndAge, 110);
+  assert.equal(endAgeError(60, 45, r), null);   // ends at 104
+  assert.equal(endAgeError(81, 30, r), null);   // ends at 110 exactly
+  assert.equal(endAgeError(82, 30, r), 'A 30-year plan from age 82 would run to age 111. Plans end by age 110, so choose 29 years or fewer.');
+  assert.equal(endAgeError(91, 20, r), null);   // the shortest plan still fits
+  assert.equal(endAgeError(92, 20, r), 'From age 92, even a 20-year plan would run past age 110, the oldest age this tool plans to.');
+  assert.equal(endAgeError(92, 20, { min: 20 }), null); // no limit set
 });
