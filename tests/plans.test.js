@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { addPlan, removePlan, findPlan, parsePlans, loadPlans, storePlans, cleanName, renamePlan, movePlan, shortPot, defaultName, displayName, MAX_PLANS, PLANS_KEY } from '../ui/plans.js';
+import { addPlan, removePlan, findPlan, parsePlans, loadPlans, storePlans, cleanName, renamePlan, movePlan, updatePlan, shortPot, defaultName, displayName, MAX_PLANS, PLANS_KEY } from '../ui/plans.js';
 import { planParts } from '../ui/format.js';
 
 const sample = (n) => ({
@@ -102,4 +102,20 @@ test('plans move one place up or down, and stay put at the ends', () => {
   assert.equal(movePlan(list, 'a', -1), list);
   assert.equal(movePlan(list, 'c', 1), list);
   assert.equal(movePlan(list, 'zzz', 1), list);
+});
+
+test('updating a plan replaces it in place, keeping its id and position', () => {
+  let list = [];
+  for (const id of ['c', 'b', 'a']) list = addPlan(list, sample(id), new Date(2026, 10, 1), id).list;
+  const next = { ...sample('new'), plan: { ...sample(1).plan, strategy: 'floor-ceiling' }, summary: { pot: 900000 } };
+  const kept = updatePlan(list, 'b', { ...next, name: undefined }, new Date(2026, 10, 11));
+  assert.deepEqual(kept.list.map((p) => p.id), ['a', 'b', 'c']);
+  assert.equal(kept.entry.name, 'Plan b');
+  assert.equal(kept.entry.plan.strategy, 'floor-ceiling');
+  assert.equal(kept.entry.summary.pot, 900000);
+  assert.ok(kept.entry.savedAt.startsWith('2026-11-1'));
+  const renamed = updatePlan(list, 'b', { ...next, name: '  \u00a3900k, floor and ceiling ', autoName: true });
+  assert.equal(renamed.entry.name, '\u00a3900k, floor and ceiling');
+  assert.equal(renamed.entry.autoName, true);
+  assert.match(updatePlan(list, 'zzz', next).error, /no longer there/);
 });
