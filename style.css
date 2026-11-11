@@ -512,3 +512,15 @@ th.num { white-space: normal; }
   .compare-table th, .compare-table td { padding: 8px 6px; font-size: 14px; }
   .compare-table td.diff, .compare-table thead th:last-child { display: none; }
 }
+
+/* Saved plans: move up / down arrows (kept in place at the ends so the links line up). */
+.plans-table .move { display: inline-flex; gap: 4px; vertical-align: middle; margin-right: 6px; }
+.move-btn { font: inherit; font-size: 11px; line-height: 1; width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--muted); cursor: pointer; }
+.move-btn:hover { color: var(--ink); border-color: var(--accent); }
+.move-btn[data-end] { visibility: hidden; }
+@media (max-width: 860px) {
+  .plans-table tr { position: relative; }
+  .plans-table tbody th { padding-right: 96px; }
+  .plans-table .move { position: absolute; top: 12px; right: 0; margin: 0; }
+  .move-btn { width: 40px; height: 40px; }
+}

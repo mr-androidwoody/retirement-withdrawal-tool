@@ -86,8 +86,8 @@ a warning offers "Use (amount) as my pot". Saves without `mixUnit` are percentag
   the option's plan object, plus a summary (pot, years, typical spending, starting split).
   "Save this plan" in the option detail (default name like "(pot), floor and ceiling").
   "Your saved plans" on the first page: a panel, closed until clicked ("2 of 5"), holding a
-  table (cards under 860px) with Plan, Pot, Approach, Mix and Typical spending, newest first,
-  and View (restores inputs, reruns the search, opens the plan), Load, inline Rename and a
+  table (cards under 860px) with Plan, Pot, Approach, Mix and Typical spending, in your own
+  order (move up / down arrows, `movePlan`; new saves go to the top), and View (restores inputs, reruns the search, opens the plan), Load, inline Rename and a
   two-press Delete. Names that repeat the option (older saves) show only the rest
   (`displayName`); stored names are not changed. Option parts come from `planParts` in
   `ui/format.js`. This browser only; no check-ins yet (see ideas).
@@ -131,7 +131,7 @@ Tax, and a yearly results view. Keep it a simple guidance tool, not overcomplica
 
 ## Working on it
 
-- Tests: `node --test` (Node 18+), 116 passing. They also run on GitHub Actions on every push
+- Tests: `node --test` (Node 18+), 117 passing. They also run on GitHub Actions on every push
   (`.github/workflows/test.yml`). Add tests for engine changes.
 - If results change on purpose: review `tools/results-report.md` (`node tools/print-results.mjs`),
   then `node tools/print-results.mjs --update-golden`.
