@@ -106,14 +106,14 @@ function workingYears() {
 // storage), so every read and write is wrapped and simply does nothing if it fails.
 
 const SAVE_KEY = 'retirement-withdrawal-tool.inputs.v1';
-const SAVED_FIELDS = ['pot', 'age', 'partner-age', 'years', 'wanted', 'minimum',
+const SAVED_FIELDS = ['pot', 'age', 'partner-age', 'years', 'wanted', 'minimum', 'leave',
   'change-age', 'change-wanted', 'change-minimum',
   'other1-label', 'other1-amount', 'other1-age', 'other2-label', 'other2-amount', 'other2-age',
   'earned1-label', 'earned1-amount', 'earned1-stop', 'earned2-label', 'earned2-amount', 'earned2-stop',
   'fee', 'mix-eq', 'mix-bd', 'mix-cash'];
 const SAVED_BOXES = ['change-box', 'other-box', 'other2', 'earned-box', 'earned2'];
 // Money boxes: shown with thousands separators (60,000) on load and when you leave the box.
-const MONEY_FIELDS = ['pot', 'wanted', 'minimum', 'change-wanted', 'change-minimum',
+const MONEY_FIELDS = ['pot', 'wanted', 'minimum', 'leave', 'change-wanted', 'change-minimum',
   'other1-amount', 'other2-amount', 'earned1-amount', 'earned2-amount'];
 
 function formatMoney(id) {
@@ -390,6 +390,8 @@ function applyValues(v) {
   if (v.years !== undefined) $('years').value = String(v.years);
   if (v.wanted !== undefined) $('wanted').value = formatAmount(v.wanted);
   if (v.minimum !== undefined) $('minimum').value = formatAmount(v.minimum);
+  // Presets say nothing about an amount to leave, so choosing one clears it.
+  $('leave').value = v.leaveAtLeast > 0 ? formatAmount(v.leaveAtLeast) : '';
   if (v.riskShare !== undefined) state.riskShare = v.riskShare;
   if (v.incomeChange) {
     // Presets store the change as a retirement year; show it as an age.
@@ -499,6 +501,13 @@ function readRequest() {
   mark('minimum', minBad);
   if (minBad) errors.push('The lowest you could live on must be a figure no higher than the income you want.');
   if (!(fee >= 0 && fee <= 0.03)) errors.push('Charges should be between 0% and 3% a year.');
+  // Optional: blank (or 0) means no amount to leave behind.
+  const leaveText = $('leave').value.trim();
+  const leaveRead = leaveText === '' ? 0 : parseAmount(leaveText);
+  const leaveBad = !(leaveRead >= 0);
+  mark('leave', leaveBad);
+  if (leaveBad) errors.push('Enter the amount to leave behind as a figure, or leave it blank.');
+  const leaveAtLeast = leaveBad ? 0 : leaveRead;
 
   let incomeChange = null;
   if (!$('change-box').hidden) {
@@ -577,7 +586,7 @@ function readRequest() {
 
   return {
     mix: mixRead.error ? null : mixRead,
-    request: { pot, years, age: ageOk ? age : null, wanted, minimum, incomeChange, otherIncome, riskShare: state.riskShare, maxFailures: allowedFor(years), annualFee: fee, priority: state.priority },
+    request: { pot, years, age: ageOk ? age : null, wanted, minimum, incomeChange, otherIncome, leaveAtLeast, riskShare: state.riskShare, maxFailures: allowedFor(years), annualFee: fee, priority: state.priority },
     errors,
   };
 }
@@ -658,10 +667,13 @@ function refresh() {
   if (request.incomeChange) {
     text += `From age ${request.age + request.incomeChange.fromYear - 1}, ${gbp(request.incomeChange.wanted)} a year, never below ${gbp(request.incomeChange.minimum)}. `;
   }
+  const leaving = request.leaveAtLeast > 0;
+  if (leaving) text += `Leave at least <strong>${gbp(request.leaveAtLeast)}</strong> in today's money when the plan ends. `;
   const choice = state.config.risk.choices.find((c) => c.share === state.riskShare);
+  const orLess = leaving ? ' or leave less' : '';
   text += state.riskShare === 0
-    ? `None of the ${n} past retirements may run out. `
-    : `${choice ? choice.label : 'Some'} of the past retirements may run out (up to ${allowedFor(years)} of ${n}). `;
+    ? `None of the ${n} past retirements may run out${orLess}. `
+    : `${choice ? choice.label : 'Some'} of the past retirements may run out${orLess} (up to ${allowedFor(years)} of ${n}). `;
   for (const o of request.otherIncome) {
     let when;
     if (o.kind === 'earned') when = o.person === 2 ? `until their age ${o.stopAge}` : `until age ${o.stopAge}`;
@@ -871,7 +883,8 @@ function figure(c, r, n, req) {
     case 'worstIncome': return `${money(v)}<span class="gap">${worstGap(r, req, { amounts: false })}</span>`;
     case 'ranOutOrNearly': return statusMark(v, 'ranout', req.maxFailures);
     case 'cutCount': return statusMark(v, 'cut', req.maxFailures);
-    case 'medianEnd': return bigMoney(v);
+    case 'medianEnd': return req.leaveAtLeast > 0
+      ? `${bigMoney(v)}<span class="gap">${r.leftShort} of ${n} below ${bigMoney(req.leaveAtLeast)}</span>` : bigMoney(v);
     default: return pct(v);
   }
 }
@@ -936,7 +949,7 @@ function renderResults() {
   let html = `<button type="button" class="link back" data-nav="plan">‹ Change your inputs</button>
     <header class="results-head">
       <h1>${heading}</h1>
-      <p class="hint">You asked for ${gbp(req.wanted)} a year, never below ${gbp(req.minimum)}${req.incomeChange ? `, then ${gbp(req.incomeChange.wanted)}, never below ${gbp(req.incomeChange.minimum)}, ${req.age ? `from age ${req.age + req.incomeChange.fromYear - 1}` : `from year ${req.incomeChange.fromYear}`}` : ''}, with ${state.request.maxFailures === 0 ? 'none' : `up to ${state.request.maxFailures}`} of ${all} past retirements (starting ${r.windows[0].startYear} to ${r.windows.at(-1).startYear}) allowed to run out. ${r.plansTried.toLocaleString('en-GB')} plans were tested${r.keepMix ? `, all with your ${mixName} mix` : ''}.</p>
+      <p class="hint">You asked for ${gbp(req.wanted)} a year, never below ${gbp(req.minimum)}${req.incomeChange ? `, then ${gbp(req.incomeChange.wanted)}, never below ${gbp(req.incomeChange.minimum)}, ${req.age ? `from age ${req.age + req.incomeChange.fromYear - 1}` : `from year ${req.incomeChange.fromYear}`}` : ''}${req.leaveAtLeast > 0 ? `, leaving at least ${gbp(req.leaveAtLeast)} at the end` : ''}, with ${state.request.maxFailures === 0 ? 'none' : `up to ${state.request.maxFailures}`} of ${all} past retirements (starting ${r.windows[0].startYear} to ${r.windows.at(-1).startYear}) allowed to run out${req.leaveAtLeast > 0 ? ' or leave less' : ''}. ${r.plansTried.toLocaleString('en-GB')} plans were tested${r.keepMix ? `, all with your ${mixName} mix` : ''}.</p>
     </header>`;
 
   const rankYears = state.config.risk.rankYears;
@@ -973,7 +986,7 @@ function renderResults() {
           <div><span class="k">Typical spending</span><span class="v">${typicalValue(p, req)}</span><span class="s">a year, ${typicalGap(p, req, { amounts: false })}</span></div>
           <div><span class="k">Lowest year</span><span class="v">${money(p.worstIncome)}</span><span class="s">${worstGap(p, req, { amounts: false })}</span></div>
           <div><span class="k">Ran out or nearly</span><span class="v">${p.ranOutOrNearly} of ${n}</span><span class="s st ${ro.cls}">${ICON[ro.cls]}${ro.word}</span></div>
-          <div><span class="k">Typically left</span><span class="v">${bigMoney(p.medianEnd)}</span><span class="s">after ${req.years} years</span></div>
+          <div><span class="k">Typically left</span><span class="v">${bigMoney(p.medianEnd)}</span><span class="s">${req.leaveAtLeast > 0 ? `${p.leftShort} of ${n} below ${bigMoney(req.leaveAtLeast)}` : `after ${req.years} years`}</span></div>
         </div>
         <button type="button" class="link" data-open="${idx}">See this option in detail ›</button>
       </section>`;
@@ -1005,8 +1018,8 @@ function renderResults() {
     })), n, req);
   } else {
     html += `<section class="closest"><h2>Nearest misses</h2>
-      <p class="hint">The best try of each of the four approaches, closest first. Try a lower income, a lower minimum, or allowing more past retirements to run out.</p><ul>`
-      + r.closest.map((c) => `<li><strong>${escapeHtml(planName(c.plan))}</strong>: ran out or fell below your minimum in ${inView(c).failingMinimum} of ${n}; typical spending ${typicalText(inView(c))}. <button type="button" class="link" data-open="${state.openable.push({ result: c, labels: ['Closest'] }) - 1}">See detail</button></li>`).join('')
+      <p class="hint">The best try of each of the four approaches, closest first. Try a lower income, a lower minimum, ${req.leaveAtLeast > 0 ? 'a smaller amount to leave, ' : ''}or allowing more past retirements to run out.</p><ul>`
+      + r.closest.map((c) => `<li><strong>${escapeHtml(planName(c.plan))}</strong>: ${req.leaveAtLeast > 0 ? `ran out, fell below your minimum or left less than ${gbp(req.leaveAtLeast)}` : 'ran out or fell below your minimum'} in ${inView(c).failingMinimum} of ${n}; typical spending ${typicalText(inView(c))}. <button type="button" class="link" data-open="${state.openable.push({ result: c, labels: ['Closest'] }) - 1}">See detail</button></li>`).join('')
       + '</ul></section>';
   }
 
@@ -1022,7 +1035,7 @@ function renderResults() {
       }).join('') + '</div></section>';
   }
 
-  html += `<p class="hint">All money in today's pounds, before tax; spending rounded to the nearest \u00a3100. Typical spending: what you would have to live on each year (from the pot plus other income) in a typical past retirement; if what you want changes at an age, shown for each stage against what you want then. Lowest year: the lowest year in any past retirement that did not run out, against the minimum for that year. Ran out or nearly: ran out, or less than one year's withdrawal left at the end. Income cut: past retirements with any year below what you want to spend. Biggest fall: the largest drop in your investments from a high point, from year-end values. Bold marks the best figure in each column. Every figure covers the starts chosen at the top.</p>`;
+  html += `<p class="hint">All money in today's pounds, before tax; spending rounded to the nearest \u00a3100. Typical spending: what you would have to live on each year (from the pot plus other income) in a typical past retirement; if what you want changes at an age, shown for each stage against what you want then. Lowest year: the lowest year in any past retirement that did not run out, against the minimum for that year. Ran out or nearly: ran out, or less than one year's withdrawal left at the end. Income cut: past retirements with any year below what you want to spend. Biggest fall: the largest drop in your investments from a high point, from year-end values.${req.leaveAtLeast > 0 ? ` Typically left also counts the past retirements that ended with less than the ${gbp(req.leaveAtLeast)} you want to leave.` : ''} Bold marks the best figure in each column. Every figure covers the starts chosen at the top.</p>`;
 
   const view = $('view-results');
   view.innerHTML = html;
@@ -1261,7 +1274,9 @@ function renderDetail() {
     fact('Lowest year', money(r.worstIncome), worstGap(r, req), r.worstIncome >= worstMinimum(r, req) - 100 ? 'good' : 'bad'),
     fact('Ran out or nearly', `${r.ranOutOrNearly} of ${n}`, `${ro.word}, limit ${limit}`, ro.cls),
     fact('Income cut', `${r.cutCount} of ${n}`, r.cutCount ? 'past retirements with a year below what you want' : 'never below what you want', cut.cls),
-    fact('Typically left', bigMoney(r.medianEnd), `middle of these ${n} starts, after ${req.years} years`),
+    req.leaveAtLeast > 0
+      ? fact('Typically left', bigMoney(r.medianEnd), r.leftShort ? `${r.leftShort} of ${n} left less than ${bigMoney(req.leaveAtLeast)}, limit ${limit}` : `all ${n} left at least ${bigMoney(req.leaveAtLeast)}`, r.leftShort === 0 ? 'good' : (r.leftShort <= limit ? 'warn' : 'bad'))
+      : fact('Typically left', bigMoney(r.medianEnd), `middle of these ${n} starts, after ${req.years} years`),
     fact('Biggest fall', pct(r.worstDrawdown), 'largest drop in your investments'),
   ].join('');
   const isBufferYears = plan.cashBuffer.years !== undefined;
@@ -1675,6 +1690,9 @@ function renderCompare() {
     row('Any years below what you want', F.map((f) => `${f.r.cutCount} of ${f.n}`), { values: F.map((f) => f.r.cutCount), better: 'low', kind: 'count' }),
     group('What is left'),
     row('Typically left', F.map((f) => bigMoney(f.r.medianEnd)), { values: F.map((f) => f.r.medianEnd), better: 'high', kind: 'big', tolerance: 50000 }),
+    ...(plans.some((c) => c.request.leaveAtLeast > 0)
+      ? [row('Leave at least', plans.map((c, i) => (c.request.leaveAtLeast > 0
+        ? `${gbp(c.request.leaveAtLeast)}<span class="sub">${F[i].r.leftShort} of ${F[i].n} left less</span>` : 'Not set')))] : []),
     row('Biggest fall', F.map((f) => pct(f.r.worstDrawdown, 0)), { values: F.map((f) => f.r.worstDrawdown), better: 'low', kind: 'points', tolerance: 0.005 }),
     row('Worst case', F.map((f) => `Retired ${f.worst.year}<span class="sub">left ${bigMoney(f.worstLeft)}</span>`), { values: F.map((f) => f.worstLeft), better: 'high', kind: 'big', tolerance: 50000 }),
   ].join('');
