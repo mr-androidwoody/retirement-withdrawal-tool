@@ -116,19 +116,14 @@ export function summarisePath(rows, { startPot, depletionYear, firstWithdrawalRe
 }
 
 /**
- * One plan across all windows. A window "fails" if it runs out, income ever falls below the
- * minimum, or (when request.leaveAtLeast is set) it ends with less than that in today's money;
- * it "falls short" if it runs out, income ever falls below the income wanted, or it ends with
- * less than leaveAtLeast. leftShort counts the windows that end below leaveAtLeast.
+ * One plan across all windows. A window "fails" if it runs out or income ever falls below
+ * the minimum; it "falls short" if it runs out or income ever falls below the income wanted.
  * Worst year is taken over the windows that did not run out (running out is counted
  * separately), and is null if every window ran out.
  */
 export function summarisePlan(paths, request) {
   const survivors = paths.filter((p) => !p.depleted);
   const ends = paths.map((p) => p.endReal);
-  // An amount to leave behind, in today's money; within a pound counts as reached.
-  const leave = request.leaveAtLeast > 0 ? request.leaveAtLeast : 0;
-  const leftShort = (p) => leave > 0 && p.endReal < leave - 1;
   // The worst year over survivors, and the minimum that applied in that year (ties: the
   // one closest to its minimum by more than £1, else the earliest), so a step-down is
   // compared with the right minimum.
@@ -152,10 +147,8 @@ export function summarisePlan(paths, request) {
     nearFailures: paths.filter((p) => p.nearlyDepleted).length,
     cutCount: paths.filter((p) => p.yearsBelowWanted > 0).length,
     belowMinimumCount: paths.filter((p) => p.yearsBelowMinimum > 0).length,
-    failingIncome: paths.filter((p) => p.depleted || p.yearsBelowMinimum > 0).length,
-    leftShort: paths.filter(leftShort).length,
-    failingMinimum: paths.filter((p) => p.depleted || p.yearsBelowMinimum > 0 || leftShort(p)).length,
-    fallingShort: paths.filter((p) => p.depleted || p.yearsBelowWanted > 0 || leftShort(p)).length,
+    failingMinimum: paths.filter((p) => p.depleted || p.yearsBelowMinimum > 0).length,
+    fallingShort: paths.filter((p) => p.depleted || p.yearsBelowWanted > 0).length,
     typicalIncome: median(paths.map((p) => p.medianIncomeReal)),
     typicalByStage,
     worstIncome: survivors.length ? Math.min(...survivors.map((p) => p.minIncomeReal)) : null,

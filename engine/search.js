@@ -163,16 +163,10 @@ export function recommendFrom(list, request) {
   return best(list, 'recommended');
 }
 
-const pounds = (x) => `\u00a3${Math.round(x).toLocaleString('en-GB')}`;
-
 /** Why a plan is not among the options: one plain line. */
 export function reasonNotShown(r, request) {
-  const max = request.maxFailures;
-  if (r.failures > max) return `ran out in ${r.failures} of ${r.windows} past retirements`;
-  const income = r.failingIncome ?? r.failingMinimum;
-  if (income > max) return `fell below your minimum in ${income} of ${r.windows}`;
-  if (request.leaveAtLeast > 0 && r.leftShort > max) return `left less than ${pounds(request.leaveAtLeast)} in ${r.leftShort} of ${r.windows}`;
-  if (r.failingMinimum > max) return `fell below your minimum or left less than ${pounds(request.leaveAtLeast)} in ${r.failingMinimum} of ${r.windows}`;
+  if (r.failures > request.maxFailures) return `ran out in ${r.failures} of ${r.windows} past retirements`;
+  if (r.failingMinimum > request.maxFailures) return `fell below your minimum in ${r.failingMinimum} of ${r.windows}`;
   return 'was beaten by the options above';
 }
 
