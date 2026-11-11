@@ -1,6 +1,6 @@
 // The page: wizard, results and option detail. All modelling happens in engine/.
 
-import { validateDataset, makeWindows, lengthError } from '../engine/dataset.js';
+import { validateDataset, makeWindows, lengthError, endAgeError } from '../engine/dataset.js';
 import { runSearch, whatIf, buildGrid, strategySettings, CASH_RULES, currentFromMix, evaluatePlan } from '../engine/search.js';
 import { simulate } from '../engine/simulate.js';
 import { buildProfile } from '../engine/profile.js';
@@ -492,6 +492,9 @@ function readRequest() {
   const lastAge = age + years - 1;
   mark('age', !ageOk);
   if (!ageOk) errors.push('Enter your age now, as a whole number.');
+  // The plan must end by the oldest age planned for (110).
+  const tooOld = typed.ok && ageOk ? endAgeError(age, years, state.config.retirementLength) : null;
+  if (tooOld) { mark('years', true); errors.push(tooOld); }
 
   mark('pot', !(pot > 0)); if (!(pot > 0)) errors.push('Enter the size of your pot.');
   mark('wanted', !(wanted > 0)); if (!(wanted > 0)) errors.push('Enter the income you want.');
@@ -641,9 +644,10 @@ function refresh() {
   for (const b of $('year-picks').querySelectorAll('[data-years]')) b.setAttribute('aria-pressed', String(typed.ok && Number(b.dataset.years) === typed.years));
   const { min, max } = state.config.retirementLength;
   showLengthAge(typed.ok && age ? age + years - 1 : null);
-  $('years-hint').textContent = typed.ok
+  const tooOld = typed.ok && age ? endAgeError(age, years, state.config.retirementLength) : null;
+  $('years-hint').textContent = tooOld || (typed.ok
     ? `A ${years}-year plan can be tested against ${n} past retirements, starting ${first} to ${last}. Any length from ${min} to ${max} years; the longer the plan, the fewer there are.`
-    : `Enter a whole number of years from ${min} to ${max}.`;
+    : `Enter a whole number of years from ${min} to ${max}.`);
   $('settings-summary').textContent = `Global shares (£) and UK gilts · starts ${first} to ${last} · all four approaches · ${mixes} · ${buffers}${$('keep-mix').checked ? ' (keeping your mix)' : ' · plus your current mix'} · charges ${Number.isFinite(fee) ? fee : '?'}% a year`;
 
   // Goal in words.
