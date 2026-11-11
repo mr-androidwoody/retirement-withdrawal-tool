@@ -17,13 +17,20 @@ modules, no build step, no packages.
 
 JST Macrohistory R6, built into `data/jst-r6-global-gbp.json` by `tools/build-datasets.py`:
 global equities in GBP (GDP-weighted, 16 countries), UK gilts, UK bills, UK CPI, 1950 to 2020.
+2021 to 2025 are added by `tools/extend-dataset.py` (dataset version 1.1.0), rebuilding each series by
+JST's method from the figures in `tools/recent-sources.json`: MSCI country returns (USD) at BoE
+year-end GBP/USD with JST 2020 GDP weights; a 10-year gilt revalued at BoE year-end yields (IUAMNPY);
+OECD 3-month interbank as a stand-in for T-bills (BoE IUMAJNB stopped in 2017); ONS CPI D7G7.
+Overlap tests are in the extension section of `tools/check-report.md` (shares close; the rebuilt gilt
+runs about 1.5% a year below JST over 2011 to 2020, missing roll-down). If `build-datasets.py` is
+rerun, run `extend-dataset.py` after it. Woody holds `JSTdatasetR6.xlsx`; it is not in the repo.
 Every start year from 1950 is used.
 
 ### Retirement length
 
 Any whole number of years from 20 to 45 (`retirementLength` in config.json), typed in, with
-quick picks for 25, 30, 35 and 40. Past retirements tested: 52 at 20 years, 47 at 25, 42 at 30,
-37 at 35, 32 at 40, 27 at 45. Checked by `lengthError` in `engine/dataset.js`.
+quick picks for 25, 30, 35 and 40. Past retirements tested: 57 at 20 years, 52 at 25, 47 at 30,
+42 at 35, 37 at 40, 32 at 45. Checked by `lengthError` in `engine/dataset.js`.
 
 ### Search
 
@@ -148,8 +155,6 @@ Tax, and a yearly results view. Keep it a simple guidance tool, not overcomplica
 - Themed periods (e.g. 1970s inflation, post-war boom) or a custom start-year range, as a lens
   rather than driving the search. Note: for a 60/30/10 mix the worst 10 starts are 1965 to 1974,
   so Worst 10 already covers the 1970s.
-- Extending the data to 2021 to 2025 using MSCI World (GBP). Woody would need to supply the data;
-  splicing it onto the GDP-weighted JST series needs care. Mostly helps shorter plans.
 - A "to age X" entry for the retirement length.
 - Check-ins for saved plans: enter today's pot (and price rise since the start) to see where you
   stand against the plan's past runs and this year's income under its rules. Discussed: one
