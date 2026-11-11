@@ -27,6 +27,7 @@ const state = {
   views: new WeakMap(),
   renaming: null,
   compareIds: [],
+  lastMove: null,
   compare: null,
   result: null,
   request: null,
@@ -1381,6 +1382,8 @@ function renderSavedPlans() {
   $('saved-plans-panel').hidden = list.length === 0;
   $('saved-plans-count').textContent = `(${list.length} of ${MAX_PLANS})`;
   if (!list.length) { box.innerHTML = ''; $('saved-plans-panel').open = false; return; }
+  // The arrow just used stays highlighted on the plan that moved, until something else is done.
+  const moved = (id, dir) => (state.lastMove && state.lastMove.id === id && state.lastMove.dir === dir ? ' moved' : '');
   const rows = list.map((p, i) => {
     const s = p.summary || {};
     const parts = planParts(p.plan);
@@ -1409,8 +1412,8 @@ function renderSavedPlans() {
       <td data-label="Typical spending" class="nowrap">${escapeHtml(typical[0] || '')}${typical[1] ? `<span class="sub">then ${escapeHtml(typical[1])}</span>` : ''}</td>
       <td class="plan-actions">
         <span class="move">
-          <button type="button" class="move-btn" data-plan-move="${p.id}" data-dir="-1" ${i === 0 ? 'tabindex="-1" aria-hidden="true" data-end' : ''} aria-label="Move ${escapeHtml(name)} up">\u25b2</button>
-          <button type="button" class="move-btn" data-plan-move="${p.id}" data-dir="1" ${i === list.length - 1 ? 'tabindex="-1" aria-hidden="true" data-end' : ''} aria-label="Move ${escapeHtml(name)} down">\u25bc</button>
+          <button type="button" class="move-btn${moved(p.id, -1)}" data-plan-move="${p.id}" data-dir="-1" ${i === 0 ? 'tabindex="-1" aria-hidden="true" data-end' : ''} aria-label="Move ${escapeHtml(name)} up">\u25b2</button>
+          <button type="button" class="move-btn${moved(p.id, 1)}" data-plan-move="${p.id}" data-dir="1" ${i === list.length - 1 ? 'tabindex="-1" aria-hidden="true" data-end' : ''} aria-label="Move ${escapeHtml(name)} down">\u25bc</button>
         </span>
         <button type="button" class="link strong" data-plan-view="${p.id}">View<span class="sr-only"> ${escapeHtml(name)}</span></button>
         <button type="button" class="link" data-plan-load="${p.id}">Load<span class="sr-only"> inputs from ${escapeHtml(name)}</span></button>
@@ -1456,6 +1459,7 @@ function initSavedPlans() {
   box.addEventListener('change', (e) => {
     const id = e.target.dataset?.planCompare;
     if (!id) return;
+    state.lastMove = null;
     if (e.target.checked) {
       if (state.compareIds.length >= MAX_COMPARE) {
         e.target.checked = false;
@@ -1470,10 +1474,15 @@ function initSavedPlans() {
   box.addEventListener('click', (e) => {
     const btn = e.target.closest('button');
     if (!btn) return;
+    if (!btn.dataset.planMove && state.lastMove) {
+      state.lastMove = null;
+      box.querySelectorAll('.move-btn.moved').forEach((b) => b.classList.remove('moved'));
+    }
     if ('compareGo' in btn.dataset) { openCompare(state.compareIds); return; }
     if (btn.dataset.planMove && !('end' in btn.dataset)) {
       const id = btn.dataset.planMove;
       const step = Number(btn.dataset.dir);
+      state.lastMove = { id, dir: step };
       storePlans(storage, movePlan(plansNow(), id, step));
       renderSavedPlans();
       // Keep focus on the same plan's arrow (or the other one if it has reached the end).
