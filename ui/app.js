@@ -10,7 +10,7 @@ import { gbp, pct, escapeHtml, parseAmount, formatAmount, planName, planParts, r
 import { lineChart, wireCharts } from './charts.js';
 import { mixFromValues, wholePercents, convertValues } from './mix.js';
 import { betterSide, diffText } from './compare.js';
-import { loadPlans, storePlans, addPlan, removePlan, findPlan, cleanName, renamePlan, defaultName, displayName, MAX_PLANS, MAX_NAME } from './plans.js';
+import { loadPlans, storePlans, addPlan, removePlan, findPlan, cleanName, renamePlan, movePlan, defaultName, displayName, MAX_PLANS, MAX_NAME } from './plans.js';
 
 const $ = (id) => document.getElementById(id);
 const state = {
@@ -1380,7 +1380,7 @@ function renderSavedPlans() {
   $('saved-plans-panel').hidden = list.length === 0;
   $('saved-plans-count').textContent = `(${list.length} of ${MAX_PLANS})`;
   if (!list.length) { box.innerHTML = ''; $('saved-plans-panel').open = false; return; }
-  const rows = list.map((p) => {
+  const rows = list.map((p, i) => {
     const s = p.summary || {};
     const parts = planParts(p.plan);
     const split = s.split || parts.split;
@@ -1403,13 +1403,17 @@ function renderSavedPlans() {
       <td data-label="Mix">${split ? mixBar(split) : ''}<span class="mix-num">${escapeHtml(split ? wholePercents(split).join('/') : parts.mixLabel)}</span></td>
       <td data-label="Typical spending">${escapeHtml(typical[0] || '')}${typical[1] ? `<span class="sub">then ${escapeHtml(typical[1])}</span>` : ''}</td>
       <td class="plan-actions">
+        <span class="move">
+          <button type="button" class="move-btn" data-plan-move="${p.id}" data-dir="-1" ${i === 0 ? 'tabindex="-1" aria-hidden="true" data-end' : ''} aria-label="Move ${escapeHtml(name)} up">\u25b2</button>
+          <button type="button" class="move-btn" data-plan-move="${p.id}" data-dir="1" ${i === list.length - 1 ? 'tabindex="-1" aria-hidden="true" data-end' : ''} aria-label="Move ${escapeHtml(name)} down">\u25bc</button>
+        </span>
         <button type="button" class="link strong" data-plan-view="${p.id}">View<span class="sr-only"> ${escapeHtml(name)}</span></button>
         <button type="button" class="link" data-plan-load="${p.id}">Load<span class="sr-only"> inputs from ${escapeHtml(name)}</span></button>
         <button type="button" class="link" data-plan-rename="${p.id}">Rename<span class="sr-only"> ${escapeHtml(name)}</span></button>
         <button type="button" class="link" data-plan-delete="${p.id}">Delete<span class="sr-only"> ${escapeHtml(name)}</span></button>
       </td></tr>`;
   }).join('');
-  box.innerHTML = `<p class="hint">Newest first, kept in this browser. View opens a plan with the inputs it was saved with (they replace what is in the form); Load only fills in the form.</p>
+  box.innerHTML = `<p class="hint">Your order (use \u25b2 \u25bc to move a plan; new plans go to the top), kept in this browser. View opens a plan with the inputs it was saved with (they replace what is in the form); Load only fills in the form.</p>
     <table class="plans-table">
       <thead><tr><th scope="col">Plan</th><th scope="col">Pot</th><th scope="col">Approach</th><th scope="col">Mix</th><th scope="col">Typical spending</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
       <tbody>${rows}</tbody>
@@ -1458,6 +1462,18 @@ function initSavedPlans() {
     const btn = e.target.closest('button');
     if (!btn) return;
     if ('compareGo' in btn.dataset) { openCompare(state.compareIds); return; }
+    if (btn.dataset.planMove && !('end' in btn.dataset)) {
+      const id = btn.dataset.planMove;
+      const step = Number(btn.dataset.dir);
+      storePlans(storage, movePlan(plansNow(), id, step));
+      renderSavedPlans();
+      // Keep focus on the same plan's arrow (or the other one if it has reached the end).
+      const same = box.querySelector(`[data-plan-move="${id}"][data-dir="${step}"]:not([data-end])`);
+      (same || box.querySelector(`[data-plan-move="${id}"]:not([data-end])`))?.focus();
+      const pos = plansNow().findIndex((p) => p.id === id) + 1;
+      $('plans-msg').textContent = `Moved to ${pos} of ${plansNow().length}.`;
+      return;
+    }
     const d = btn.dataset;
     if (d.planRenameSave) { finishRename(d.planRenameSave); return; }
     if ('planRenameCancel' in d) { state.renaming = null; renderSavedPlans(); return; }

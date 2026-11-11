@@ -66,7 +66,11 @@ export function shortPot(x) {
 }
 
 /** The default name for a new save: pot and approach, e.g. "\u00a31.5m, floor and ceiling". */
-export const defaultName = (pot, approach) => [shortPot(pot), approach.toLowerCase()].filter(Boolean).join(', ');
+export const defaultName = (pot, approach) => {
+  // Lower-case the approach to read as a phrase, but keep names (Guyton-Klinger) as they are.
+  const a = /^[A-Z][a-z]+-[A-Z]/.test(approach) ? approach : approach.charAt(0).toLowerCase() + approach.slice(1);
+  return [shortPot(pot), a].filter(Boolean).join(', ');
+};
 
 /**
  * The name to show in the table. The table has columns for the option, so a name that repeats
@@ -77,4 +81,14 @@ export function displayName(name, optionName, fallback) {
   if (!optionName || !name.includes(optionName)) return name;
   const rest = name.replace(optionName, '').replace(/^[\s\-\u2013:,\u00b7]+|[\s\-\u2013:,\u00b7]+$/g, '');
   return rest || fallback;
+}
+
+/** Move a plan one place up (-1) or down (+1). Unchanged if it is already at that end. */
+export function movePlan(list, id, step) {
+  const i = list.findIndex((p) => p.id === id);
+  const j = i + step;
+  if (i < 0 || j < 0 || j >= list.length) return list;
+  const out = [...list];
+  [out[i], out[j]] = [out[j], out[i]];
+  return out;
 }
