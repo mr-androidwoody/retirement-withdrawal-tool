@@ -35,7 +35,7 @@ export function cleanName(name, fallback) {
  * Add a plan to the front of the list. Returns { list, entry } or { list, error } with a plain
  * message when the list is full. `now` is a Date; `id` defaults to one made from the time.
  */
-export function addPlan(list, { name, inputs, plan, summary }, now = new Date(), id = null) {
+export function addPlan(list, { name, inputs, plan, summary, autoName = false }, now = new Date(), id = null) {
   if (list.length >= MAX_PLANS) {
     return { list, error: `You have ${MAX_PLANS} saved plans, the most it keeps. Delete one on the first page to save this.` };
   }
@@ -46,6 +46,7 @@ export function addPlan(list, { name, inputs, plan, summary }, now = new Date(),
     inputs,
     plan,
     summary: summary || {},
+    autoName: Boolean(autoName),
   };
   return { list: [entry, ...list], entry };
 }
@@ -91,4 +92,27 @@ export function movePlan(list, id, step) {
   const out = [...list];
   [out[i], out[j]] = [out[j], out[i]];
   return out;
+}
+
+/**
+ * Replace a saved plan's inputs, option and summary in place: same id, same position, today's
+ * date. `name` is used when given (e.g. a refreshed default name); otherwise the old name stays.
+ * Returns { list, entry } or { list, error } if the plan is no longer there.
+ */
+export function updatePlan(list, id, { name, inputs, plan, summary, autoName }, now = new Date()) {
+  const i = list.findIndex((p) => p.id === id);
+  if (i < 0) return { list, error: 'That saved plan is no longer there. Save this as a new plan instead.' };
+  const old = list[i];
+  const entry = {
+    ...old,
+    name: name ? cleanName(name, old.name) : old.name,
+    savedAt: now.toISOString(),
+    inputs,
+    plan,
+    summary: summary || {},
+    autoName: autoName ?? old.autoName ?? false,
+  };
+  const out = [...list];
+  out[i] = entry;
+  return { list: out, entry };
 }

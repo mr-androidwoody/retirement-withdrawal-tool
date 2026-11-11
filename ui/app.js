@@ -10,7 +10,7 @@ import { gbp, pct, escapeHtml, parseAmount, formatAmount, planName, planParts, r
 import { lineChart, wireCharts } from './charts.js';
 import { mixFromValues, wholePercents, convertValues } from './mix.js';
 import { diffText, bestIndex } from './compare.js';
-import { loadPlans, storePlans, addPlan, removePlan, findPlan, cleanName, renamePlan, movePlan, defaultName, displayName, MAX_PLANS, MAX_NAME } from './plans.js';
+import { loadPlans, storePlans, addPlan, updatePlan, removePlan, findPlan, cleanName, renamePlan, movePlan, defaultName, displayName, MAX_PLANS, MAX_NAME } from './plans.js';
 
 const $ = (id) => document.getElementById(id);
 const state = {
@@ -28,6 +28,7 @@ const state = {
   renaming: null,
   compareIds: [],
   lastMove: null,
+  editingId: null,
   compare: null,
   result: null,
   request: null,
@@ -1348,6 +1349,13 @@ function renderDetail() {
       if (input) { input.focus(); input.select(); }
       return;
     }
+    if (e.target.closest('[data-save-update]')) {
+      updateEditedPlan();
+      renderDetail();
+      const focus = view.querySelector('.save-line');
+      if (focus) { focus.setAttribute('tabindex', '-1'); focus.focus({ preventScroll: true }); }
+      return;
+    }
     if (e.target.closest('[data-save-cancel]')) { state.detail.saving = false; state.detail.saveError = ''; renderDetail(); return; }
     if (e.target.closest('[data-save-confirm]')) {
       saveCurrentPlan();
@@ -1416,12 +1424,12 @@ function renderSavedPlans() {
           <button type="button" class="move-btn${moved(p.id, 1)}" data-plan-move="${p.id}" data-dir="1" ${i === list.length - 1 ? 'tabindex="-1" aria-hidden="true" data-end' : ''} aria-label="Move ${escapeHtml(name)} down">\u25bc</button>
         </span>
         <button type="button" class="link strong" data-plan-view="${p.id}">View<span class="sr-only"> ${escapeHtml(name)}</span></button>
-        <button type="button" class="link" data-plan-load="${p.id}">Load<span class="sr-only"> inputs from ${escapeHtml(name)}</span></button>
+        <button type="button" class="link" data-plan-edit="${p.id}">Edit<span class="sr-only"> ${escapeHtml(name)}</span></button>
         <button type="button" class="link" data-plan-rename="${p.id}">Rename<span class="sr-only"> ${escapeHtml(name)}</span></button>
         <button type="button" class="link" data-plan-delete="${p.id}">Delete<span class="sr-only"> ${escapeHtml(name)}</span></button>
       </td></tr>`;
   }).join('');
-  box.innerHTML = `<p class="hint">Kept in this browser, in your order (\u25b2 \u25bc to move). View reruns a plan with its saved inputs; Load only fills in the form.</p>
+  box.innerHTML = `<p class="hint">Kept in this browser, in your order (\u25b2 \u25bc to move). View reruns a plan with its saved inputs; Edit puts them in the form to change and update the plan.</p>
     <table class="plans-table">
       <thead><tr>${list.length > 1 ? '<th scope="col" class="cmp-cell">Compare</th>' : ''}<th scope="col">Plan</th><th scope="col">Pot</th><th scope="col">Approach</th><th scope="col">Mix</th><th scope="col">Typical spending</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
       <tbody>${rows}</tbody>
@@ -1438,6 +1446,7 @@ function renderSavedPlans() {
 
 function initSavedPlans() {
   renderSavedPlans();
+  $('edit-cancel').addEventListener('click', () => { setEditing(null); });
   // The closed bar's line goes back to its usual text once the panel is opened again.
   $('saved-plans-panel').addEventListener('toggle', (e) => {
     if (e.target.open) $('saved-plans-hint').textContent = 'View and compare your saved plans';
@@ -1495,7 +1504,7 @@ function initSavedPlans() {
     const d = btn.dataset;
     if (d.planRenameSave) { finishRename(d.planRenameSave); return; }
     if ('planRenameCancel' in d) { state.renaming = null; renderSavedPlans(); return; }
-    const id = d.planView || d.planLoad || d.planDelete || d.planRename;
+    const id = d.planView || d.planEdit || d.planDelete || d.planRename;
     if (!id) return;
     const entry = findPlan(plansNow(), id);
     if (!entry) { renderSavedPlans(); return; }
@@ -1508,24 +1517,34 @@ function initSavedPlans() {
         return;
       }
       storePlans(storage, removePlan(plansNow(), id));
+      if (state.editingId === id) setEditing(null);
       renderSavedPlans();
       $('plans-msg').textContent = `Deleted ${entry.name}.`;
       return;
     }
-    if (d.planLoad) {
+    if (d.planEdit) {
+      // Edit: the plan's inputs go in the form and the panel closes; the edit bar says which
+      // plan is being edited, and saving from an option then offers to update it.
       restoreInputs(entry.inputs);
       for (const f of MONEY_FIELDS) formatMoney(f);
       refresh();
-      // Close the panel so the form is in view, and say what happened on its closed bar.
-      const panel = $('saved-plans-panel');
-      panel.open = false;
-      $('saved-plans-hint').textContent = `Inputs from ${displayName(entry.name, planName(entry.plan), entry.name)} are now in the form`;
-      panel.querySelector('summary').focus({ preventScroll: true });
-      panel.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      setEditing(entry.id);
+      $('saved-plans-panel').open = false;
+      $('edit-bar').scrollIntoView({ block: 'center', behavior: 'smooth' });
+      $('edit-bar').focus({ preventScroll: true });
       return;
     }
+    setEditing(null);
     viewSaved(entry);
   });
+}
+
+/** Show or end edit mode: the bar above the form names the plan being edited. */
+function setEditing(id) {
+  const entry = id ? findPlan(plansNow(), id) : null;
+  state.editingId = entry ? entry.id : null;
+  $('edit-bar').hidden = !entry;
+  if (entry) $('edit-name').textContent = displayName(entry.name, planName(entry.plan), entry.name);
 }
 
 /** Open a saved plan: its inputs go back in the form, the search reruns, and its detail opens. */
@@ -1702,9 +1721,17 @@ function initCompare() {
 function saveBlock() {
   const d = state.detail;
   const saved = d.item.savedId ? findPlan(plansNow(), d.item.savedId) : null;
-  if (saved) return `<p class="save-line" role="status">Saved as <strong>${escapeHtml(displayName(saved.name, planName(saved.plan), saved.name))}</strong>. Find it on the first page under Your saved plans.</p>`;
+  if (saved) return `<p class="save-line" role="status">${d.item.updated ? 'Updated' : 'Saved as'} <strong>${escapeHtml(displayName(saved.name, planName(saved.plan), saved.name))}</strong>. Find it on the first page under Your saved plans.</p>`;
   const count = plansNow().length;
+  const editing = state.editingId ? findPlan(plansNow(), state.editingId) : null;
   if (!d.saving) {
+    if (editing) {
+      const nm = escapeHtml(displayName(editing.name, planName(editing.plan), editing.name));
+      return `<div class="save-line"><button type="button" class="primary small" data-save-update>Update ${nm}</button>
+        <button type="button" class="secondary" data-save-open ${count >= MAX_PLANS ? 'disabled' : ''}>Save as a new plan</button>
+        <span class="hint">${count >= MAX_PLANS ? `You have ${MAX_PLANS} saved plans, so this can only update ${nm}.` : `Update replaces ${nm} with this option and these inputs, in the same place in your list.`}</span>
+        ${d.saveError ? `<p class="hint bad-text" role="alert">${escapeHtml(d.saveError)}</p>` : ''}</div>`;
+    }
     return `<div class="save-line"><button type="button" class="secondary" data-save-open ${count >= MAX_PLANS ? 'disabled' : ''}>Save this plan</button>
       ${count >= MAX_PLANS ? `<span class="hint">You have ${MAX_PLANS} saved plans, the most it keeps. Delete one on the first page to save this.</span>` : `<span class="hint">${count} of ${MAX_PLANS} saved</span>`}</div>`;
   }
@@ -1717,22 +1744,49 @@ function saveBlock() {
     </div>`;
 }
 
-function saveCurrentPlan() {
-  const d = state.detail;
-  const result = d.item.result;
-  const out = addPlan(plansNow(), {
-    name: cleanName($('save-name').value, defaultName(state.request.pot, planParts(result.plan).approach)),
+/** What a save keeps for the option on screen: its inputs, the plan and a summary. */
+function currentSave() {
+  const result = state.detail.item.result;
+  return {
     inputs: state.searchInputs || collectInputs(),
     plan: result.plan,
     summary: { pot: state.request.pot, years: state.request.years, age: state.request.age, typical: typicalText(result),
       split: planParts(result.plan, state.request).split },
-  });
+    defaultName: defaultName(state.request.pot, planParts(result.plan).approach),
+  };
+}
+
+/** True if a saved plan still has a name the tool gave it (not one typed in). */
+function hasDefaultName(entry) {
+  if (entry.autoName) return true;
+  return entry.name === defaultName(entry.summary?.pot, planParts(entry.plan).approach) || entry.name === planName(entry.plan);
+}
+
+function finishSave(out) {
+  const d = state.detail;
   if (out.error) { d.saveError = out.error; return; }
   if (!storePlans(storage, out.list)) { d.saveError = 'This browser would not save it (storage is off or full).'; return; }
   d.item = { ...d.item, savedId: out.entry.id };
   d.saving = false;
   d.saveError = '';
+  setEditing(null);
   renderSavedPlans();
+}
+
+function saveCurrentPlan() {
+  const c = currentSave();
+  const typed = $('save-name').value;
+  finishSave(addPlan(plansNow(), { ...c, name: cleanName(typed, c.defaultName), autoName: cleanName(typed, c.defaultName) === c.defaultName }));
+}
+
+/** Update the plan being edited with the option on screen; a default name follows the new figures. */
+function updateEditedPlan() {
+  state.detail.item = { ...state.detail.item, updated: true };
+  const entry = findPlan(plansNow(), state.editingId);
+  const c = currentSave();
+  if (!entry) { finishSave({ error: 'That saved plan is no longer there. Save this as a new plan instead.' }); return; }
+  const auto = hasDefaultName(entry);
+  finishSave(updatePlan(plansNow(), entry.id, { ...c, name: auto ? c.defaultName : undefined, autoName: auto }));
 }
 
 // ---------- colour theme ----------
