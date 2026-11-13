@@ -48,9 +48,9 @@ a flexible reserve). A few hundred plans; the page shows the exact count (484 fo
 Recommended depends on "If there is room to spare" in step 2 (`priority` in the request,
 `recommendFrom` in `engine/search.js`):
 - Spend more (default, `spend`): meets needs, never below wanted where possible, then highest
-  typical spending.
+  typical income.
 - Pass on more (`pass-on`): meets needs and pays what you asked for (never cut below wanted, else
-  typical spending reaches wanted), then most typically left behind. Same rule as the "Most left
+  typical income reaches wanted), then most typically left behind. Same rule as the "Most left
   behind" row, so that row merges with Recommended.
 Your-mix rows and the comparison cards follow the same choice.
 
@@ -95,11 +95,11 @@ a warning offers "Use (amount) as my pot". Saves without `mixUnit` are percentag
   format changes.
 - Saved plans (`ui/plans.js`, tested in `tests/plans.test.js`): up to 5 named plans in
   `retirement-withdrawal-tool.plans.v1`, each holding the form inputs it was searched with and
-  the option's plan object, plus a summary (pot, years, typical spending, starting split).
+  the option's plan object, plus a summary (pot, years, typical income, starting split).
   "Save this plan" in the option detail (default name like "(pot), floor and ceiling").
   "Your saved plans" on the first page: a panel, closed until clicked ("2 of 5"), holding a
   compact table (one line per figure, cards under 860px) with Plan, Pot, Approach, Mix and
-  Typical spending, in your own
+  Typical income, in your own
   order (move up / down arrows, `movePlan`; new saves go to the top), and View (restores inputs, reruns the search, opens the plan), Edit, inline Rename and a
   two-press Delete. Edit puts the plan's inputs in the form, closes the panel and shows an edit
   bar (`setEditing`); in the option detail, saving then offers "Update (name)" (replaces inputs,
@@ -111,13 +111,22 @@ a warning offers "Use (amount) as my pot". Saves without `mixUnit` are percentag
   `MAX_COMPARE`), then "Compare these N" opens `view-compare`. Each plan is rerun from its own saved inputs (`requestFromInputs` reads
   them through the form and puts the form back). Rows: what it is, spending, safety, what is
   left; All / Worst 10 / Best 10 uses each plan's own ranking. The best figure gets a tick and
-  bold when one plan clearly has it (`bestIndex`; typical spending compares stages weighted by
+  bold when one plan clearly has it (`bestIndex`; typical income compares stages weighted by
   length); with two plans a Difference column says the gap in words (hidden on phones). Logic in `ui/compare.js`,
   tested in `tests/compare.test.js`.
 
 ### Out of scope (Woody's choice)
 
 Tax, and a yearly results view. Keep it a simple guidance tool, not overcomplicated.
+
+## Wording (Nov 2026 plain-English pass)
+
+Use one word for each thing, everywhere: "approach" for the four rules, "option" for a result,
+"plan" only once saved. Figures: Typical income, Lowest income, Ran out (or almost), Below what you
+want, Typically left, Biggest fall (defined once, in the closed "What these figures mean" note).
+"Cash buffer", not reserve (older saved names with "reserve" are still recognised by `shownName`).
+Charts say "Typical", not median. Longer notes sit in closed `<details>` (figure definitions,
+"About the data"); the kept-buffer top-up rules show only in the option detail (`recipe(..., { full: true })`).
 
 ## Conventions (always)
 
@@ -148,10 +157,12 @@ Tax, and a yearly results view. Keep it a simple guidance tool, not overcomplica
   be created or renamed in the GitHub editor, where typing a slash in the filename makes a
   folder.
 - After he uploads, pull and check the files match.
+- Always start work from the latest GitHub `main` (`git fetch`, then reset to `origin/main`). Never rebuild
+  files from an older zip, and before zipping check `git diff origin/main` removes nothing newer.
 
 ## Working on it
 
-- Tests: `node --test` (Node 18+), 119 passing. They also run on GitHub Actions on every push
+- Tests: `node --test` (Node 18+), 121 passing. They also run on GitHub Actions on every push
   (`.github/workflows/test.yml`). Add tests for engine changes.
 - If results change on purpose: review `tools/results-report.md` (`node tools/print-results.mjs`),
   then `node tools/print-results.mjs --update-golden`.

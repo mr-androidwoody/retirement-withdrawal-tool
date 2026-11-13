@@ -42,7 +42,7 @@
   </details>
 
   <div class="edit-bar" id="edit-bar" tabindex="-1" role="status" hidden>
-    <span>Editing <strong id="edit-name"></strong>. Change anything below, press Find my options, then choose Update in the option you pick.</span>
+    <span>Editing <strong id="edit-name"></strong>. Change anything below, press Find options, then choose Update in the option you pick.</span>
     <button type="button" class="link" id="edit-cancel">Stop editing</button>
   </div>
 
@@ -120,7 +120,7 @@
         <span class="step-num" aria-hidden="true">2</span>
         <div>
           <h2>The income you need</h2>
-          <p class="hint">Household income a year, in today's money. These two figures decide which options are shown.</p>
+          <p class="hint">Household income a year, in today's money.</p>
         </div>
       </div>
 
@@ -138,7 +138,7 @@
       <div class="field">
         <span class="field-label" id="priority-label">If there is room to spare</span>
         <div class="segmented" role="radiogroup" aria-labelledby="priority-label" id="priority">
-          <button type="button" role="radio" data-priority="spend" aria-checked="true">Spend more<small>highest typical spending</small></button>
+          <button type="button" role="radio" data-priority="spend" aria-checked="true">Spend more<small>highest typical income</small></button>
           <button type="button" role="radio" data-priority="pass-on" aria-checked="false">Pass on more<small>pay what you want, leave the most</small></button>
         </div>
       </div>
@@ -243,7 +243,7 @@
           </div>
         </div>
         <button type="button" class="link" id="add-earned2">+ Add your partner's earnings</button>
-        <p class="hint">Leave a row blank (or &pound;0) if that person is not earning. Earnings replace money taken from the pot while they last; after they stop, your planned spending carries on from the pot.</p>
+        <p class="hint">Earnings cover part of your income while they last; leave a row blank if not earning.</p>
       </div>
     </section>
 
@@ -263,7 +263,7 @@
       <div class="grow">
         <h2 class="h-small">Mix, history and approaches</h2>
         <p class="hint" id="settings-summary"></p>
-        <label class="check" for="keep-mix"><input type="checkbox" id="keep-mix"> Keep my mix: only try my current mix, and vary the approach and how much is drawn</label>
+        <label class="check" for="keep-mix"><input type="checkbox" id="keep-mix"> Keep my mix (only try my current mix)</label>
         <div id="fee-box" class="field fee" hidden>
           <label for="fee">Annual charges (% of the pot)</label>
           <input id="fee" inputmode="decimal" autocomplete="off">
@@ -277,17 +277,17 @@
         <span class="step-num" aria-hidden="true">5</span>
         <div>
           <h2>Check and find options</h2>
-          <p class="hint">Check your goal in words, then press the button.</p>
+          <p class="hint">Check your goal, then press the button.</p>
         </div>
       </div>
       <div class="goal">
         <div class="goal-label">Your goal, in words</div>
         <p id="goal-text"></p>
-        <div class="goal-count"><span class="big" data-bind="plan-count-number">0</span> <span>ways of drawing your pot will be tried</span></div>
+        <div class="goal-count"><span class="big" data-bind="plan-count-number">0</span> <span>options will be tested</span></div>
       </div>
       <div id="form-errors" class="errors" role="alert" hidden></div>
       <button type="submit" class="primary" id="find">Find options</button>
-      <p class="hint" id="saved-note">Your inputs are saved in this browser only, so they are still here when you come back. <button type="button" class="link inline" id="clear-saved">Clear saved inputs</button></p>
+      <p class="hint" id="saved-note">Your inputs are kept in this browser only. <button type="button" class="link inline" id="clear-saved">Clear saved inputs</button></p>
     </section>
   </form>
 </section>

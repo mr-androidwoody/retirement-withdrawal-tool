@@ -307,6 +307,19 @@ th.num { white-space: normal; }
 
 .footnote { margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); line-height: 1.6; }
 
+/* Notes closed until opened: "What these figures mean" and "About the data". */
+.defs, .footnote details { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.defs summary, .footnote summary { cursor: pointer; color: var(--accent-dark); font-weight: 500; width: fit-content; }
+.defs summary:focus-visible, .footnote summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.defs dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 10px 0 6px; }
+.defs dt { color: var(--ink); font-weight: 600; }
+.defs dd { margin: 0; }
+.defs p, .footnote details p { margin: 6px 0 0; }
+@media (max-width: 560px) {
+  .defs dl { grid-template-columns: 1fr; gap: 2px; }
+  .defs dd { margin-bottom: 6px; }
+}
+
 /* ---------- detail ---------- */
 .detail { display: flex; flex-direction: column; gap: 24px; }
 .facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
