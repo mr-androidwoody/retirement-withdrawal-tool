@@ -1593,7 +1593,6 @@ function setEditing(id) {
 
 /** Open a saved plan: its inputs go back in the form, the search reruns, and its detail opens. */
 function viewSaved(entry) {
-  $('saved-plans-panel').open = false; // closed when you come back to the first page
   restoreInputs(entry.inputs);
   for (const f of MONEY_FIELDS) formatMoney(f);
   refresh();
@@ -1601,6 +1600,8 @@ function viewSaved(entry) {
     renderResults();
     const result = evaluatePlan(entry.plan, windowsFor(state.request.years), state.request, state.config.thresholds);
     openDetail({ result, labels: ['Saved plan'], savedId: entry.id });
+    // Closed out of sight, once the plan is showing, so it is closed when you come back.
+    $('saved-plans-panel').open = false;
   });
 }
 
