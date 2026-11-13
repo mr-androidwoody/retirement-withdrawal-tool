@@ -270,7 +270,7 @@ function initForm() {
   for (const id of MONEY_FIELDS) $(id).addEventListener('blur', () => formatMoney(id));
   $('plan-form').addEventListener('submit', onFind);
 
-  $('footnote').innerHTML = '<details><summary>About the data</summary><p>Shares are a global mix of 16 developed markets in pounds, bonds are UK gilts, cash is UK Treasury bills, and inflation is UK CPI. '
+  $('footnote').innerHTML = '<details><summary>Where the market figures come from</summary><p>Shares are a global mix of 16 developed markets in pounds, bonds are UK gilts, cash is UK Treasury bills, and inflation is UK CPI. '
     + '1950 to 2020: Jord\u00e0-Schularick-Taylor Macrohistory Database, Release 6 (<a href="https://www.macrohistory.net/database/">macrohistory.net</a>), used under its non-commercial licence. '
     + '2021 to 2025 follow the same method using MSCI, Bank of England, OECD and ONS figures.</p></details>';
 
@@ -1449,7 +1449,7 @@ function renderSavedPlans() {
         <button type="button" class="link" data-plan-delete="${p.id}">Delete<span class="sr-only"> ${escapeHtml(name)}</span></button>
       </td></tr>`;
   }).join('');
-  box.innerHTML = `<p class="hint">Kept in this browser, in your order (\u25b2 \u25bc to move). View reruns a plan with its saved inputs; Edit puts them in the form to change and update the plan.</p>
+  box.innerHTML = `<p class="hint">Kept on this device only. \u25b2 \u25bc to reorder. View reruns a plan; Edit puts its answers in the form so you can change it.</p>
     <table class="plans-table">
       <thead><tr>${list.length > 1 ? '<th scope="col" class="cmp-cell">Compare</th>' : ''}<th scope="col">Plan</th><th scope="col">Pot</th><th scope="col">Approach</th><th scope="col">Mix</th><th scope="col">Typical income</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
       <tbody>${rows}</tbody>
