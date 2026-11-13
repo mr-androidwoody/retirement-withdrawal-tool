@@ -16,8 +16,8 @@ test('plan names and recipes read in plain English', () => {
   const plan = { strategy: 'floor-ceiling', params: { rate: 0.045, floorPct: 0.9, ceilingPct: 1.5 }, mix: { equities: 0.8 }, cashBuffer: { years: 5 } };
   assert.equal(planName(plan), 'Floor and ceiling, 5-year cash buffer, 80/20 shares and bonds');
   const r = recipe(plan, req);
-  assert.match(r.income, /starts on £22,500, then each year takes 4.5% of the pot, never less than £20,250 or more than £33,750/);
-  assert.match(r.cash, /starts at £112,500 \(5 years of withdrawals, 23% of the pot\)/);
+  assert.match(r.income, /^4.5% of the pot each year, starting at £22,500, never below £20,250 or above £33,750/);
+  assert.equal(r.cash, '£112,500 (23% of the pot, 5 years of withdrawals), spent first.');
   assert.equal(r.rest, '80% shares, 20% bonds.');
 });
 
@@ -26,8 +26,13 @@ test('a current-mix plan is named by its full split and its cash is described', 
     fromCurrent: true, currentMix: { equities: 0.6, bonds: 0.3, cash: 0.1 } };
   assert.equal(planName(plan), 'Inflation-adjusted, your cash spent first, your 60/30/10 mix');
   const r = recipe(plan, req);
-  assert.match(r.cash, /\u00a345,000 \(9% of the pot\), spent first \(about 2.0 years/);
-  assert.equal(r.rest, '67% shares, 33% bonds of the invested part, as in your current mix.');
+  assert.equal(r.cash, '\u00a345,000 (9% of the pot, about 2.0 years of withdrawals), spent first.');
+  assert.equal(r.rest, '67% shares, 33% bonds, as in your mix.');
+  // A kept buffer: short in the summary, with its finer rules only in the option detail.
+  const kept = { ...plan, cashRule: 'flexible', reserve: { floorYears: 1, maxYears: 3, targetYears: 2, phaseInYears: 5, downturnDrop: 0.1 } };
+  assert.equal(planName(kept), 'Inflation-adjusted, your cash kept as a 1 to 3 year buffer, your 60/30/10 mix');
+  assert.match(recipe(kept, req).cash, /kept at 1 to 3 years and topped up from investments\.$/);
+  assert.match(recipe(kept, req, { full: true }).cash, /top-ups pause while investments are more than 10% below their high\.$/);
 });
 
 test('all shares is described in words', () => {
@@ -62,9 +67,19 @@ test('constant real: earnings pay part of the income rather than adding to it', 
   const pension = { label: 'Pension', amount: 10000, fromYear: 1 };
   const withEarnings = recipe(plan, { ...req, pot, otherIncome: [earnings] }).income;
   assert.match(withEarnings, /^\u00a392,153 a year \(5% of the pot\)/);
-  assert.match(withEarnings, /Your earnings pay part of this while they last/);
+  assert.match(withEarnings, /Earnings cover part of it while they last/);
   // A pension in force from the start does add to the total.
   const both = recipe(plan, { ...req, pot, otherIncome: [earnings, pension] }).income;
   assert.match(both, /^\u00a3102,153 a year including your other income/);
   assert.doesNotMatch(recipe(plan, { ...req, pot }).income, /earnings/);
+});
+
+test('ordinal and startPlace read naturally', async () => {
+  const { ordinal, startPlace } = await import('../ui/format.js');
+  assert.deepEqual([1, 2, 3, 4, 11, 12, 13, 21, 22, 23].map(ordinal), ['1st', '2nd', '3rd', '4th', '11th', '12th', '13th', '21st', '22nd', '23rd']);
+  assert.equal(startPlace(1, 47), 'Worst start of 47');
+  assert.equal(startPlace(3, 47), '3rd worst start of 47');
+  assert.equal(startPlace(24, 47), '24th worst start of 47');
+  assert.equal(startPlace(46, 47), '2nd best start of 47');
+  assert.equal(startPlace(47, 47), 'Best start of 47');
 });
