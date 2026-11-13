@@ -110,7 +110,7 @@ export function planName(plan) {
   const label = plan.params?.pinned ? `${s.label} at the income you want` : s.label;
   let buffer;
   if (plan.cashBuffer.amount !== undefined) {
-    buffer = plan.cashRule === 'flexible' ? 'your cash kept as a 1 to 3 year reserve' : 'your cash spent first';
+    buffer = plan.cashRule === 'flexible' ? 'your cash kept as a 1 to 3 year buffer' : 'your cash spent first';
   }
   else if (plan.cashBuffer.years) buffer = `${plan.cashBuffer.years}-year cash buffer`;
   else buffer = 'no cash buffer';
@@ -132,7 +132,7 @@ export function planParts(plan, request = null) {
   const s = getStrategy(plan.strategy);
   const pinned = Boolean(plan.params?.pinned);
   let cash;
-  if (plan.cashBuffer.amount !== undefined) cash = plan.cashRule === 'flexible' ? '1 to 3 year cash reserve' : 'cash spent first';
+  if (plan.cashBuffer.amount !== undefined) cash = plan.cashRule === 'flexible' ? '1 to 3 year cash buffer' : 'cash spent first';
   else if (plan.cashBuffer.years) cash = `${plan.cashBuffer.years}-year cash buffer`;
   else cash = 'no cash buffer';
   let split = null;
@@ -147,8 +147,11 @@ export function planParts(plan, request = null) {
   return { approach: s.label, pinned, cash, split, mixLabel, invested: { equities: plan.mix.equities, bonds: 1 - plan.mix.equities, cash: 0 } };
 }
 
-/** The three recipe lines shown under each option: income, cash, the rest. */
-export function recipe(plan, request) {
+/**
+ * The three recipe lines shown under each option: income, cash, the rest. Short by default;
+ * `full` adds the finer rules of a kept cash buffer, for the option detail.
+ */
+export function recipe(plan, request, { full = false } = {}) {
   const profile = buildProfile(request);
   const p = plan.params;
   const wanted1 = profile.wanted[0];
@@ -161,24 +164,24 @@ export function recipe(plan, request) {
       const earned1 = profile.earned[0] || 0;
       const lasting1 = other1 - earned1;
       const total = p.rate * request.pot + lasting1;
-      income = `${gbp(total)} a year${lasting1 ? ' including your other income' : ''} (${rate(p.rate)} of the pot), rising with inflation every year.`;
-      if (earned1) income += ' Your earnings pay part of this while they last, so less is taken from the pot.';
+      income = `${gbp(total)} a year${lasting1 ? ' including your other income' : ''} (${rate(p.rate)} of the pot), rising with inflation.`;
+      if (earned1) income += ' Earnings cover part of it while they last.';
       if (request.incomeChange) {
         const at = request.age ? `age ${request.age + request.incomeChange.fromYear - 1}` : `year ${request.incomeChange.fromYear}`;
-        income += ` Changes in step with your income from ${at}.`;
+        income += ` Changes with your income from ${at}.`;
       }
       break;
     }
     case 'fixed-percentage':
-      income = `takes ${rate(p.rate)} of the pot each year, starting at ${gbp(p.rate * request.pot)}, so income rises and falls with markets.`;
+      income = `${rate(p.rate)} of the pot each year, starting at ${gbp(p.rate * request.pot)}. Rises and falls with markets.`;
       break;
     case 'guyton-klinger':
-      income = `starts at ${gbp(p.rate * request.pot)} (${rate(p.rate)} of the pot) and rises with inflation, except after a losing year. Cut by ${pct(p.adjustment ?? 0.1)} if the withdrawal rate climbs ${pct(p.guardrail ?? 0.2)} above the start, raised by ${pct(p.adjustment ?? 0.1)} if it falls ${pct(p.guardrail ?? 0.2)} below.`;
+      income = `${gbp(p.rate * request.pot)} a year (${rate(p.rate)} of the pot), rising with inflation except after a losing year. Cut ${pct(p.adjustment ?? 0.1)} if withdrawals get too high, raised ${pct(p.adjustment ?? 0.1)} if too low.`;
       break;
     case 'floor-ceiling': {
       const floor = Math.max(p.floorPct * wanted1, profile.minimum[0]);
       const ceiling = p.ceilingPct * wanted1;
-      income = `starts on ${gbp(wanted1)}, then each year takes ${rate(p.rate)} of the pot, never less than ${gbp(floor)} or more than ${gbp(ceiling)} (rising with inflation).`;
+      income = `${rate(p.rate)} of the pot each year, starting at ${gbp(wanted1)}, never below ${gbp(floor)} or above ${gbp(ceiling)} (rising with inflation).`;
       break;
     }
     default:
@@ -191,16 +194,17 @@ export function recipe(plan, request) {
   else if (plan.cashBuffer.amount !== undefined && plan.cashRule === 'flexible') {
     const r = plan.reserve || {};
     const yrs = planned > 0 ? amount / planned : 0;
-    cash = `${gbp(amount)} (${pct(amount / request.pot)} of the pot)${yrs ? ` (about ${yrs.toFixed(1)} years of withdrawals)` : ''}, kept between ${r.floorYears ?? 1} and ${r.maxYears ?? 3} years of withdrawals, aiming for ${r.targetYears ?? 2}. Cash above ${r.maxYears ?? 3} years is invested over ${r.phaseInYears ?? 5} years. Top-ups from investments pause while they are more than ${pct(r.downturnDrop ?? 0.1)} below their high.`;
+    cash = `${gbp(amount)} (${pct(amount / request.pot)} of the pot${yrs ? `, about ${yrs.toFixed(1)} years of withdrawals` : ''}), kept at ${r.floorYears ?? 1} to ${r.maxYears ?? 3} years and topped up from investments.`;
+    if (full) cash += ` It aims for ${r.targetYears ?? 2} years; cash above ${r.maxYears ?? 3} years is invested over ${r.phaseInYears ?? 5} years, and top-ups pause while investments are more than ${pct(r.downturnDrop ?? 0.1)} below their high.`;
   } else if (plan.cashBuffer.amount !== undefined) {
     const yrs = planned > 0 ? amount / planned : 0;
-    cash = `${gbp(amount)} (${pct(amount / request.pot)} of the pot), spent first${yrs ? ` (about ${yrs.toFixed(1)} years of withdrawals)` : ''}.`;
+    cash = `${gbp(amount)} (${pct(amount / request.pot)} of the pot${yrs ? `, about ${yrs.toFixed(1)} years of withdrawals` : ''}), spent first.`;
   } else {
-    cash = `starts at ${gbp(amount)} (${plan.cashBuffer.years} years of withdrawals, ${pct(amount / request.pot)} of the pot), spent first.`;
+    cash = `${gbp(amount)} (${pct(amount / request.pot)} of the pot, ${plan.cashBuffer.years} year${plan.cashBuffer.years === 1 ? '' : 's'} of withdrawals), spent first.`;
   }
   const eq = Math.round(plan.mix.equities * 100);
   const split = eq === 100 ? 'all shares' : `${eq}% shares, ${100 - eq}% bonds`;
-  const rest = plan.fromCurrent ? `${split} of the invested part, as in your current mix.` : `${split}.`;
+  const rest = plan.fromCurrent ? `${split}, as in your mix.` : `${split}.`;
   return { income, cash, rest };
 }
 
@@ -210,4 +214,22 @@ export function holdingsText(plan) {
   const split = eq === 100 ? 'all shares' : `${eq}/${100 - eq} shares and bonds`;
   if (plan.cashBuffer.amount !== undefined) return `${split}, with your cash`;
   return plan.cashBuffer.years ? `${plan.cashBuffer.years} years of withdrawals in cash, the rest ${split}` : `${split}, no cash`;
+}
+
+/** 1 -> "1st", 2 -> "2nd", 11 -> "11th", 23 -> "23rd". */
+export function ordinal(n) {
+  const tens = n % 100;
+  const suffix = tens >= 11 && tens <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th');
+  return `${n}${suffix}`;
+}
+
+/**
+ * Where a start year sits for the user's mix, counted from the nearer end:
+ * rank 1 of 47 -> "Worst start of 47", 3 -> "3rd worst start of 47", 46 -> "2nd best start of 47".
+ */
+export function startPlace(rank, total) {
+  const fromBest = total - rank + 1;
+  if (rank === 1) return `Worst start of ${total}`;
+  if (fromBest === 1) return `Best start of ${total}`;
+  return rank <= fromBest ? `${ordinal(rank)} worst start of ${total}` : `${ordinal(fromBest)} best start of ${total}`;
 }

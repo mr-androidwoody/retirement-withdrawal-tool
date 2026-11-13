@@ -106,7 +106,7 @@ export function lineChart({ lines, refs = [], kind = 'income', title, startAge =
   const labels = [
     ...refs.map((r) => ({ ...split(r.label), colour: r.colour, v: r.values.at(-1) })),
     ...(hi ? [{ ...split(hi.label), colour: hi.ranOut ? COLOURS.ranOut : COLOURS.accent, v: hi.values.at(-1), bold: true }] : []),
-    { text: 'Median', note: '', colour: COLOURS.median, v: stats.median.at(-1) },
+    { text: 'Typical', note: '', colour: COLOURS.median, v: stats.median.at(-1) },
   ].map((l) => ({ ...l, y: y(l.v) + 4, h: l.note ? 26 : 14 })).sort((a, b) => a.y - b.y);
   for (let i = 1; i < labels.length; i += 1) labels[i].y = Math.max(labels[i].y, labels[i - 1].y + labels[i - 1].h);
   const overflow = labels.length ? labels.at(-1).y + labels.at(-1).h - 14 - (H - PAD.bottom + 4) : 0;
@@ -178,7 +178,7 @@ export function wireCharts(root) {
       head.textContent = d.startYear ? `${age} \u00b7 ${d.startYear + current}` : age;
       tip.append(head);
       if (d.hi) tip.append(row(fmt(d.hi.values[current]), d.hi.label, 'lead'));
-      tip.append(row(fmt(d.median[current]), 'Median'));
+      tip.append(row(fmt(d.median[current]), 'Typical'));
       tip.append(row(`${fmt(d.p25[current])} to ${fmt(d.p75[current])}`, 'Middle half'));
       tip.append(row(`${fmt(d.min[current])} to ${fmt(d.max[current])}`, 'Full range'));
       for (const r of d.refs) tip.append(row(fmt(r.values[current]), r.label));
