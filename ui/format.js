@@ -72,28 +72,28 @@ function bufferAmount(plan, request) {
 /** What each strategy is called, any other name it goes by, and what it does in one sentence. */
 export const STRATEGY_INFO = {
   'constant-real': {
-    name: 'Constant real',
-    aka: 'the "4% rule" approach',
-    about: 'Take a set amount in the first year, then raise it with inflation every year, whatever the markets do.',
-    tradeOff: 'Steady, predictable income. The pot takes all the market risk, so a run of bad early years can empty it.',
+    name: 'Inflation-adjusted',
+    aka: 'the 4% rule',
+    about: 'Take a set amount, raised with inflation every year.',
+    tradeOff: 'Steady income, but bad early years can empty the pot.',
   },
   'fixed-percentage': {
     name: 'Fixed percentage',
     aka: '',
-    about: 'Take the same percentage of whatever the pot is worth each year, so income rises and falls with the markets.',
-    tradeOff: 'It can never run out, but income swings with the markets, including deep cuts after a fall.',
+    about: 'Take the same share of the pot each year.',
+    tradeOff: 'It never runs out, but income rises and falls with markets.',
   },
   'guyton-klinger': {
     name: 'Guyton-Klinger guardrails',
     aka: 'GK',
-    about: 'Start like constant real, but skip the inflation rise after a losing year, and cut or raise income by 10% when the withdrawal rate drifts 20% from where it started.',
-    tradeOff: 'Income stays mostly steady, with occasional 10% cuts or rises. That flexibility usually allows a higher starting amount than constant real.',
+    about: 'Like inflation-adjusted, but cut income by 10% when withdrawals get too high, and raise it by 10% when they get too low.',
+    tradeOff: 'Mostly steady, and usually allows a higher start.',
   },
   'floor-ceiling': {
     name: 'Floor and ceiling',
     aka: '',
-    about: 'Take a percentage of the pot each year, but never less than a floor or more than a ceiling, both rising with inflation.',
-    tradeOff: 'Income follows the markets within set limits. The floor protects your spending, but it keeps drawing at that level through bad years.',
+    about: 'Take a share of the pot, but never below a floor or above a ceiling.',
+    tradeOff: 'Follows markets within set limits.',
   },
 };
 

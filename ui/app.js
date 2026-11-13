@@ -359,28 +359,20 @@ function currentAge() {
   return Number.isInteger(a) && a > 0 ? a : null;
 }
 
-/** Fill and open the overlay that describes the four strategies and how each is tried. */
+/** Fill and open the overlay that describes the four strategies (2 x 2 on wide screens). */
 function openStrategies() {
-  const rates = (xs) => {
-    const t = xs.map((x) => `${+(x * 100).toFixed(1)}%`);
-    return t.length > 1 ? `${t.slice(0, -1).join(', ')} and ${t.at(-1)}` : t[0];
-  };
-  const tried = (g) => {
-    let s = `Tried at starting rates of ${rates(g.rates)} of the pot, plus the rate that pays exactly the income you want.`;
-    if (g.strategy === 'floor-ceiling') s += ` Floors of ${g.floorPct.map((x) => `${Math.round(x * 100)}%`).join(' or ')} of the income you want, ceiling ${Math.round(g.ceilingPct[0] * 100)}%.`;
-    return s;
-  };
   const g = state.config.grid;
-  $('strategies-body').innerHTML = g.strategies.map((row) => {
+  const all = g.strategies.flatMap((row) => row.rates);
+  const pctOf = (x) => `${+(x * 100).toFixed(1)}%`;
+  $('strategies-body').innerHTML = `<div class="strategy-grid">${g.strategies.map((row) => {
     const s = STRATEGY_INFO[row.strategy];
     return `<section class="strategy">
         <h3>${escapeHtml(s.name)}${s.aka ? ` <span class="aka">(${escapeHtml(s.aka)})</span>` : ''}</h3>
         <p>${escapeHtml(s.about)}</p>
-        <p class="trade"><strong>Trade-off:</strong> ${escapeHtml(s.tradeOff)}</p>
-        <p class="tried">${escapeHtml(tried(row))}</p>
+        <p class="trade">${escapeHtml(s.tradeOff)}</p>
       </section>`;
-  }).join('')
-    + `<p class="hint">Each strategy is also tried with ${g.mixes.length} share and bond mixes (${Math.round(g.mixes[0] * 100)}% to ${Math.round(g.mixes.at(-1) * 100)}% shares), ${g.cashBufferYears.length} cash buffers and your own mix, and every version is run through every past retirement. The results show the few that meet your needs.</p>`;
+  }).join('')}</div>
+    <p class="hint">Each is tried at several starting rates (${pctOf(Math.min(...all))} to ${pctOf(Math.max(...all))}), plus the rate that pays exactly what you want, with different mixes and cash buffers.</p>`;
   $('strategies-dialog').showModal();
 }
 
@@ -1407,7 +1399,7 @@ function renderSavedPlans() {
     const s = p.summary || {};
     const parts = planParts(p.plan);
     const split = s.split || parts.split;
-    const name = displayName(p.name, planName(p.plan), defaultName(s.pot, parts.approach));
+    const name = shownName(p, defaultName(s.pot, parts.approach));
     const when = [shortDate(p.savedAt), s.years ? `${s.years} yrs` : '', p.inputs?.priority === 'pass-on' ? 'pass on more' : ''].filter(Boolean).join(' \u00b7 ');
     const typical = String(s.typical || '').split(' then ');
     const approachSub = [parts.pinned ? 'at income wanted' : '', parts.cash].filter(Boolean).join(' \u00b7 ');
@@ -1550,12 +1542,26 @@ function initSavedPlans() {
   });
 }
 
+/**
+ * The name to show for a saved plan (see displayName). Plans saved before "Constant real" was
+ * renamed "Inflation-adjusted" have the old wording in their names, so both are recognised.
+ */
+const OLD_LABEL = ['Inflation-adjusted', 'Constant real'];
+function shownName(entry, fallback = entry.name) {
+  const full = planName(entry.plan);
+  // A default name from before the rename reads with the new wording.
+  const dn = defaultName(entry.summary?.pot, planParts(entry.plan).approach);
+  if (entry.name === dn.replace('inflation-adjusted', 'constant real')) return dn;
+  const shown = displayName(entry.name, full, fallback);
+  return shown !== entry.name ? shown : displayName(entry.name, full.replace(...OLD_LABEL), fallback);
+}
+
 /** Show or end edit mode: the bar above the form names the plan being edited. */
 function setEditing(id) {
   const entry = id ? findPlan(plansNow(), id) : null;
   state.editingId = entry ? entry.id : null;
   $('edit-bar').hidden = !entry;
-  if (entry) $('edit-name').textContent = displayName(entry.name, planName(entry.plan), entry.name);
+  if (entry) $('edit-name').textContent = shownName(entry);
 }
 
 /** Open a saved plan: its inputs go back in the form, the search reruns, and its detail opens. */
@@ -1628,7 +1634,7 @@ function renderCompare() {
   const labels = ['A', 'B', 'C'].slice(0, N);
   const names = cmp.plans.map((c) => {
     const parts = planParts(c.entry.plan);
-    return displayName(c.entry.name, planName(c.entry.plan), defaultName(c.entry.summary?.pot, parts.approach));
+    return shownName(c.entry, defaultName(c.entry.summary?.pot, parts.approach));
   });
   const head = `<header class="results-head">
       <button type="button" class="link back" data-nav="plan">\u2039 Back to your plans</button>
@@ -1732,12 +1738,12 @@ function initCompare() {
 function saveBlock() {
   const d = state.detail;
   const saved = d.item.savedId ? findPlan(plansNow(), d.item.savedId) : null;
-  if (saved) return `<p class="save-line" role="status">${d.item.updated ? 'Updated' : 'Saved as'} <strong>${escapeHtml(displayName(saved.name, planName(saved.plan), saved.name))}</strong>. Find it on the first page under Your saved plans.</p>`;
+  if (saved) return `<p class="save-line" role="status">${d.item.updated ? 'Updated' : 'Saved as'} <strong>${escapeHtml(shownName(saved))}</strong>. Find it on the first page under Your saved plans.</p>`;
   const count = plansNow().length;
   const editing = state.editingId ? findPlan(plansNow(), state.editingId) : null;
   if (!d.saving) {
     if (editing) {
-      const nm = escapeHtml(displayName(editing.name, planName(editing.plan), editing.name));
+      const nm = escapeHtml(shownName(editing));
       return `<div class="save-line"><button type="button" class="primary small" data-save-update>Update ${nm}</button>
         <button type="button" class="secondary" data-save-open ${count >= MAX_PLANS ? 'disabled' : ''}>Save as a new plan</button>
         <span class="hint">${count >= MAX_PLANS ? `You have ${MAX_PLANS} saved plans, so this can only update ${nm}.` : `Update replaces ${nm} with this option and these inputs, in the same place in your list.`}</span>
@@ -1770,7 +1776,9 @@ function currentSave() {
 /** True if a saved plan still has a name the tool gave it (not one typed in). */
 function hasDefaultName(entry) {
   if (entry.autoName) return true;
-  return entry.name === defaultName(entry.summary?.pot, planParts(entry.plan).approach) || entry.name === planName(entry.plan);
+  const dn = defaultName(entry.summary?.pot, planParts(entry.plan).approach);
+  const full = planName(entry.plan);
+  return [dn, full, dn.replace('inflation-adjusted', 'constant real'), full.replace(...OLD_LABEL)].includes(entry.name);
 }
 
 function finishSave(out) {
