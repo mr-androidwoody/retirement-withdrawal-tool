@@ -673,6 +673,9 @@ function refresh() {
   }
   if (state.priority === 'pass-on') text += 'With room to spare, recommend leaving more behind. ';
   for (const b of $('priority').querySelectorAll('[data-priority]')) b.setAttribute('aria-checked', String(b.dataset.priority === state.priority));
+  $('priority-hint').textContent = state.priority === 'pass-on'
+    ? 'The recommended option keeps to the income you want and leaves the extra invested, so more is typically left at the end.'
+    : 'If markets do well, the recommended option lets your income rise above what you want.';
   $('goal-text').innerHTML = text.trim();
   // Re-reading the form should not leave stale error marks on untouched fields.
   if ($('form-errors').hidden) for (const el of document.querySelectorAll('[aria-invalid="true"]')) el.removeAttribute('aria-invalid');
