@@ -1409,6 +1409,8 @@ function renderSavedPlans() {
   const box = $('saved-plans');
   $('saved-plans-panel').hidden = list.length === 0;
   $('saved-plans-count').textContent = `(${list.length} of ${MAX_PLANS})`;
+  $('nav-saved').hidden = list.length === 0;
+  $('nav-saved-count').textContent = list.length;
   if (!list.length) { box.innerHTML = ''; $('saved-plans-panel').open = false; return; }
   // The arrow just used stays highlighted on the plan that moved, until something else is done.
   const moved = (id, dir) => (state.lastMove && state.lastMove.id === id && state.lastMove.dir === dir ? ' moved' : '');
@@ -1864,5 +1866,49 @@ function initTheme() {
   darkQuery?.addEventListener?.('change', () => { if (!THEMES.includes(choice)) applyTheme(choice); });
 }
 
+/**
+ * The fixed header: the logo goes back to the first page, Saved plans opens that panel, and
+ * "The 4 strategies" opens its overlay. On phones the links and theme sit in a menu.
+ */
+function initHeader() {
+  const header = $('site-header');
+  const btn = $('menu-btn');
+  const setMenu = (open, { focusButton = false } = {}) => {
+    header.classList.toggle('menu-open', open);
+    btn.setAttribute('aria-expanded', String(open));
+    btn.setAttribute('aria-label', open ? 'Close menu' : 'Menu');
+    $('menu-scrim').hidden = !open;
+    if (!open && focusButton) btn.focus();
+  };
+  btn.addEventListener('click', () => setMenu(!header.classList.contains('menu-open')));
+  $('menu-scrim').addEventListener('click', () => setMenu(false));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && header.classList.contains('menu-open')) setMenu(false, { focusButton: true });
+  });
+  matchMedia('(min-width: 721px)').addEventListener?.('change', (e) => { if (e.matches) setMenu(false); });
+
+  $('brand').addEventListener('click', (e) => {
+    e.preventDefault();
+    setMenu(false);
+    show('plan');
+  });
+  $('nav-saved').addEventListener('click', () => {
+    setMenu(false);
+    show('plan');
+    $('saved-plans-panel').open = true;
+    $('saved-plans-panel').scrollIntoView({ block: 'start' });
+    $('saved-plans-panel').querySelector('summary').focus({ preventScroll: true });
+  });
+  $('site-nav').addEventListener('click', (e) => {
+    if (e.target.closest('[data-open-strategies]')) { setMenu(false); openStrategies(); }
+  });
+
+  // A line under the header once the page has moved under it.
+  const onScroll = () => header.classList.toggle('is-scrolled', window.scrollY > 4);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+}
+
 initTheme();
+initHeader();
 load();
