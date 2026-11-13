@@ -36,7 +36,10 @@ longest length that fits (or that even 20 years runs past 110, from age 92 up).
 
 ### Search
 
-Four strategies: Constant real, Fixed percentage, Guyton-Klinger guardrails, Floor and ceiling.
+Four strategies: Inflation-adjusted (the 4% rule; id `constant-real`, called "Constant real"
+before Nov 2026, and older saved names using that wording are still recognised by `shownName`),
+Fixed percentage, Guyton-Klinger guardrails, Floor and ceiling. The "4 withdrawal strategies"
+link opens a short 2 x 2 overlay that fits without scrolling.
 Each is tried at several rates plus a "pinned" rate that pays exactly the income wanted, across
 the grid mixes and cash buffers, plus the user's own mix two ways (cash spent first, or kept as
 a flexible reserve). A few hundred plans; the page shows the exact count (484 for the defaults).

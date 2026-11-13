@@ -100,7 +100,7 @@ and in Node:
 - `profile.js` turns the request into year-by-year wanted, minimum and other income
   (pensions that start at an age, and earnings that stop at an age; earnings replace
   withdrawals while they last rather than adding to spending)
-- `strategies.js` the four withdrawal strategies: constant real, fixed percentage,
+- `strategies.js` the four withdrawal strategies: inflation-adjusted (the 4% rule), fixed percentage,
   Guyton-Klinger guardrails, floor and ceiling
 - `simulate.js` runs one plan through one past retirement, a year at a time
 - `metrics.js` measures each run (lowest income, years below wanted, end value, biggest fall)
