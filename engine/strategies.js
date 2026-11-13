@@ -27,7 +27,7 @@ const otherNominal = (ctx, t = ctx.t) => ctx.profile.other[t] * ctx.index;
 
 const constantReal = {
   id: 'constant-real',
-  label: 'Constant real',
+  label: 'Inflation-adjusted',
   summary: 'Same income every year, rising with inflation.',
   incomeAware: true,
   withdraw(params, state, ctx) {
