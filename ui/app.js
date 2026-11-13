@@ -1593,6 +1593,7 @@ function setEditing(id) {
 
 /** Open a saved plan: its inputs go back in the form, the search reruns, and its detail opens. */
 function viewSaved(entry) {
+  $('saved-plans-panel').open = false; // closed when you come back to the first page
   restoreInputs(entry.inputs);
   for (const f of MONEY_FIELDS) formatMoney(f);
   refresh();
