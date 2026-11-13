@@ -20,17 +20,37 @@
 </script>
 </head>
 <body>
+<header class="site-header" id="site-header">
+  <div class="site-header-in">
+    <a class="brand" href="./" id="brand"><span class="brand-mark"><svg viewBox="0 0 26 26" aria-hidden="true"><path d="M3 6c4 0 6 9 10 11s7 0 10 0"/><circle cx="23" cy="17" r="1.6"/></svg></span><span class="brand-name">Will it last?</span></a>
+    <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="site-nav" aria-label="Menu">
+      <svg class="i-menu" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      <svg class="i-close" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <nav class="site-nav" id="site-nav" aria-label="Main">
+      <button type="button" class="nav-link" id="nav-saved" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12v16l-6-4-6 4z"/></svg>Saved plans<span class="nav-count" id="nav-saved-count"></span>
+      </button>
+      <button type="button" class="nav-link" data-open-strategies>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>The 4 strategies
+      </button>
+      <div class="theme-row">
+        <span class="theme-label" id="theme-label">Theme</span>
+        <div class="theme-switch" role="radiogroup" aria-labelledby="theme-label" id="theme-switch">
+          <button type="button" role="radio" data-theme-choice="light" aria-checked="false">Light</button>
+          <button type="button" role="radio" data-theme-choice="dark" aria-checked="false">Dark</button>
+          <button type="button" role="radio" data-theme-choice="navy" aria-checked="false">Navy</button>
+        </div>
+      </div>
+    </nav>
+  </div>
+</header>
+<div class="menu-scrim" id="menu-scrim" hidden></div>
 <main class="page">
-<div class="theme-switch" role="radiogroup" aria-label="Colour theme" id="theme-switch">
-  <button type="button" role="radio" data-theme-choice="light" aria-checked="false">Light</button>
-  <button type="button" role="radio" data-theme-choice="dark" aria-checked="false">Dark</button>
-  <button type="button" role="radio" data-theme-choice="navy" aria-checked="false">Navy</button>
-</div>
 
 <!-- ================= 1. PLAN ================= -->
 <section id="view-plan" class="view" aria-labelledby="plan-title">
   <header class="masthead">
-    <div class="eyebrow">Retirement Withdrawal Tool</div>
     <h1 id="plan-title">How much can I take from my pot, and will it last?</h1>
     <p class="source"><span class="dot" aria-hidden="true"></span><span id="source-line">Loading the historical data...</span></p>
   </header>

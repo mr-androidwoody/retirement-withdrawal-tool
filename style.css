@@ -22,6 +22,8 @@
   /* Fixed colours that were written inline, now named so dark mode can change them. */
   --on-accent: #ffffff;   /* text on an accent background */
   --surface: #ffffff;     /* inputs and unselected buttons */
+  --header-bg: rgba(246, 246, 243, .86);  /* the fixed header: the page ground, slightly see-through */
+  --scrim: rgba(27, 31, 36, .35);         /* behind the phone menu */
   --panel: #f5f6f4;       /* figure boxes inside cards */
   --subtle: #fbfbf9;      /* recipe rows, text areas */
   --th: #f1f3f5;          /* table headings */
@@ -74,6 +76,8 @@
   --zero: #6f7680;
   --on-accent: #0e1b20;
   --surface: #1e2226;
+  --header-bg: rgba(27, 30, 34, .86);
+  --scrim: rgba(0, 0, 0, .45);
   --panel: #2c3136;
   --subtle: #212529;
   --th: #2c3136;
@@ -122,6 +126,8 @@
   --zero: #7a7ba3;
   --on-accent: #1d1c3a;
   --surface: #2a2a47;
+  --header-bg: rgba(37, 37, 63, .86);
+  --scrim: rgba(12, 12, 30, .5);
   --panel: #3e3d6a;
   --subtle: #2c2c4a;
   --th: #393862;
@@ -148,7 +154,8 @@
 
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--ground); color: var(--ink); font: 15px/1.5 var(--sans); }
-.page { max-width: 1180px; margin: 0 auto; padding: 40px 20px 64px; }
+html { scroll-padding-top: 84px; }
+.page { max-width: 1180px; margin: 0 auto; padding: 96px 20px 64px; }
 .view { display: flex; flex-direction: column; gap: 24px; }
 /* The form, results and option detail all share the page width (1180px, set on .page). */
 [hidden] { display: none !important; }
@@ -158,7 +165,48 @@ h1, h2, h3 { margin: 0; }
 p { margin: 0; }
 
 .masthead { display: flex; flex-direction: column; gap: 10px; }
-.eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+
+/* ---------- fixed header: logo and name, Saved plans, the 4 strategies, theme ---------- */
+.site-header { position: fixed; top: 0; left: 0; right: 0; z-index: 50; background: var(--header-bg); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-bottom: 1px solid transparent; transition: border-color .15s; }
+.site-header.is-scrolled, .site-header.menu-open { border-bottom-color: var(--line); }
+.site-header-in { max-width: 1180px; height: 64px; margin: 0 auto; padding: 0 20px; display: flex; align-items: center; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 11px; text-decoration: none; color: var(--ink); border-radius: 8px; }
+.brand:hover { color: var(--ink); }
+.brand-mark { width: 34px; height: 34px; border-radius: 9px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; flex: none; }
+.brand-mark svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.brand-mark circle { fill: currentColor; }
+.brand-name { font: 600 18px/1 var(--display); letter-spacing: -.01em; white-space: nowrap; }
+.site-nav { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+.nav-link { font: inherit; font-size: 14px; font-weight: 500; color: var(--accent); background: none; border: 0; border-radius: 8px; padding: 8px 10px; min-height: 40px; display: inline-flex; align-items: center; gap: 7px; cursor: pointer; }
+.nav-link:hover { color: var(--accent-dark); background: var(--accent-soft); }
+.nav-link svg, .menu-btn svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.nav-count { background: var(--accent-soft); color: var(--accent-dark); border-radius: 10px; padding: 1px 7px; font-size: 12px; line-height: 1.5; }
+.theme-row { display: flex; align-items: center; gap: 10px; margin-left: 8px; }
+.theme-label { display: none; color: var(--muted); font-size: 14px; }
+.menu-btn { display: none; margin-left: auto; width: 44px; height: 44px; border: 0; border-radius: 8px; background: none; color: var(--accent); cursor: pointer; place-items: center; }
+.menu-btn svg { width: 22px; height: 22px; }
+.menu-btn .i-close, .menu-open .menu-btn .i-menu { display: none; }
+.menu-open .menu-btn .i-close { display: block; }
+.brand:focus-visible, .nav-link:focus-visible, .menu-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.menu-scrim { position: fixed; inset: 0; z-index: 40; background: var(--scrim); }
+@media (max-width: 720px) {
+  .site-header-in { height: 60px; padding: 0 12px 0 16px; }
+  .brand-mark { width: 32px; height: 32px; border-radius: 8px; }
+  .brand-mark svg { width: 20px; height: 20px; }
+  .brand-name { font-size: 17px; }
+  .menu-btn { display: grid; }
+  .site-nav { display: none; position: absolute; top: 60px; left: 0; right: 0; margin: 0; flex-direction: column; align-items: stretch; gap: 0; padding: 4px 16px 18px; background: var(--card); border-bottom: 1px solid var(--line); }
+  .menu-open .site-nav { display: flex; }
+  .menu-open { background: var(--card); }
+  .nav-link { min-height: 52px; font-size: 16px; color: var(--ink); border-bottom: 1px solid var(--line); border-radius: 0; padding: 8px 2px; }
+  .nav-link svg { color: var(--accent); }
+  .nav-link:hover { background: none; color: var(--ink); }
+  .nav-count { margin-left: auto; }
+  .theme-row { margin: 16px 0 0; justify-content: space-between; }
+  .theme-label { display: inline; }
+  .page { padding-top: 84px; }
+  html { scroll-padding-top: 76px; }
+}
 h1 { font: 600 40px/1.15 var(--display); }
 .source { color: var(--muted); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); display: inline-block; }
@@ -483,8 +531,7 @@ th.num { white-space: normal; }
 .nw { white-space: nowrap; }
 
 /* Colour theme switch: small, top right of every page. */
-.theme-switch { display: flex; justify-content: flex-end; gap: 4px; margin-bottom: -8px; }
-@media (max-width: 720px) { .theme-switch { margin-bottom: 0; position: relative; z-index: 1; } }
+.theme-switch { display: flex; justify-content: flex-end; gap: 4px; }
 .theme-switch button { font: inherit; font-size: 13px; padding: 6px 12px; min-height: 36px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--muted); cursor: pointer; }
 .theme-switch button[aria-checked="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 
@@ -610,3 +657,8 @@ th.num { white-space: normal; }
 .edit-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 12px 16px; border-radius: 12px; background: var(--info); border: 2px solid var(--accent); font-size: 15px; }
 .edit-bar[hidden] { display: none; }
 .edit-bar:focus { outline: none; box-shadow: 0 0 0 3px var(--focus); }
+
+/* Phone menu: theme buttons at full touch size (after the base .theme-switch rules). */
+@media (max-width: 720px) {
+  .site-nav .theme-switch button { min-height: 44px; padding: 8px 14px; font-size: 14px; }
+}

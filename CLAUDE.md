@@ -71,6 +71,16 @@ Your-mix rows and the comparison cards follow the same choice.
   stepping dark to bright, and are not status colours. The rank number on each box is the market measure. Plus a "Retired in X"
   strip for the selected year.
 
+### Header
+
+A fixed header on every view (`site-header` in `index.html`, `initHeader` in `ui/app.js`): the logo
+(a line that draws down then holds, in the accent colour; `favicon.svg` matches) and the name
+"Will it last?", which go back to the first page; Saved plans (shown only when there are some, with
+the count; opens that panel); The 4 strategies (the overlay); and the Light / Dark / Navy switch.
+At 720px and below these sit in a menu (button, Escape or the scrim closes it). The page scrolls
+under a slightly see-through `--header-bg`; a line appears once scrolled. `scroll-padding-top`
+keeps scrolled-to items clear of it.
+
 ### Results page
 
 Heading and request summary, the All / Worst 10 / Best 10 choice, a recommendation box (strategy
