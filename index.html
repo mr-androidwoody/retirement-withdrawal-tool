@@ -138,9 +138,10 @@
       <div class="field">
         <span class="field-label" id="priority-label">If there is room to spare</span>
         <div class="segmented" role="radiogroup" aria-labelledby="priority-label" id="priority">
-          <button type="button" role="radio" data-priority="spend" aria-checked="true">Spend more<small>highest typical income</small></button>
-          <button type="button" role="radio" data-priority="pass-on" aria-checked="false">Pass on more<small>pay what you want, leave the most</small></button>
+          <button type="button" role="radio" data-priority="spend" aria-checked="true">Spend more<small>higher income in good years</small></button>
+          <button type="button" role="radio" data-priority="pass-on" aria-checked="false">Pass on more<small>steady income, more left at the end</small></button>
         </div>
+        <p class="hint" id="priority-hint" aria-live="polite"></p>
       </div>
 
       <div class="links">
@@ -154,6 +155,7 @@
           <span>Income changes later</span>
           <button type="button" class="link" id="remove-change">Remove</button>
         </div>
+        <p class="hint">For a different income from an age, such as spending less later in life. In today's money, like the figures above.</p>
         <div class="grid-3">
           <div class="field">
             <label for="change-age">From age</label>
