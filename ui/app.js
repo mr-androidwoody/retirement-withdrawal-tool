@@ -1,7 +1,7 @@
 // The page: wizard, results and option detail. All modelling happens in engine/.
 
 import { validateDataset, makeWindows, lengthError, endAgeError } from '../engine/dataset.js';
-import { runSearch, whatIf, buildGrid, strategySettings, CASH_RULES, currentFromMix, evaluatePlan } from '../engine/search.js';
+import { runSearch, whatIf, buildGrid, strategySettings, CASH_RULES, currentFromMix, evaluatePlan, lowestPot } from '../engine/search.js';
 import { simulate } from '../engine/simulate.js';
 import { buildProfile } from '../engine/profile.js';
 import { summarisePlan, investmentIndex, worstFall } from '../engine/metrics.js';
@@ -123,8 +123,10 @@ function formatMoney(id) {
 
 /** Everything on the form, in the saved-inputs format (also what a saved plan keeps). */
 function collectInputs() {
-  const data = { version: 1, fields: {}, open: {}, mix: state.mixLabel, mixUnit: state.mixUnit, riskShare: state.riskShare, priority: state.priority, keepMix: $('keep-mix').checked };
+  const data = { version: 1, fields: {}, open: {}, mix: state.mixLabel, mixUnit: state.mixUnit, riskShare: state.riskShare, priority: state.priority, keepMix: $('keep-mix').checked, findLowest: $('find-lowest').checked };
   for (const id of SAVED_FIELDS) data.fields[id] = $(id).value;
+  // While the pot is worked out, the pot that was typed is kept for when the switch goes off.
+  if (data.findLowest) data.fields.pot = $('pot').dataset.kept || '';
   for (const id of SAVED_BOXES) data.open[id] = !$(id).hidden;
   return data;
 }
@@ -145,6 +147,7 @@ function loadSaved() {
 /** Put saved inputs (by default the last ones used) back into the form. Returns true if there were any. */
 function restoreInputs(data = loadSaved()) {
   if (!data) return false;
+  setFindLowest(false); // the pot box back to normal before the saved figures go in
   for (const id of SAVED_FIELDS) if (typeof data.fields?.[id] === 'string' && $(id)) $(id).value = data.fields[id];
   if (!typedYears().ok) $('years').value = String(state.config.defaults.years);
   const open = data.open || {};
@@ -169,6 +172,7 @@ function restoreInputs(data = loadSaved()) {
   setMixUnit(data.mixUnit === 'gbp' ? 'gbp' : 'pct', { convert: false });
   const labels = [...(state.config.currentMixes || []).map((m) => m.label), 'Custom'];
   selectMix(labels.includes(data.mix) ? data.mix : (state.config.defaultMix || 'Custom'));
+  if (data.findLowest) { setFindLowest(true); refresh(); }
   return true;
 }
 
@@ -246,7 +250,8 @@ function initForm() {
   });
   $('mix-unit').addEventListener('click', (e) => {
     const btn = e.target.closest('[data-unit]');
-    if (btn) { setMixUnit(btn.dataset.unit); refresh(); }
+    // While the pot is worked out there is no pot to split, so Custom stays in percentages.
+    if (btn && !(btn.dataset.unit === 'gbp' && $('find-lowest').checked)) { setMixUnit(btn.dataset.unit); refresh(); }
   });
   $('mix-use-pot').addEventListener('click', () => {
     const m = readMix();
@@ -267,6 +272,7 @@ function initForm() {
   });
   $('plan-form').addEventListener('change', refresh);
   $('keep-mix').addEventListener('change', refresh);
+  $('find-lowest').addEventListener('change', () => { setFindLowest($('find-lowest').checked); refresh(); });
   for (const id of MONEY_FIELDS) $(id).addEventListener('blur', () => formatMoney(id));
   $('plan-form').addEventListener('submit', onFind);
 
@@ -486,7 +492,8 @@ function readRequest() {
   const tooOld = typed.ok && ageOk ? endAgeError(age, years, state.config.retirementLength) : null;
   if (tooOld) { mark('years', true); errors.push(tooOld); }
 
-  mark('pot', !(pot > 0)); if (!(pot > 0)) errors.push('Enter the size of your pot.');
+  const findLowest = $('find-lowest').checked;
+  if (!findLowest) { mark('pot', !(pot > 0)); if (!(pot > 0)) errors.push('Enter the size of your pot.'); }
   mark('wanted', !(wanted > 0)); if (!(wanted > 0)) errors.push('Enter the income you want.');
   const minBad = !(minimum >= 0) || (wanted > 0 && minimum > wanted);
   mark('minimum', minBad);
@@ -570,7 +577,7 @@ function readRequest() {
 
   return {
     mix: mixRead.error ? null : mixRead,
-    request: { pot, years, age: ageOk ? age : null, wanted, minimum, incomeChange, otherIncome, riskShare: state.riskShare, maxFailures: allowedFor(years), annualFee: fee, priority: state.priority },
+    request: { pot: findLowest ? 0 : pot, years, age: ageOk ? age : null, wanted, minimum, incomeChange, otherIncome, riskShare: state.riskShare, maxFailures: allowedFor(years), annualFee: fee, priority: state.priority, ...(findLowest ? { findLowest } : {}) },
     errors,
   };
 }
@@ -578,7 +585,7 @@ function readRequest() {
 function planCount(request) {
   const req = request && request.pot > 0 && request.wanted > 0 ? request : null;
   const per = strategySettings(state.config, req).length;
-  if ($('keep-mix').checked) return CASH_RULES.length * per;
+  if ($('keep-mix').checked || $('find-lowest').checked) return CASH_RULES.length * per;
   return buildGrid(state.config, req).length + CASH_RULES.length * per;
 }
 
@@ -605,12 +612,15 @@ function refresh() {
   const fee = Number($('fee').value);
   const mix = readMix();
   const potNow = parseAmount($('pot').value);
-  const usedFor = 'The search also tries other mixes.';
+  const usedFor = $('find-lowest').checked ? 'The lowest pot keeps this mix.' : 'The search also tries other mixes.';
   const customGbp = state.mixLabel === 'Custom' && state.mixUnit === 'gbp';
   // The Custom chip's bar shows the split typed in (empty until Custom has one).
   $('custom-mix-bar').innerHTML = state.mixLabel === 'Custom' && !mix.error ? mixParts(mix) : '';
   if (mix.error) $('mix-summary').textContent = mix.error;
   else if (customGbp) {
+    const p = wholePercents(mix);
+    $('mix-summary').textContent = `${p[0]}% shares \u00b7 ${p[1]}% bonds \u00b7 ${p[2]}% cash. ${usedFor}`;
+  } else if ($('find-lowest').checked) {
     const p = wholePercents(mix);
     $('mix-summary').textContent = `${p[0]}% shares \u00b7 ${p[1]}% bonds \u00b7 ${p[2]}% cash. ${usedFor}`;
   } else if (potNow > 0) {
@@ -637,7 +647,7 @@ function refresh() {
   $('years-hint').textContent = tooOld || (typed.ok
     ? `Tested against ${n} past retirements (starting ${first} to ${last}). Any length from ${min} to ${max} years.`
     : `Enter a whole number of years from ${min} to ${max}.`);
-  $('settings-summary').textContent = $('keep-mix').checked
+  $('settings-summary').textContent = $('keep-mix').checked || $('find-lowest').checked
     ? `Tries all four approaches with your mix only, and ${buffers}. Charges ${Number.isFinite(fee) ? fee : '?'}% a year.`
     : `Tries all four approaches with ${mixes} and ${buffers}, plus your mix as it is. Charges ${Number.isFinite(fee) ? fee : '?'}% a year.`;
 
@@ -648,7 +658,10 @@ function refresh() {
   const has = (x) => Number.isFinite(x) && x > 0;
   let span = request.age ? `${years} years, from age ${request.age} to ${request.age + years - 1},` : `${years} years`;
   if (!typed.ok) span = '[how many years]';
-  let text = `Find options to draw <strong>${has(request.wanted) ? gbp(request.wanted) : '[income you want]'}</strong> a year for ${span} from <strong>${has(request.pot) ? gbp(request.pot) : '[your pot]'}</strong>. `
+  const mixNow = readMix();
+  let text = request.findLowest
+    ? `Find the <strong>smallest pot</strong>${mixNow.error ? '' : ` with your ${mixLabelText(mixNow)} mix`} that pays <strong>${has(request.wanted) ? gbp(request.wanted) : '[income you want]'}</strong> a year for ${span.replace(/,$/, '')}. `
+    : `Find options to draw <strong>${has(request.wanted) ? gbp(request.wanted) : '[income you want]'}</strong> a year for ${span} from <strong>${has(request.pot) ? gbp(request.pot) : '[your pot]'}</strong>. `
     + `Income should never fall below <strong>${Number.isFinite(request.minimum) ? gbp(request.minimum) : '[your minimum]'}</strong>. `;
   if (request.incomeChange) {
     text += `From age ${request.age + request.incomeChange.fromYear - 1}, ${gbp(request.incomeChange.wanted)} a year, never below ${gbp(request.incomeChange.minimum)}. `;
@@ -701,10 +714,22 @@ function runFind(after) {
   box.hidden = true;
   const btn = $('find');
   btn.disabled = true;
-  btn.textContent = 'Working...';
+  btn.textContent = request.findLowest ? 'Working out the lowest pot...' : 'Working...';
   // Let the button repaint before the search runs (well under a second).
   setTimeout(() => {
     try {
+      // "I don't know my pot": work out the lowest pot first, then search with it.
+      state.lowestMode = null;
+      if (request.findLowest) {
+        const lp = lowestPot({ dataset: state.dataset, config: state.config, request, mix });
+        if (!lp.found) {
+          box.hidden = false;
+          box.innerHTML = `<ul><li>No pot up to ${escapeHtml(gbp(lp.upTo))} pays what you want with your mix. Try a lower income or minimum, or allow more risk.</li></ul>`;
+          return;
+        }
+        request.pot = lp.pot;
+        state.lowestMode = { pot: lp.pot };
+      }
       state.request = request;
       state.mix = mix;
       // Rank every start year once, by the real return of your mix over its first years.
@@ -714,18 +739,114 @@ function runFind(after) {
       state.bestYears = pickPeriods(state.ranking, 'best', rk.subsetSize);
       state.views = new WeakMap();
       state.result = runSearch({ dataset: state.dataset, config: state.config, request,
-        current: currentFromMix(request.pot, mix), keepMix: $('keep-mix').checked });
-      // The inputs these results came from, kept with a plan if it is saved.
+        current: currentFromMix(request.pot, mix), keepMix: $('keep-mix').checked || Boolean(request.findLowest) });
+      // The inputs these results came from, kept with a plan if it is saved. A plan from a
+      // worked-out pot is kept with that pot, so it reruns the same way.
       state.searchInputs = collectInputs();
+      if (state.lowestMode) Object.assign(state.searchInputs, { findLowest: false, keepMix: true, fields: { ...state.searchInputs.fields, pot: formatAmount(state.lowestMode.pot) } });
       after();
     } catch (err) {
       box.hidden = false;
       box.textContent = `Something went wrong: ${err.message}`;
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Find options';
+      btn.textContent = findLabel();
     }
   }, 30);
+}
+
+const findLabel = () => ($('find-lowest').checked ? 'Find the lowest pot' : 'Find options');
+
+/**
+ * "I don't know my pot: find the smallest that works". On: the pot box is set aside (what was
+ * typed is kept) and a Custom mix in pounds turns into percentages. Off: the pot comes back.
+ */
+function setFindLowest(on) {
+  const pot = $('pot');
+  if (on && state.mixLabel === 'Custom' && state.mixUnit === 'gbp') setMixUnit('pct');
+  if (on && !pot.disabled) {
+    pot.dataset.kept = pot.value;
+    pot.value = '';
+    pot.placeholder = 'Worked out for you';
+    pot.disabled = true;
+    pot.removeAttribute('aria-invalid');
+  } else if (!on && pot.disabled) {
+    pot.value = pot.dataset.kept || '';
+    delete pot.dataset.kept;
+    pot.placeholder = '';
+    pot.disabled = false;
+  }
+  $('find-lowest').checked = on;
+  $('mix-unit').querySelector('[data-unit="gbp"]').setAttribute('aria-disabled', String(on));
+  $('find').textContent = findLabel();
+}
+
+// ---------- the lowest pot, worked out after the results show ----------
+
+/** What the lowest pot depends on: everything but the pot itself. */
+const lowestKey = () => JSON.stringify([{ ...state.request, pot: 0 }, state.mix]);
+
+/** Start working out the lowest pot for the results on show, unless it is already known. */
+function startLowest() {
+  if (state.lowestMode || !state.mix) return;
+  const key = lowestKey();
+  if (state.lowest?.key === key) return;
+  state.lowest = { key, status: 'working' };
+  // After the results have painted; it takes well under a second.
+  setTimeout(() => {
+    if (state.lowest?.key !== key) return;
+    try {
+      const lp = lowestPot({ dataset: state.dataset, config: state.config, request: state.request, mix: state.mix });
+      state.lowest = { key, status: 'done', ...lp };
+    } catch {
+      state.lowest = { key, status: 'error' };
+    }
+    const el = $('lowest-pot');
+    if (el) el.outerHTML = lowestBox();
+  }, 60);
+}
+
+/** The lowest pot line on the results page (nothing until it has been asked for). */
+function lowestBox() {
+  const lp = state.lowest;
+  if (state.lowestMode || !lp || lp.key !== lowestKey() || lp.status === 'error') return '';
+  const mixName = mixLabelText(state.mix);
+  const potNow = state.request.pot;
+  const none = state.result.rows.length === 0;
+  const icon = '<svg viewBox="0 0 26 26" aria-hidden="true"><path d="M3 6c4 0 6 9 10 11s7 0 10 0"/><circle cx="23" cy="17" r="1.6"/></svg>';
+  let big; let sub; let btn = '';
+  if (lp.status === 'working') {
+    return `<section class="lowest-pot working" id="lowest-pot" aria-live="polite">
+      <span class="lp-icon"><span class="spinner" aria-hidden="true"></span></span>
+      <div class="lp-text"><p class="lp-big">Working out the lowest pot that pays what you want\u2026</p><p class="lp-sub">With your ${mixName} mix, to the nearest \u00a35,000.</p></div></section>`;
+  }
+  if (!lp.found) {
+    big = `No pot up to ${gbp(lp.upTo)} pays what you want with your ${mixName} mix.`;
+    sub = 'Try a lower income or minimum, or allow more risk.';
+  } else {
+    const gap = lp.pot - potNow;
+    big = none
+      ? `With your ${mixName} mix, paying what you want takes a pot of <strong>about ${gbp(lp.pot)}</strong>.`
+      : `Lowest pot that pays what you want, with your ${mixName} mix: <strong>about ${gbp(lp.pot)}</strong>.`;
+    if (gap === 0) sub = 'The same as your pot, to the nearest \u00a35,000.';
+    else if (gap < 0) sub = `${gbp(-gap)} less than your pot, to the nearest \u00a35,000.`;
+    else sub = `${gbp(gap)} more than your ${gbp(potNow)}, to the nearest \u00a35,000.`;
+    if (gap !== 0) btn = `<button type="button" class="secondary" data-try-pot="${lp.pot}">Try ${gbp(lp.pot)}</button>`;
+  }
+  return `<section class="lowest-pot" id="lowest-pot" aria-live="polite">
+      <span class="lp-icon">${icon}</span>
+      <div class="lp-text"><p class="lp-big">${big}</p><p class="lp-sub">${sub}</p></div>${btn}</section>`;
+}
+
+/** Rerun everything with a different pot (a Custom mix in pounds is scaled to match). */
+function tryPot(pot) {
+  if (state.mixLabel === 'Custom' && state.mixUnit === 'gbp') {
+    const m = readMix();
+    if (!m.error && m.total > 0) MIX_FIELDS.forEach((id) => { const v = parseAmount($(id).value); if (Number.isFinite(v)) $(id).value = formatAmount(v * pot / m.total); });
+  }
+  $('pot').value = formatAmount(pot);
+  refresh();
+  runFind(() => { renderResults(); show('results'); });
 }
 
 function show(view) {
@@ -945,10 +1066,13 @@ function renderResults() {
   else if (r.currentRows && r.currentRows.length) heading = 'Your results';
   else heading = k ? `${k} option${k > 1 ? 's' : ''} that meet${k > 1 ? '' : 's'} your needs` : 'No option meets these needs';
 
+  const lowMode = state.lowestMode;
+  if (lowMode) heading = `You need a pot of about ${gbp(lowMode.pot)}`;
   let html = `<button type="button" class="link back" data-nav="plan">‹ Change your inputs</button>
     <header class="results-head">
       <h1>${heading}</h1>
-      <p class="hint">${gbp(req.wanted)} a year, never below ${gbp(req.minimum)}${req.incomeChange ? `; then ${gbp(req.incomeChange.wanted)}, never below ${gbp(req.incomeChange.minimum)}, ${req.age ? `from age ${req.age + req.incomeChange.fromYear - 1}` : `from year ${req.incomeChange.fromYear}`}` : ''} \u00b7 ${state.request.maxFailures === 0 ? 'none' : `up to ${state.request.maxFailures}`} of ${all} past retirements may run out \u00b7 ${r.plansTried.toLocaleString('en-GB')} options tested${r.keepMix ? `, all with your ${mixName} mix` : ''}</p>
+      <p class="hint">${gbp(req.wanted)} a year, never below ${gbp(req.minimum)}${req.incomeChange ? `; then ${gbp(req.incomeChange.wanted)}, never below ${gbp(req.incomeChange.minimum)}, ${req.age ? `from age ${req.age + req.incomeChange.fromYear - 1}` : `from year ${req.incomeChange.fromYear}`}` : ''} \u00b7 ${state.request.maxFailures === 0 ? 'none' : `up to ${state.request.maxFailures}`} of ${all} past retirements may run out \u00b7 ${lowMode ? `with your ${mixName} mix, to the nearest \u00a35,000` : `${r.plansTried.toLocaleString('en-GB')} options tested${r.keepMix ? `, all with your ${mixName} mix` : ''}`}</p>
+      ${lowMode ? `<p class="lowest-note">Here is how that pot would best be drawn. With \u00a35,000 less, the income you want falls short too often.</p>` : ''}
     </header>`;
 
   const rankYears = state.config.risk.rankYears;
@@ -960,6 +1084,8 @@ function renderResults() {
       <div class="segmented periods" role="radiogroup" aria-label="Which past retirements the figures cover">${periodChoices(which, all)}</div>
       <p class="hint">${escapeHtml(periodHint)}</p>
     </div>`;
+  startLowest();
+  html += lowestBox();
 
   // The recommendation in one box, before the tables.
   const recRow = r.rows.find((x) => x.labels.includes('Recommended'));
@@ -1049,6 +1175,8 @@ function renderResults() {
     }
     const open = e.target.closest('[data-open]');
     if (open) { openDetail(state.openable[Number(open.dataset.open)]); return; }
+    const tp = e.target.closest('[data-try-pot]');
+    if (tp) { tryPot(Number(tp.dataset.tryPot)); return; }
     if (e.target.closest('[data-nav="plan"]')) show('plan');
   };
 }
