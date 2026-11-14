@@ -283,10 +283,13 @@ function initForm() {
 
   $('fee').value = (config.defaults.annualFee * 100).toFixed(2);
   applyValues(config.defaults);
-  if (!restoreInputs()) {
+  state.returning = restoreInputs();
+  if (!state.returning) {
     const typical = config.presets.find((p) => p.id === 'typical');
     if (typical) applyValues({ incomeChange: null, ...typical.values });
   }
+  // On a phone: coming back, every step folded; a first visit opens step 1.
+  if (isFolding()) openStep(state.returning ? null : 1, { scroll: false });
   // Saved figures come back as typed; show them with separators.
   for (const id of MONEY_FIELDS) formatMoney(id);
   $('clear-saved').addEventListener('click', () => {
@@ -693,7 +696,129 @@ function refresh() {
   $('goal-text').innerHTML = text.trim();
   // Re-reading the form should not leave stale error marks on untouched fields.
   if ($('form-errors').hidden) for (const el of document.querySelectorAll('[aria-invalid="true"]')) el.removeAttribute('aria-invalid');
+  stepSummaries({ request, years, n, mix: mixNow, typed, fee });
   saveInputs();
+}
+
+// ---------------------------------------------------------------- phone: steps that fold
+
+/*
+ * At 720px and narrower, steps 1 to 4 fold to a one-line summary and open one at a time
+ * (a heading button per step, "Next" at the end of each), and Find sits in a bar pinned to the
+ * bottom of the screen. Someone coming back with saved answers sees every step folded; a first
+ * visit opens step 1. A step with something to fix says so in its summary and in the bar. On
+ * wider screens every step is open, as before.
+ */
+const FOLD_STEPS = [1, 2, 3, 4];
+const STEP_TITLES = { 1: 'Your pot', 2: 'The income you need', 3: 'How much risk you would accept', 4: 'Mix, history and approaches' };
+const phoneQuery = matchMedia('(max-width: 720px)');
+const isFolding = () => document.body.classList.contains('fold-steps');
+
+function initFolding() {
+  for (const k of FOLD_STEPS) {
+    const sec = $(`step-${k}`);
+    const textBox = sec.querySelector('.step-head > div');
+    const sum = document.createElement('p');
+    sum.className = 'step-summary';
+    sum.id = `step-${k}-summary`;
+    textBox.append(sum);
+    const next = document.createElement('button');
+    next.type = 'button';
+    next.className = 'secondary step-next';
+    next.textContent = k < 4 ? `Next: ${STEP_TITLES[k + 1].toLowerCase()}` : 'Done';
+    next.addEventListener('click', () => {
+      if (k < 4) openStep(k + 1);
+      else { openStep(null); $('step-5').scrollIntoView({ block: 'start' }); }
+    });
+    sec.append(next);
+  }
+  $('find-bar-btn').addEventListener('click', () => $('plan-form').requestSubmit());
+  // The bar's button mirrors the real one (its words while working, and whether it can be pressed).
+  new MutationObserver(() => {
+    $('find-bar-btn').textContent = $('find').textContent;
+    $('find-bar-btn').disabled = $('find').disabled;
+  }).observe($('find'), { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ['disabled'] });
+  // While typing, the phone keyboard is up: the bar steps aside so it never covers a box.
+  $('plan-form').addEventListener('focusin', (e) => {
+    if (e.target.matches('input:not([type=checkbox]):not([type=radio]), textarea, select')) document.body.classList.add('typing');
+  });
+  $('plan-form').addEventListener('focusout', () => document.body.classList.remove('typing'));
+  const apply = () => setFolding(phoneQuery.matches);
+  phoneQuery.addEventListener?.('change', apply);
+  apply();
+}
+
+/** Turn folding on (phones) or off (wider screens). */
+function setFolding(on) {
+  document.body.classList.toggle('fold-steps', on);
+  for (const k of FOLD_STEPS) {
+    const sec = $(`step-${k}`);
+    const h2 = sec.querySelector('h2');
+    const btn = h2.querySelector('.step-toggle');
+    if (on && !btn) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'step-toggle';
+      b.setAttribute('aria-describedby', `step-${k}-summary`);
+      b.textContent = h2.textContent;
+      b.addEventListener('click', () => openStep(sec.classList.contains('folded') ? k : null));
+      h2.replaceChildren(b);
+    } else if (!on && btn) {
+      h2.textContent = btn.textContent;
+    }
+    if (!on) sec.classList.remove('folded');
+  }
+  if (on) openStep(state.returning ? null : 1, { scroll: false });
+}
+
+/** Open one step (or none) and fold the rest. */
+function openStep(k, { scroll = true } = {}) {
+  for (const s of FOLD_STEPS) {
+    const sec = $(`step-${s}`);
+    const open = s === k;
+    sec.classList.toggle('folded', !open);
+    sec.querySelector('.step-toggle')?.setAttribute('aria-expanded', String(open));
+  }
+  if (k && scroll) $(`step-${k}`).scrollIntoView({ block: 'start' });
+}
+
+/** The one-line summary for each step, and what the bar says. */
+function stepSummaries({ request, years, mix, typed, fee }) {
+  const has = (x) => Number.isFinite(x) && x > 0;
+  const age = request.age;
+  const s1 = [
+    request.findLowest ? 'Pot worked out for you' : (has(request.pot) ? gbp(request.pot) : 'Pot not set'),
+    age ? `age ${age}` : null,
+    typed.ok ? `${years} years${age ? ` (to ${age + years - 1})` : ''}` : null,
+    mix.error ? null : `${mixLabelText(mix)} mix`,
+  ];
+  const s2 = [
+    has(request.wanted) ? `${gbp(request.wanted)} a year${Number.isFinite(request.minimum) ? `, never below ${gbp(request.minimum)}` : ''}` : 'Income not set',
+    request.incomeChange && age ? `then ${gbp(request.incomeChange.wanted)} from ${age + request.incomeChange.fromYear - 1}` : null,
+    request.otherIncome.length ? `${request.otherIncome.length} other income${request.otherIncome.length > 1 ? 's' : ''}` : null,
+    state.priority === 'pass-on' ? 'pass on more' : 'spend more',
+  ];
+  const choice = state.config.risk.choices.find((c) => c.share === state.riskShare);
+  const s3 = [`${choice ? choice.label : ''} (up to ${allowedFor(years)} of ${windowsFor(years).length} may run out)`];
+  const s4 = [
+    $('keep-mix').checked || request.findLowest ? 'Your mix only' : 'All four approaches, other mixes too',
+    `charges ${Number.isFinite(fee) ? fee : '?'}% on shares and bonds`,
+  ];
+  const lines = { 1: s1, 2: s2, 3: s3, 4: s4 };
+  let firstBad = null;
+  for (const k of FOLD_STEPS) {
+    const bad = Boolean($(`step-${k}`).querySelector('[aria-invalid="true"]'));
+    if (bad && !firstBad) firstBad = k;
+    $(`step-${k}`).classList.toggle('has-error', bad);
+    $(`step-${k}-summary`).innerHTML = escapeHtml(lines[k].filter(Boolean).join(' \u00b7 '))
+      + (bad ? `<span class="step-fix">${ICON.warn}Something here needs fixing</span>` : '');
+  }
+  const note = $('find-bar-note');
+  note.classList.toggle('warn', Boolean(firstBad));
+  note.innerHTML = firstBad
+    ? `${ICON.warn}Something to fix in step ${firstBad}`
+    : `${planCount(request).toLocaleString('en-GB')} options will be tested`;
+  return firstBad;
 }
 
 // ---------------------------------------------------------------- search
@@ -710,6 +835,12 @@ function runFind(after) {
   if (errors.length) {
     box.hidden = false;
     box.innerHTML = `<ul>${errors.map((x) => `<li>${escapeHtml(x)}</li>`).join('')}</ul>`;
+    refresh(); // the summaries and the bar say which step needs fixing
+    // On a phone, open the first step with something to fix, or the list of errors.
+    if (isFolding()) {
+      const k = FOLD_STEPS.find((s) => $(`step-${s}`).querySelector('[aria-invalid="true"]'));
+      if (k) openStep(k); else box.scrollIntoView({ block: 'center' });
+    }
     return;
   }
   box.hidden = true;
@@ -2042,4 +2173,5 @@ function initHeader() {
 
 initTheme();
 initHeader();
+initFolding();
 load();
