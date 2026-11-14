@@ -413,7 +413,7 @@
     "worstIncome": 22500,
     "ranOutOrNearly": 0,
     "cutCount": 0,
-    "medianEnd": 1497741,
+    "medianEnd": 1501875,
     "worstDrawdown": 0.367
    },
    {
@@ -658,7 +658,7 @@
     "worstIncome": 35000,
     "ranOutOrNearly": 25,
     "cutCount": 23,
-    "medianEnd": 22530,
+    "medianEnd": 22777,
     "worstDrawdown": 0.278
    },
    {
@@ -761,11 +761,11 @@
      }
     },
     "status": "meets-both",
-    "typicalIncome": 29655,
+    "typicalIncome": 29696,
     "worstIncome": 20000,
     "ranOutOrNearly": 0,
     "cutCount": 0,
-    "medianEnd": 594505,
+    "medianEnd": 595675,
     "worstDrawdown": 0.367
    },
    {
