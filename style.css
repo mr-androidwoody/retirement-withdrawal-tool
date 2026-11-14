@@ -662,3 +662,31 @@ th.num { white-space: normal; }
 @media (max-width: 720px) {
   .site-nav .theme-switch button { min-height: 44px; padding: 8px 14px; font-size: 14px; }
 }
+
+/* ---------- "I don't know my pot" switch (step 1) ---------- */
+.switch { display: inline-flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; min-height: 44px; cursor: pointer; margin: 4px 0 12px; }
+.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.switch-track { width: 40px; height: 24px; border-radius: 12px; background: var(--line-strong); position: relative; flex: none; transition: background .15s; }
+.switch-track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--surface); transition: left .15s; }
+.switch input:checked + .switch-track { background: var(--accent); }
+.switch input:checked + .switch-track::after { left: 19px; }
+.switch input:focus-visible + .switch-track { outline: 2px solid var(--accent); outline-offset: 2px; }
+#pot:disabled { border-style: dashed; background: transparent; color: var(--muted); }
+#pot:disabled::placeholder { color: var(--muted); opacity: 1; }
+.unit-switch [aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
+
+/* ---------- the lowest pot line on the results page ---------- */
+.lowest-pot { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; background: var(--accent-soft); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; margin: 0 0 20px; }
+.lp-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--card); color: var(--accent); display: grid; place-items: center; flex: none; }
+.lp-icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.lp-icon circle { fill: currentColor; }
+.lp-text { flex: 1 1 200px; min-width: 0; }
+.lp-text p { margin: 0; }
+.lp-big { font-size: 16px; color: var(--ink); }
+.lp-big strong { font-weight: 700; }
+.lp-sub { font-size: 14px; color: var(--muted); margin-top: 2px !important; }
+.lowest-pot button { flex: none; }
+.spinner { width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid var(--line-strong); border-top-color: var(--accent); animation: lp-spin .8s linear infinite; }
+@keyframes lp-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+.lowest-note { margin: 4px 0 0; font-size: 15px; color: var(--ink); }

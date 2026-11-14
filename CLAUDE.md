@@ -71,6 +71,22 @@ Your-mix rows and the comparison cards follow the same choice.
   stepping dark to bright, and are not status colours. The rank number on each box is the market measure. Plus a "Retired in X"
   strip for the selected year.
 
+### Lowest pot
+
+`lowestPot` in `engine/search.js` (tested in `tests/lowest.test.js`): the smallest pot, to the
+nearest £5,000 and rounded up, that pays what you want with your own mix (any approach, either
+cash rule, status `meets-both`; meeting only the minimum is not enough). A halving search from
+the pot asked about, about 8 tries and well under a second. Shown three ways:
+- Results page: a line under the All / Worst 10 / Best 10 choice, worked out just after the
+  results show (`startLowest`, `lowestBox`, cached by everything but the pot), with "Try (pot)"
+  (`tryPot`, which scales a Custom mix in pounds).
+- Nothing meets: the same line says what pot it would take.
+- Step 1 switch "I don't know my pot: find the smallest that works" (`find-lowest`,
+  `setFindLowest`): the pot box is set aside (the typed pot is kept for when it goes off),
+  Custom stays in percentages, the button says "Find the lowest pot", and the results lead with
+  "You need a pot of about (pot)", searched with your mix only. A plan saved from there keeps
+  the pot found, with the switch off. No pot up to £20 million: a form error.
+
 ### Header
 
 A fixed header on every view (`site-header` in `index.html`, `initHeader` in `ui/app.js`): the logo
@@ -172,7 +188,7 @@ Charts say "Typical", not median. Longer notes sit in closed `<details>` (figure
 
 ## Working on it
 
-- Tests: `node --test` (Node 18+), 121 passing. They also run on GitHub Actions on every push
+- Tests: `node --test` (Node 18+), 124 passing. They also run on GitHub Actions on every push
   (`.github/workflows/test.yml`). Add tests for engine changes.
 - If results change on purpose: review `tools/results-report.md` (`node tools/print-results.mjs`),
   then `node tools/print-results.mjs --update-golden`.
@@ -188,5 +204,5 @@ Charts say "Typical", not median. Longer notes sit in closed `<details>` (figure
 - Check-ins for saved plans: enter today's pot (and price rise since the start) to see where you
   stand against the plan's past runs and this year's income under its rules. Discussed: one
   check-in for all plans, yearly income resets, optional export/import file between devices.
-- On the "nothing meets your needs" page, say what would work (e.g. the highest income any plan
-  meets). Needs extra searches.
+- On the "nothing meets your needs" page, also say the highest income your pot would pay (the
+  lowest pot is already there). Needs extra searches.
