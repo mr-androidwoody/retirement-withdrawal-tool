@@ -54,7 +54,7 @@ Pot £500,000, 35 years, wanted £20,000, minimum £16,000, up to 2 of 42 may ru
 | Option | Plan | Typical income | Worst year | Ran out, or nearly | Income cut | Typically left | Biggest fall |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Recommended, Highest typical income | Floor and ceiling 4.5%, floor 100%, no cash buffer, 100/0 shares and bonds | £30,000 | £20,000 | 0 of 42 | 0 of 42 | £1,235,254 | 37% |
-| Safest income | Inflation-adjusted 4.5%, 5-year cash buffer, 100/0 shares and bonds | £22,500 | £22,500 | 0 of 42 | 0 of 42 | £1,497,741 | 37% |
+| Safest income | Inflation-adjusted 4.5%, 5-year cash buffer, 100/0 shares and bonds | £22,500 | £22,500 | 0 of 42 | 0 of 42 | £1,501,875 | 37% |
 | Most left behind | Inflation-adjusted 4%, no cash buffer, 100/0 shares and bonds | £20,000 | £20,000 | 0 of 42 | 0 of 42 | £1,951,228 | 37% |
 
 Other approaches:
@@ -94,7 +94,7 @@ Pot £500,000, 30 years, wanted £26,000, minimum £20,000; from year 11 wanted 
 | Option | Plan | Typical income | Worst year | Ran out, or nearly | Income cut | Typically left | Biggest fall |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Recommended | Floor and ceiling 5.5%, floor 100%, no cash buffer, 100/0 shares and bonds | £30,000 | £20,000 | 1 of 47 | 1 of 47 | £657,839 | 37% |
-| Safest income | Floor and ceiling 5.5%, floor 100%, 5-year cash buffer, 100/0 shares and bonds | £29,655 | £20,000 | 0 of 47 | 0 of 47 | £594,505 | 37% |
+| Safest income | Floor and ceiling 5.5%, floor 100%, 5-year cash buffer, 100/0 shares and bonds | £29,696 | £20,000 | 0 of 47 | 0 of 47 | £595,675 | 37% |
 | Highest typical income | Floor and ceiling 5.2%, floor 90%, no cash buffer, 100/0 shares and bonds | £30,000 | £18,000 | 0 of 47 | 33 of 47 | £741,395 | 37% |
 | Most left behind | Inflation-adjusted 5.2%, no cash buffer, 100/0 shares and bonds | £20,000 | £20,000 | 1 of 47 | 1 of 47 | £1,181,847 | 37% |
 
