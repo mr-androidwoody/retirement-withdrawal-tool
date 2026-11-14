@@ -265,3 +265,52 @@ export function whatIf({ dataset, config, request: input, plan, dimension, value
     return { value, result: evaluatePlan(variant, windows, request, config.thresholds) };
   });
 }
+
+/**
+ * The lowest pot, to the nearest `step` (rounded up, so the pot found always works), that pays
+ * the income wanted with the user's own mix (`mix` = { equities, bonds, cash } as fractions):
+ * some plan of that mix, with either cash rule and any approach, is 'meets-both', so it never
+ * falls below what you want (nor the minimum) beyond the risk limit. Meeting only the minimum
+ * is not enough: that pot would mostly pay the minimum. A bigger pot never makes the needs harder to meet, so a halving search finds it.
+ * The pot in the request is only the starting guess.
+ * Returns { found: true, pot, tries } or { found: false, upTo, tries } when even `maxPot` fails.
+ */
+export function lowestPot({ dataset, config, request: input, mix, step = 5000, maxPot = 20_000_000 }) {
+  const windows = makeWindows(dataset, input.years, config.firstStartYear);
+  if (windows.length === 0) throw new Error('No past retirements of that length in the data.');
+  const request = withAllowedFailures(input, windows.length);
+  let tries = 0;
+  const meets = (k) => {
+    tries++;
+    const pot = k * step;
+    const req = { ...request, pot };
+    const current = currentFromMix(pot, mix);
+    for (const rule of CASH_RULES) {
+      // The plans that pay exactly the income wanted come first: they usually decide it.
+      const plans = currentPlans(config, current, 0, rule, req)
+        .sort((a, b) => Number(Boolean(b.params.pinned)) - Number(Boolean(a.params.pinned)));
+      for (const p of plans) {
+        if (evaluatePlan(p, windows, req, config.thresholds).status === 'meets-both') return true;
+      }
+    }
+    return false;
+  };
+  const top = Math.ceil(maxPot / step);
+  // A first guess: the pot asked about, or 25 years of the income wanted.
+  let hi = Math.min(top, Math.max(1, Math.ceil((input.pot > 0 ? input.pot : input.wanted * 25) / step)));
+  let lo = 0; // a pot of nothing is taken not to work
+  if (!meets(hi)) {
+    lo = hi;
+    while (true) {
+      if (hi >= top) return { found: false, upTo: top * step, tries };
+      hi = Math.min(top, hi * 2);
+      if (meets(hi)) break;
+      lo = hi;
+    }
+  }
+  while (hi - lo > 1) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (meets(mid)) hi = mid; else lo = mid;
+  }
+  return { found: true, pot: hi * step, tries };
+}
