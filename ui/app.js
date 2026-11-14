@@ -278,7 +278,8 @@ function initForm() {
 
   $('footnote').innerHTML = '<details><summary>Where the market figures come from</summary><p>Shares are a global mix of 16 developed markets in pounds, bonds are UK gilts, cash is UK Treasury bills, and inflation is UK CPI. '
     + '1950 to 2020: Jord\u00e0-Schularick-Taylor Macrohistory Database, Release 6 (<a href="https://www.macrohistory.net/database/">macrohistory.net</a>), used under its non-commercial licence. '
-    + '2021 to 2025 follow the same method using MSCI, Bank of England, OECD and ONS figures.</p></details>';
+    + '2021 to 2025 follow the same method using MSCI, Bank of England, OECD and ONS figures.</p>'
+    + '<p>Cash earns about Bank Rate, like a good cash ISA. Charges are taken off shares and bonds, not cash.</p></details>';
 
   $('fee').value = (config.defaults.annualFee * 100).toFixed(2);
   applyValues(config.defaults);
@@ -648,8 +649,8 @@ function refresh() {
     ? `Tested against ${n} past retirements (starting ${first} to ${last}). Any length from ${min} to ${max} years.`
     : `Enter a whole number of years from ${min} to ${max}.`);
   $('settings-summary').textContent = $('keep-mix').checked || $('find-lowest').checked
-    ? `Tries all four approaches with your mix only, and ${buffers}. Charges ${Number.isFinite(fee) ? fee : '?'}% a year.`
-    : `Tries all four approaches with ${mixes} and ${buffers}, plus your mix as it is. Charges ${Number.isFinite(fee) ? fee : '?'}% a year.`;
+    ? `Tries all four approaches with your mix only, and ${buffers}. Charges ${Number.isFinite(fee) ? fee : '?'}% a year on shares and bonds.`
+    : `Tries all four approaches with ${mixes} and ${buffers}, plus your mix as it is. Charges ${Number.isFinite(fee) ? fee : '?'}% a year on shares and bonds.`;
 
   // Goal in words.
   const { request } = readRequest();
