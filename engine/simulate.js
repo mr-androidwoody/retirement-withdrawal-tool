@@ -13,7 +13,8 @@ import { summarisePath } from './metrics.js';
  * options { rows: true } to include the year rows; { thresholds } from config
  *
  * Order each year: income paid at the start (cash first, then investments), then the
- * money left grows for the year, then the fee is taken and the investments are
+ * money left grows for the year, then the fee is taken off the investments (not cash:
+ * cash ISAs and uninvested platform cash are not charged) and the investments are
  * rebalanced to the mix. Real figures are in money of the retirement's first year.
  *
  * Cash rules:
@@ -88,7 +89,7 @@ export function simulate(plan, window, request, options = {}) {
     const afterWithdrawal = invested + cash;
     const investedReturn = eq * market.equities + (1 - eq) * market.bonds;
     invested *= (1 + investedReturn) * (1 - fee);
-    cash *= (1 + market.cash) * (1 - fee);
+    cash *= 1 + market.cash; // no charges on cash
     const potEnd = invested + cash;
     const portfolioReturn = afterWithdrawal > 0 ? potEnd / afterWithdrawal - 1 : 0;
     const nextIndex = index * (1 + market.inflation);
