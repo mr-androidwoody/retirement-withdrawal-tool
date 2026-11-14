@@ -99,6 +99,18 @@ At 720px and below these sit in a menu (button, Escape or the scrim closes it). 
 under a slightly see-through `--header-bg`; a line appears once scrolled. `scroll-padding-top`
 keeps scrolled-to items clear of it.
 
+### Phone form
+
+At 720px and narrower (`initFolding`, `setFolding`, `openStep`, `stepSummaries` in `ui/app.js`),
+steps 1 to 4 fold to a one-line summary (e.g. "£500,000 · age 60 · 30 years (to 89) ·
+60/30/10 mix") and open one at a time: a button in each heading (stretched over the heading area),
+"Next: (next step)" at the end of each, "Done" on step 4. Coming back with saved answers, every
+step is folded; a first visit opens step 1. Find sits in a bar pinned to the bottom (`find-bar`,
+mirroring `#find` while working), which says how many options will be tested, or "Something to
+fix in step N" after a failed Find (that step opens, and its summary says "Something here needs
+fixing"). The bar steps aside while a text box has focus, so the keyboard never hides a box.
+Step 5 stays open (the goal), without its own button. Wider screens: every step open, as before.
+
 ### Results page
 
 Heading and request summary, the All / Worst 10 / Best 10 choice, a recommendation box (strategy

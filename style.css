@@ -224,7 +224,10 @@ form { display: flex; flex-direction: column; gap: 24px; }
 .step-head h2 { font-size: 19px; margin-bottom: 4px; }
 .step-num { flex: none; width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-weight: 600; display: flex; align-items: center; justify-content: center; }
 .step-num.muted { background: var(--line); color: var(--ink); }
-.step-compact { flex-direction: row; align-items: flex-start; gap: 14px; flex-wrap: wrap; padding: 18px 24px; }
+.step-compact { flex-direction: row; align-items: flex-start; gap: 4px 14px; flex-wrap: wrap; padding: 18px 24px; }
+.step-compact > .step-head { flex: 1 1 100%; }
+.step-compact > .grow { margin-left: 46px; }
+.step-head h2.h-small { font-size: 16px; margin-bottom: 0; }
 .grow { flex: 1 1 400px; display: flex; flex-direction: column; gap: 4px; }
 .h-small { font-size: 16px; }
 
@@ -690,3 +693,35 @@ th.num { white-space: normal; }
 @keyframes lp-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
 .lowest-note { margin: 4px 0 0; font-size: 15px; color: var(--ink); }
+
+/* ---------- phone: steps that fold to a summary, Find pinned at the bottom ---------- */
+.step-summary, .step-next, .find-bar { display: none; }
+@media (max-width: 720px) {
+  .fold-steps .step[data-fold] { gap: 16px; }
+  .fold-steps .step[data-fold] .step-head { position: relative; }
+  .fold-steps .step-toggle { font: inherit; color: inherit; background: none; border: 0; padding: 0; text-align: left; cursor: pointer; }
+  /* The whole heading area opens the step (the button stretches over it). */
+  .fold-steps .step-toggle::after { content: ""; position: absolute; inset: -8px; }
+  .fold-steps .step-toggle:focus-visible { outline: none; }
+  .fold-steps .step-head:has(.step-toggle:focus-visible) { outline: 2px solid var(--accent); outline-offset: 6px; border-radius: 6px; }
+  .fold-steps .step[data-fold] .step-head::after { content: ""; flex: none; width: 10px; height: 10px; margin: 8px 4px 0 auto; border-right: 2px solid var(--accent); border-bottom: 2px solid var(--accent); transform: rotate(-135deg); }
+  .fold-steps .step[data-fold].folded .step-head::after { transform: rotate(45deg); margin-top: 4px; }
+  .fold-steps .step[data-fold].folded > :not(.step-head) { display: none; }
+  .fold-steps .step[data-fold].folded .step-head .hint { display: none; }
+  .fold-steps .step[data-fold].folded .step-summary { display: block; margin: 2px 0 0; font-size: 14px; color: var(--muted); line-height: 1.45; }
+  .fold-steps .step[data-fold].folded { padding: 14px 16px; }
+  .fold-steps .step[data-fold]:not(.folded) { border-color: var(--accent); }
+  .fold-steps .step[data-fold].has-error { border-color: var(--warn); }
+  .fold-steps .step-compact > .grow { margin-left: 0; }
+  .step-fix { display: flex; align-items: center; gap: 6px; margin-top: 4px; color: var(--warn); font-weight: 600; }
+  .step-fix svg, .find-bar-note svg { width: 16px; height: 16px; flex: none; }
+  .fold-steps .step-next { display: block; align-self: flex-end; min-height: 44px; }
+  /* Step 5: the goal stays; the button lives in the bar. */
+  .fold-steps #find { display: none; }
+  .fold-steps .find-bar { display: flex; align-items: center; gap: 12px; position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: var(--card); border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
+  .fold-steps .find-bar button { min-height: 48px; white-space: nowrap; }
+  .find-bar-note { flex: 1; font-size: 13px; color: var(--muted); line-height: 1.35; display: flex; align-items: center; gap: 6px; }
+  .find-bar-note.warn { color: var(--warn); font-weight: 600; }
+  .fold-steps.typing .find-bar { display: none; }
+  .fold-steps #view-plan { padding-bottom: 80px; }
+}

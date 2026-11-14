@@ -67,7 +67,7 @@
   </div>
 
   <form id="plan-form" novalidate>
-    <section class="card step">
+    <section class="card step" data-fold="1" id="step-1">
       <div class="step-head">
         <span class="step-num" aria-hidden="true">1</span>
         <div>
@@ -137,7 +137,7 @@
       </div>
     </section>
 
-    <section class="card step">
+    <section class="card step" data-fold="2" id="step-2">
       <div class="step-head">
         <span class="step-num" aria-hidden="true">2</span>
         <div>
@@ -271,7 +271,7 @@
       </div>
     </section>
 
-    <section class="card step">
+    <section class="card step" data-fold="3" id="step-3">
       <div class="step-head">
         <span class="step-num" aria-hidden="true">3</span>
         <div>
@@ -282,10 +282,14 @@
       <div class="segmented" role="radiogroup" aria-labelledby="risk-hint" id="risk"></div>
     </section>
 
-    <section class="card step step-compact">
-      <span class="step-num muted" aria-hidden="true">4</span>
+    <section class="card step step-compact" data-fold="4" id="step-4">
+      <div class="step-head">
+        <span class="step-num muted" aria-hidden="true">4</span>
+        <div>
+          <h2 class="h-small">Mix, history and approaches</h2>
+        </div>
+      </div>
       <div class="grow">
-        <h2 class="h-small">Mix, history and approaches</h2>
         <p class="hint" id="settings-summary"></p>
         <label class="check" for="keep-mix"><input type="checkbox" id="keep-mix"> Keep my mix (only try my current mix)</label>
         <div id="fee-box" class="field fee" hidden>
@@ -296,12 +300,12 @@
       <button type="button" class="link" id="toggle-fee" aria-expanded="false" aria-controls="fee-box">Edit charges</button>
     </section>
 
-    <section class="card step">
+    <section class="card step" id="step-5">
       <div class="step-head">
         <span class="step-num" aria-hidden="true">5</span>
         <div>
           <h2>Check and find options</h2>
-          <p class="hint">Check your goal, then press the button.</p>
+          <p class="hint">Check your goal, then press Find options.</p>
         </div>
       </div>
       <div class="goal">
@@ -311,6 +315,10 @@
       </div>
       <div id="form-errors" class="errors" role="alert" hidden></div>
       <button type="submit" class="primary" id="find">Find options</button>
+      <div class="find-bar" id="find-bar">
+        <span class="find-bar-note" id="find-bar-note" aria-live="polite"></span>
+        <button type="button" class="primary" id="find-bar-btn">Find options</button>
+      </div>
       <p class="hint" id="saved-note">Your answers stay on this device, so they're here when you come back. Nothing is sent anywhere. <button type="button" class="link inline" id="clear-saved">Clear them</button></p>
     </section>
   </form>
