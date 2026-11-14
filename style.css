@@ -723,5 +723,8 @@ th.num { white-space: normal; }
   .find-bar-note { flex: 1; font-size: 13px; color: var(--muted); line-height: 1.35; display: flex; align-items: center; gap: 6px; }
   .find-bar-note.warn { color: var(--warn); font-weight: 600; }
   .fold-steps.typing .find-bar { display: none; }
-  .fold-steps #view-plan { padding-bottom: 80px; }
+  /* Room below the last thing on the page ("Where the market figures come from") so the
+     pinned bar never covers it. */
+  .fold-steps .page { padding-bottom: calc(112px + env(safe-area-inset-bottom)); }
+  .footnote summary { padding: 12px 0; }
 }
