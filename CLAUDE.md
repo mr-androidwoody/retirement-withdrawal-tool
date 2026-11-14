@@ -21,6 +21,8 @@ global equities in GBP (GDP-weighted, 16 countries), UK gilts, UK bills, UK CPI,
 JST's method from the figures in `tools/recent-sources.json`: MSCI country returns (USD) at BoE
 year-end GBP/USD with JST 2020 GDP weights; a 10-year gilt revalued at BoE year-end yields (IUAMNPY);
 OECD 3-month interbank as a stand-in for T-bills (BoE IUMAJNB stopped in 2017); ONS CPI D7G7.
+Cash earns the bills rate (about Bank Rate, like a good cash ISA). Annual charges are taken off
+shares and bonds only, not cash (Nov 2026: cash ISAs and uninvested platform cash are not charged).
 Overlap tests are in the extension section of `tools/check-report.md` (shares close; the rebuilt gilt
 runs about 1.5% a year below JST over 2011 to 2020, missing roll-down). If `build-datasets.py` is
 rerun, run `extend-dataset.py` after it. Woody holds `JSTdatasetR6.xlsx`; it is not in the repo.
