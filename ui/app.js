@@ -712,6 +712,7 @@ function refresh() {
 const FOLD_STEPS = [1, 2, 3, 4];
 const STEP_TITLES = { 1: 'Your pot', 2: 'The income you need', 3: 'How much risk you would accept', 4: 'Mix, history and approaches' };
 const phoneQuery = matchMedia('(max-width: 720px)');
+const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const isFolding = () => document.body.classList.contains('fold-steps');
 
 function initFolding() {
@@ -1163,7 +1164,8 @@ function optionRows(r, badges, req, n, best, flag) {
       <div class="plan-name">${escapeHtml(planName(r.plan))}</div>
     </div></td>${cells(r, n, req, best)}</tr>
     <tr class="opt-recipe"><td colspan="${COLS.length + 1}">
-      <div class="recipe-grid">
+      <button type="button" class="link phone-only recipe-toggle" data-recipe aria-expanded="false" aria-controls="recipe-${idx}">How it works</button>
+      <div class="recipe-grid" id="recipe-${idx}">
         <p><strong>Income</strong>${escapeHtml(rec.income)}</p>
         <p><strong>Cash</strong>${escapeHtml(rec.cash)}</p>
         <p><strong>The rest</strong>${escapeHtml(rec.rest)}</p>
@@ -1212,7 +1214,7 @@ function renderResults() {
   const periodHint = chosen
     ? `Figures for the ${n} ${which} starts for your mix (${[...chosen].sort((x, y) => x - y).join(', ')}), judged by its first ${rankYears} years. The options stay the same.`
     : `Figures for all ${all} past retirements (starting ${r.windows[0].startYear} to ${r.windows.at(-1).startYear}).`;
-  html += `<div class="periods-bar">
+  html += `<div class="periods-bar pin-periods">
       <div class="segmented periods" role="radiogroup" aria-label="Which past retirements the figures cover">${periodChoices(which, all)}</div>
       <p class="hint">${escapeHtml(periodHint)}</p>
     </div>`;
@@ -1305,6 +1307,13 @@ function renderResults() {
       if (again) again.focus({ preventScroll: true });
       return;
     }
+    const how = e.target.closest('[data-recipe]');
+    if (how) {
+      const on = how.getAttribute('aria-expanded') !== 'true';
+      how.setAttribute('aria-expanded', String(on));
+      how.closest('tbody').classList.toggle('recipe-open', on);
+      return;
+    }
     const open = e.target.closest('[data-open]');
     if (open) { openDetail(state.openable[Number(open.dataset.open)]); return; }
     const tp = e.target.closest('[data-try-pot]');
@@ -1373,7 +1382,7 @@ function whatIfTable(rows, firstHead, label, isCurrent, n, req) {
     + headRow(n, req.years, firstHead).replace('</tr></thead>', '<th scope="col" class="num">Income swings<span class="unit">typical yearly change</span></th></tr></thead>')
     + '<tbody>'
     + rows.map(({ value, result: r }) => `<tr class="${isCurrent(value) ? 'current' : ''}"><td>${label(value)}${isCurrent(value) ? ' (this option)' : ''}</td>`
-        + cells(r, n, req, best) + `<td class="num">${pct(r.medianVolatility, 1)}</td></tr>`).join('')
+        + cells(r, n, req, best) + `<td class="num" data-label="Income swings"><span class="fig">${pct(r.medianVolatility, 1)}</span></td></tr>`).join('')
     + '</tbody></table></div>';
 }
 
@@ -1451,9 +1460,12 @@ function renderDetail() {
     const isBest = Boolean(best) && s.startYear === best.year;
     const isMiddle = Boolean(middle) && s.startYear === middle.year;
     const tagName = isWorst ? worstName : (isBest ? bestName : (isMiddle ? middleName : ''));
-    const tag = isWorst ? '<span class="case-tag worst-tag">Worst case</span>' : (isBest ? '<span class="case-tag best-tag">Best case</span>'
-      : (isMiddle ? '<span class="case-tag mid-tag">Middle case</span>' : ''));
-    return `<button type="button" class="yr ${cls}${tag ? ' tagged' : ''}" data-year="${s.startYear}" aria-pressed="${s.startYear === selected}"${tagName ? ` aria-label="${s.startYear}, ${word}, ${tagName.toLowerCase()}"` : ''}>${rankTag}<span class="yr-y">${ICON[cls]}${s.startYear}</span><small>${word}</small>${tag}</button>`;
+    // Case tags say "Worst case" and so on; phones, with narrower boxes, show only "Worst".
+    const caseTag = (kind, word1) => `<span class="case-tag ${kind}-tag" aria-hidden="true"><span class="long">${word1} case</span><span class="short">${word1}</span></span>`;
+    const tag = isWorst ? caseTag('worst', 'Worst') : (isBest ? caseTag('best', 'Best') : (isMiddle ? caseTag('mid', 'Middle') : ''));
+    // The name is set on every box, so phones can hide the small status word and keep it read out.
+    const name = `${s.startYear}, ${word}${tagName ? `, ${tagName.toLowerCase()}` : ''}${rk ? `, rank ${rk.rank} of ${total}` : ''}`;
+    return `<button type="button" class="yr ${cls}${tag ? ' tagged' : ''}" data-year="${s.startYear}" aria-pressed="${s.startYear === selected}" aria-label="${name}">${rankTag}<span class="yr-y">${ICON[cls]}${s.startYear}</span><small>${word}</small>${tag}</button>`;
   }).join('');
 
   const zeroOr = (v, f) => (Math.round(v / 100) === 0 ? '<span class="zero">0</span>' : f(v));
@@ -1463,9 +1475,9 @@ function renderDetail() {
     const short = x.actualWithdrawal < x.targetWithdrawal - 1e-6;
     const notes = short ? 'Ran out' : [...(x.events || []).map((ev) => EVENT_TEXT[ev] || ev), x.belowMinimum ? 'Below minimum' : (x.belowWanted ? 'Below what you want' : '')].filter(Boolean).join(', ');
     const cls = short || x.belowMinimum ? 'bad' : (x.belowWanted ? 'warn' : '');
-    return `<tr class="${cls}"><td>${req.age ? req.age + x.yearIndex - 1 : x.yearIndex}</td><td>${x.calendarYear}</td><td class="num strong">${money(x.totalIncomeReal)}</td>
-      <td class="num">${zeroOr(fromCash, money)}</td><td class="num">${zeroOr(fromInv, money)}</td><td class="num">${zeroOr(x.guaranteedIncome / x.inflationIndex, money)}</td>
-      <td class="num${x.portfolioReturn < 0 ? ' neg' : ''}">${signedPct(x.portfolioReturn, 1)}</td><td class="num">${signedPct(x.inflation, 1)}</td><td class="num">${zeroOr(x.endTotalReal, (v) => bigMoney(v, 2))}</td><td class="notes">${escapeHtml(notes)}</td></tr>`;
+    return `<tr class="${cls}"><td>${req.age ? req.age + x.yearIndex - 1 : x.yearIndex}</td><td class="more">${x.calendarYear}</td><td class="num strong">${money(x.totalIncomeReal)}</td>
+      <td class="num more">${zeroOr(fromCash, money)}</td><td class="num more">${zeroOr(fromInv, money)}</td><td class="num more">${zeroOr(x.guaranteedIncome / x.inflationIndex, money)}</td>
+      <td class="num more${x.portfolioReturn < 0 ? ' neg' : ''}">${signedPct(x.portfolioReturn, 1)}</td><td class="num more">${signedPct(x.inflation, 1)}</td><td class="num">${zeroOr(x.endTotalReal, (v) => bigMoney(v, 2))}</td><td class="notes more">${escapeHtml(notes)}</td></tr>`;
   }).join('');
 
   const ro = countStatus(r.ranOutOrNearly, 'ranout', limit);
@@ -1498,7 +1510,8 @@ function renderDetail() {
   const spendSub = Math.max(...incomes) - Math.min(...incomes) < 100 ? 'the same every year'
     : `${money(firstInc)} at first, ${money(lastInc)} by the end`;
   const selFig = (k, v, sub, subCls = '') => `<div class="sel-fig"><div class="k">${k}</div><div class="v">${v}</div><div class="sub ${subCls}">${sub}</div></div>`;
-  const selBlock = `<div class="sel-box">
+  const selBlock = `<div class="sel-box" id="sel-box" tabindex="-1">
+      <button type="button" class="link phone-only back-years" data-back-years>‹ Back to the years</button>
       <div class="sel-head">
         <div>
           <h4>Retired in ${selected} <span class="st-chip ${selCls}">${ICON[selCls]}${escapeHtml(selWord)}</span>${selected === worst.year ? `<span class="case-chip worst-chip">${worstName}</span>` : ''}${best && selected === best.year ? `<span class="case-chip best-chip">${bestName}</span>` : ''}${middle && selected === middle.year ? `<span class="case-chip mid-chip">${middleName}</span>` : ''}</h4>
@@ -1537,6 +1550,7 @@ function renderDetail() {
     fact('Biggest fall', pct(r.worstDrawdown), 'in your investments'),
   ].join('');
   const isBufferYears = plan.cashBuffer.years !== undefined;
+  const allCols = Boolean(state.detail.allCols);
   const html = `<button type="button" class="link back" data-nav="results">‹ Back to your options</button>
     <div class="detail">
       <header class="results-head">
@@ -1582,12 +1596,13 @@ function renderDetail() {
 
       <section class="panel">
         <h3>Retired in ${selected}, year by year</h3>
-        <div class="table-box"><table class="year-table"><thead><tr>
-          <th scope="col">${req.age ? 'Your age' : 'Year'}</th><th scope="col">Market year</th><th scope="col" class="num">Income</th>
-          <th scope="col" class="num">From cash</th><th scope="col" class="num">From investments</th><th scope="col" class="num">Pensions and earnings</th>
-          <th scope="col" class="num">Investment return</th><th scope="col" class="num">Inflation</th><th scope="col" class="num">Pot left</th><th scope="col">Notes</th>
+        <button type="button" class="secondary phone-only cols-toggle" data-all-cols aria-expanded="${allCols}" aria-controls="year-table">${allCols ? 'Show fewer columns' : 'Show all columns'}</button>
+        <div class="table-box"><table class="year-table${allCols ? '' : ' few-cols'}" id="year-table"><thead><tr>
+          <th scope="col">${req.age ? 'Your age' : 'Year'}</th><th scope="col" class="more">Market year</th><th scope="col" class="num">Income</th>
+          <th scope="col" class="num more">From cash</th><th scope="col" class="num more">From investments</th><th scope="col" class="num more">Pensions and earnings</th>
+          <th scope="col" class="num more">Investment return</th><th scope="col" class="num more">Inflation</th><th scope="col" class="num">Pot left</th><th scope="col" class="more">Notes</th>
         </tr></thead><tbody>${yearRows}</tbody></table></div>
-        <p class="hint">Market year: the past year whose returns and inflation are used. Investment return is after charges. Amber rows are below what you want; red rows are below your minimum or ran out.</p>
+        <p class="hint">${allCols ? '' : '<span class="phone-only">Amber rows are below what you want; red rows are below your minimum or ran out. Show all columns for where the money came from, returns, inflation and notes. </span>'}<span class="${allCols ? '' : 'wide-only'}">Market year: the past year whose returns and inflation are used. Investment return is after charges. Amber rows are below what you want; red rows are below your minimum or ran out.</span></p>
       </section>
 
       <section class="panel">
@@ -1618,8 +1633,27 @@ function renderDetail() {
     if (yr) {
       state.detail.selected = Number(yr.dataset.year);
       renderDetail();
-      const again = view.querySelector(`[data-year="${yr.dataset.year}"]`);
-      if (again) again.focus();
+      if (phoneQuery.matches) {
+        // Phones: the year's figures sit below the boxes, so bring them into view.
+        const box = $('sel-box');
+        box.focus({ preventScroll: true });
+        box.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' });
+      } else {
+        const again = view.querySelector(`[data-year="${yr.dataset.year}"]`);
+        if (again) again.focus();
+      }
+      return;
+    }
+    if (e.target.closest('[data-back-years]')) {
+      const again = view.querySelector(`[data-year="${state.detail.selected}"]`);
+      $('strip').scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' });
+      if (again) again.focus({ preventScroll: true });
+      return;
+    }
+    if (e.target.closest('[data-all-cols]')) {
+      state.detail.allCols = !state.detail.allCols;
+      renderDetail();
+      view.querySelector('[data-all-cols]')?.focus({ preventScroll: true });
       return;
     }
     if (e.target.closest('[data-save-open]')) {
