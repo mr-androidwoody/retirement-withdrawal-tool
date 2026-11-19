@@ -404,7 +404,9 @@ th.num { white-space: normal; }
 .box.range { background: var(--band-range); }
 .legend .st svg { width: 14px; height: 14px; }
 .chart-wrap { position: relative; }
-.chart-wrap svg:focus { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
+/* Keyboard focus only: a tap on a phone should not ring the chart. */
+.chart-wrap svg:focus { outline: none; }
+.chart-wrap svg:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
 .chart-tip { position: absolute; top: 8px; min-width: 190px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; box-shadow: 0 4px 16px var(--shadow); padding: 10px 12px; font-size: 13px; pointer-events: none; display: flex; flex-direction: column; gap: 3px; }
 .tip-head { font-weight: 600; color: var(--muted); font-size: 12px; margin-bottom: 2px; }
 .tip-row { display: flex; justify-content: space-between; gap: 16px; }
@@ -728,3 +730,98 @@ th.num { white-space: normal; }
   .fold-steps .page { padding-bottom: calc(112px + env(safe-area-inset-bottom)); }
   .footnote summary { padding: 12px 0; }
 }
+
+/* ---------- phone: charts and the bigger tables ---------- */
+/* Only on phones, or only on wider screens. */
+.phone-only { display: none; }
+@media (max-width: 720px) {
+  .phone-only { display: revert; }
+  .wide-only { display: none; }
+}
+
+/* Charts drawn at phone width (ui/charts.js adds is-phone below PHONE_WIDTH): the readout sits
+   above the chart in the page, its height kept whether or not a year is shown, and a sideways
+   drag reads the years while an up or down drag still scrolls. */
+.chart-wrap svg { touch-action: pan-y; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
+.chart-wrap.is-phone .chart-tip { position: static; min-width: 0; box-shadow: none; background: var(--panel); border: 0; margin-bottom: 8px; padding: 8px 12px; gap: 2px; min-height: calc(var(--tip-rows, 6) * 20px + 16px); justify-content: center; }
+.chart-wrap.is-phone .tip-row, .chart-wrap.is-phone .tip-head { line-height: 18px; }
+.chart-wrap.is-phone .tip-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tip-head .tip-note { font-weight: 400; }
+
+@media (max-width: 720px) {
+  .panel { padding: 16px; }
+  .panel.chart .chart-help { display: none; }
+  .legend { gap: 6px 14px; font-size: 12px; }
+  .legend .key { width: 18px; }
+
+  /* Figure tiles two to a row. */
+  .facts, .sel-figs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .fact { padding: 10px 12px; border-left-width: 3px; }
+  .fact .v { font-size: 19px; }
+  .fact .k, .sel-fig .k { font-size: 12px; }
+  .sel-fig { padding: 8px 10px; }
+  .sel-fig .v { font-size: 17px; }
+  .sel-box { padding: 12px; }
+  .back-years { align-self: flex-start; min-height: 40px; padding: 4px 0; }
+
+  /* Start years six to a row: the year with its status icon, the rank in the corner, and a
+     short case tag. The status word is in each box's name for screen readers. */
+  .strip { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+  .yr { min-height: 44px; padding: 13px 1px 4px; font-size: 12px; border-radius: 6px; }
+  .yr small { display: none; }
+  .yr-y { flex-direction: column; gap: 1px; }
+  .yr svg { position: absolute; top: 3px; left: 3px; width: 10px; height: 10px; }
+  .yr .rk { top: 1px; right: 3px; }
+  .yr.tagged { padding-bottom: 18px; }
+  .case-tag { font-size: 8.5px; letter-spacing: .03em; padding: 2px 1px; }
+  .case-tag .long { display: none; }
+
+  /* Year by year: income and pot left until all columns are asked for. */
+  .cols-toggle { align-self: flex-start; }
+  .year-table.few-cols { min-width: 0; }
+  .year-table.few-cols .more { display: none; }
+  .year-table td, .year-table th { padding: 8px 10px; }
+
+  /* What-if tables stack like the results: one block per row, the current one shaded. */
+  .whatif { min-width: 0; }
+  .whatif thead { display: none; }
+  .whatif, .whatif tbody, .whatif tr, .whatif td { display: block; width: 100%; }
+  /* Each row: its name, then the figures two to a row, label over value. */
+  .whatif tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; border-top: 1px solid var(--line); padding: 10px 14px 12px; }
+  .whatif tr:first-child { border-top: 0; }
+  .whatif td { border-top: 0; padding: 0; width: auto; }
+  .whatif td:first-child { grid-column: 1 / -1; font-weight: 600; }
+  .whatif td.num { text-align: left; white-space: normal; font-size: 15px; }
+  .whatif td.num::before { content: attr(data-label); display: block; color: var(--muted); font-size: 12px; font-weight: 400; }
+  .whatif td.num .gap { display: none; }
+  .whatif tr.current { background: var(--accent-soft); }
+  .whatif tr.current td { background: none; }
+
+  /* Results: each option shows its figures; "How it works" opens the recipe. The two links share a line. */
+  .results-table .opt-recipe td { display: flex; flex-wrap: wrap; align-items: center; column-gap: 20px; }
+  .results-table .opt-recipe .recipe-grid, .results-table .opt-recipe .diff { flex-basis: 100%; }
+  .results-table .opt-recipe .link { margin-top: 0; }
+  .results-table .opt-recipe td { padding-top: 4px; padding-bottom: 8px; }
+  .results-table .opt:not(.recipe-open) .opt-recipe .recipe-grid,
+  .results-table .opt:not(.recipe-open) .opt-recipe .diff { display: none; }
+  .recipe-toggle { display: inline-flex; align-items: center; gap: 6px; }
+  .recipe-toggle::after { content: ""; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); margin-top: -4px; }
+  .recipe-toggle[aria-expanded="true"]::after { transform: rotate(-135deg); margin-top: 3px; }
+
+  /* Results: All / Worst 10 / Best 10 stays under the header as you scroll. */
+  #view-results > .pin-periods { display: contents; }
+  #view-results > .pin-periods > .segmented { position: sticky; top: 60px; z-index: 20; margin: -8px -20px 0; padding: 8px 20px; background: var(--header-bg); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #view-results > .pin-periods > .hint { margin-top: -16px; }
+
+  /* Plan page: the two ages share a row; pot and length stay full width. Boxes line up along
+     the bottom when a label wraps. */
+  .pot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; }
+  .pot-grid .f-wide { grid-column: 1 / -1; }
+}
+@media (max-width: 359px) {
+  .strip { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
+/* The loading line: the dot sits in the text, so a long line wraps under the words, not the dot. */
+.source { display: block; }
+.source .dot { margin-right: 8px; vertical-align: 1px; }

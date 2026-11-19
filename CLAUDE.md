@@ -111,6 +111,24 @@ fix in step N" after a failed Find (that step opens, and its summary says "Somet
 fixing"). The bar steps aside while a text box has focus, so the keyboard never hides a box.
 Step 5 stays open (the goal), without its own button. Wider screens: every step open, as before.
 
+### Phone charts and tables
+
+At 720px and narrower (CSS `.phone-only` / `.wide-only` switch parts on and off):
+- Charts (`ui/charts.js`): `lineChart` returns the wide drawing (760 by 300, scaled, end labels);
+  `wireCharts` redraws at the real width below `PHONE_WIDTH` (600px of chart) so text stays 12px:
+  taller, 4 money ticks, ages every 10 years, no end labels (the key names the lines). The
+  readout sits above the chart in the page, shows the last year until you tap, and follows a
+  sideways drag (`touch-action: pan-y` keeps up and down scrolling); it stays until you tap
+  elsewhere. A ResizeObserver redraws on rotation. Wide screens are unchanged.
+- Option detail: figure tiles two to a row; start years six to a row (five under 360px) with
+  the status word hidden (it is in each box's `aria-label`) and short case tags ("Worst");
+  choosing a year scrolls its box into view, with "Back to the years". The year-by-year table
+  shows age, income and pot left until "Show all columns" (`state.detail.allCols`). What-if
+  tables stack, one block per row, figures two to a row.
+- Results: each option's recipe sits behind "How it works" (the recommendation box keeps its
+  recipe); All / Worst 10 / Best 10 sticks under the header (`pin-periods`).
+- Step 1: pot and length full width, the two ages side by side.
+
 ### Results page
 
 Heading and request summary, the All / Worst 10 / Best 10 choice, a recommendation box (strategy
